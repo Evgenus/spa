@@ -1,0 +1,18 @@
+{
+	"folders":
+	[
+		{
+			"follow_symlinks": true,
+			"path": "."
+		}
+	],
+    "build_systems":
+    [
+        {
+            "name": "Cake",
+            "cmd": ["cake", "build"],
+            "shell": true,
+            "working_dir": "${project_path}"
+        }
+    ] 
+}

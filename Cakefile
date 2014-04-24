@@ -19,3 +19,10 @@ task "clean", "removes any js files which were compiled from coffeescript", ->
     files = fs.readdirSync(output_dir).filter((filename) -> filename.indexOf(".js") > 0)
     files = files.map((filename) -> "#{directory}/#{filename}")
     files.forEach((file) -> fs.unlinkSync file if fs.statSync(file).isFile())
+
+task "run", "", ->
+    cmd = ["node", "lib/builder"].join(" ")
+    console.log(cmd)
+    exec cmd, (err, stdout, stderr) ->
+        throw err if err
+        console.log stdout + stderr
