@@ -28,6 +28,7 @@ class Builder
         @hosting = for pattern, template of options.hosting
             pattern: globStringToRegex(pattern)
             template: template
+        @manifest = options.manifest
         @_clear()
 
     filter: (filepath) ->
@@ -110,9 +111,43 @@ class Builder
 
         for dep in detective(source)
             resolved = @_resolve(module, dep)
-            resolved = resolved?.split(path.sep).join('/')
+            unless resolved?
+                throw new Error("Can't resolve dependency #{dep} inside module #{module.relative}")
             module.deps_paths[dep] = resolved
     
+    _find_loop: (candidates) ->
+        for candidate in candidates
+            walked = []
+            _go_deep = (current) =>
+                module = @_by_path[current]
+                deps = module.deps_paths
+                for alias, dep of deps
+                    continue if dep not in candidates
+                    continue if dep in walked
+                    if dep is candidate
+                        return module.relative + " --[" + alias + "]--> " + @_by_path[candidate].relative 
+                    walked.push(dep)
+                    deep = _go_deep(dep)
+                    walked.pop()
+                    if deep?
+                        return module.relative + " --[" + alias + "]--> " + deep
+            has_loop = _go_deep(candidate)
+            return has_loop if has_loop?
+
+    _sort: ->
+        left = (module.path for module in @_modules)
+        order = []
+        while left.length > 0
+            use = []
+            for mpath in left
+                deps = @_by_path[mpath].deps_paths
+                use.push(mpath) if not _(deps).any((dep) -> dep not in order)
+            if use.length == 0
+                throw new Error("Can't sort modules. Loop found: " + @_find_loop(left))
+            order.push(use...)
+            left = left.filter((mpath) -> mpath not in use)
+        @_modules = (@_by_path[mpath] for mpath in order)
+
     _link: ->
         for module in @_modules
             module.deps_ids = {}
@@ -127,28 +162,45 @@ class Builder
             break
         return
 
+    _write_manifest: ->
+        data = for module in @_modules
+            id: module.id
+            url: module.url
+            md5: module.md5
+            size: module.size
+            deps: module.deps_ids
+
+        console.log(data)
+
+        filename = path.resolve(@root, @manifest)
+        content = JSON.stringify(data)
+        fs.writeFileSync(filename, content)
+
     build: () ->
         @_enlist(@root)
         @_set_ids()
         for module in @_modules
             @_analyze(module)
+        @_sort()
         @_link()
         for module in @_modules
             @_host(module)
+        @_write_manifest()
         return
 
 module.exports = Builder
 
 builder = new Builder
-    root: path.resolve(process.cwd(), "./") 
+    root: path.resolve(process.cwd(), "./tests/building/") 
     extensions: [".js"]
     excludes: [
-        "**/node_modules/**"
+        "/node_modules/**"
         ]
     paths:
         "a1": "/module1/a"
     hosting:
-        "/lib/(**/*.js)": "http://127.0.0.1:8010/$1"
+        "/(**/*.js)": "http://127.0.0.1:8010/$1"
+    manifest: "manifest.json"
+
 
 builder.build()
-console.log(builder._modules)

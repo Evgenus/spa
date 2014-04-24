@@ -1,0 +1,1 @@
+var a1 = require("a1/../b");

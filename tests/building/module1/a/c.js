@@ -1,1 +1,1 @@
-// module1/a/c.js
+var m2 = require("../../module2");
