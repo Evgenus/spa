@@ -1,0 +1,51 @@
+{
+ "name": "one-builder",
+ "description": "",
+ "version": "0.0.1",
+ "homepage": "http://github.com/Evgenus/one-builder",
+ "author": {
+  "name": "Eugene Chernyshov",
+  "email": "chernyshov.eugene@gmail.com"
+ },
+ "licenses": [
+  {
+   "type": "MIT",
+   "url": "http://www.opensource.org/licenses/mit-license.php"
+  }
+ ],
+ "keywords": [
+    "single-page",
+    "browser", "builder", "loader"
+ ],
+ "repository": {
+  "type": "git",
+  "url": "git://github.com/Evgenus/one-builder"
+ },
+ "bugs": {
+   "url": "http://github.com/Evgenus/one-builder/issues",
+   "email": "chernyshov.eugene@gmail.com"
+ },
+ "bin": {
+  "1build": "./lib/builder/index.js"
+ },
+ "main": "./lib/builder/index.js",
+ "scripts": {
+   "test": "node node_modules/mocha tests/**/**.js --recursive --reporter spec --bail"
+ },
+ "directories": {
+  "dist": "./lib"
+ },
+ "engines": {
+  "node": "0.10.x"
+ },
+ "dependencies": {
+  "fs-walk": "*",
+  "detective": "^3.1.0",
+  "underscore": "~1.6.0",
+  "underscore.string": "~2.3.3"
+ },
+ "devDependencies": {
+  "mocha": "1.x",
+  "coffee-script": "^1.6.3"
+ }
+}
