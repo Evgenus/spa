@@ -19,6 +19,42 @@ globStringToRegex = (str) ->
             .replace(/\\\?/g, '[^/]')
         , 'm')
 
+class CyclicDependenciesError extends Error
+    constructor: (_loop) ->
+        @_loop = _loop
+        @name = @constructor.name
+        @message = "Can't sort modules. Loop found: \n#{@_loop}"
+
+class UnresolvedDependencyError extends Error
+    constructor: (path, alias) ->
+        @path = path
+        @alias = alias
+        @name = @constructor.name
+        @message = "Can't resolve dependency `#{@alias}` "+
+                   "inside module `#{@path}`"
+
+class ExternalDependencyError extends Error
+    constructor: (path, alias, dep) ->
+        @path = path
+        @alias = alias
+        @dep = dep
+        @name = @constructor.name
+        @message = "Module at path `#{dep}` is required from `#{path}` " +
+                   "as `#{alias}`, but it cant be found inside building scope."
+
+class Loop
+    constructor: (path, alias) ->
+        @_parts = [[path, alias]]
+    prepend: (path, alias) ->
+        @_parts.unshift([path, alias])
+        return this
+    toString: ->
+        return "" if @_parts.length == 0
+        p = @_parts.concat([@_parts[0]])
+        return (for i in [0..@_parts.length-1] 
+            "#{p[i][0]} --[#{p[i][1]}]--> #{p[i+1][0]}" 
+            ).join("\n")
+            
 class Builder
     constructor: (options) ->
         @root = options.root
@@ -32,8 +68,10 @@ class Builder
         @_clear()
 
     filter: (filepath) ->
-        return false if not _(@extensions).any((ext) -> path.extname(filepath) is ext)
-        return not _(@excludes).any((pattern) -> pattern.test(filepath))
+        return false unless _(@extensions).any (ext) -> 
+            path.extname(filepath) is ext
+        return not _(@excludes).any (pattern) -> 
+            pattern.test(filepath)
 
     _clear: ->
         @_modules = []
@@ -43,9 +81,10 @@ class Builder
     _enlist: (root) ->
         walk.filesSync root, (basedir, filename, stat) =>
             filepath = path.join(basedir, filename)
-            relative = '/' + path.relative(root, filepath).split(path.sep).join('/')
+            relative = '/' + path.relative(root, filepath)
+                .split(path.sep).join('/')
 
-            return if not @filter(relative)
+            return unless @filter(relative)
 
             module =
                 path: filepath
@@ -112,7 +151,7 @@ class Builder
         for dep in detective(source)
             resolved = @_resolve(module, dep)
             unless resolved?
-                throw new Error("Can't resolve dependency #{dep} inside module #{module.relative}")
+                throw new UnresolvedDependencyError(module.relative, dep)
             module.deps_paths[dep] = resolved
     
     _find_loop: (candidates) ->
@@ -120,17 +159,16 @@ class Builder
             walked = []
             _go_deep = (current) =>
                 module = @_by_path[current]
+                relative = module.relative
                 deps = module.deps_paths
                 for alias, dep of deps
-                    continue if dep not in candidates
+                    continue unless dep in candidates
                     continue if dep in walked
-                    if dep is candidate
-                        return module.relative + " --[" + alias + "]--> " + @_by_path[candidate].relative 
+                    return new Loop(relative, alias) if dep is candidate
                     walked.push(dep)
                     deep = _go_deep(dep)
                     walked.pop()
-                    if deep?
-                        return module.relative + " --[" + alias + "]--> " + deep
+                    return deep.prepend(relative, alias) if deep?
             has_loop = _go_deep(candidate)
             return has_loop if has_loop?
 
@@ -141,9 +179,9 @@ class Builder
             use = []
             for mpath in left
                 deps = @_by_path[mpath].deps_paths
-                use.push(mpath) if not _(deps).any((dep) -> dep not in order)
+                use.push(mpath) unless _(deps).any((dep) -> dep not in order)
             if use.length == 0
-                throw new Error("Can't sort modules. Loop found: " + @_find_loop(left))
+                throw new CyclicDependenciesError(@_find_loop(left))
             order.push(use...)
             left = left.filter((mpath) -> mpath not in use)
         @_modules = (@_by_path[mpath] for mpath in order)
@@ -154,6 +192,8 @@ class Builder
             for dep, resolved of module.deps_paths
                 if @_by_path[resolved]?
                     module.deps_ids[dep] = @_by_path[resolved].id
+                else
+                    throw new ExternalDependencyError(module.relative, dep, resolved)
 
     _host: (module) ->
         for rule in @hosting
@@ -181,8 +221,8 @@ class Builder
         @_set_ids()
         for module in @_modules
             @_analyze(module)
-        @_sort()
         @_link()
+        @_sort()
         for module in @_modules
             @_host(module)
         @_write_manifest()
@@ -195,12 +235,12 @@ builder = new Builder
     extensions: [".js"]
     excludes: [
         "/node_modules/**"
+        #"/module1/**"
         ]
     paths:
         "a1": "/module1/a"
     hosting:
         "/(**/*.js)": "http://127.0.0.1:8010/$1"
     manifest: "manifest.json"
-
 
 builder.build()

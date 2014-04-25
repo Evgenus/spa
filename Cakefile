@@ -24,5 +24,5 @@ task "run", "", ->
     cmd = ["node", "lib/builder"].join(" ")
     console.log(cmd)
     exec cmd, (err, stdout, stderr) ->
-        console.log stdout + stderr
         throw err if err
+        console.log stdout + stderr
