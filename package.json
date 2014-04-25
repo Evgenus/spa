@@ -1,8 +1,9 @@
 {
-  "name": "one-builder",
+  "name": "spa",
   "version": "0.0.1",
-  "homepage": "http://github.com/Evgenus/one-builder",
+  "homepage": "http://github.com/Evgenus/spa",
   "author": "Eugene Chernyshov <chernyshov.eugene@gmail.com>",
+  "description": "Single-page browser applications builder with continuous integration, granular updates and loader.",
   "licenses": [
     {
       "type": "MIT",
@@ -17,18 +18,18 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/Evgenus/one-builder"
+    "url": "git://github.com/Evgenus/spa"
   },
   "bugs": {
-    "url": "http://github.com/Evgenus/one-builder/issues",
+    "url": "http://github.com/Evgenus/spa/issues",
     "email": "chernyshov.eugene@gmail.com"
   },
   "bin": {
-    "1build": "./lib/builder/cli.js"
+    "spa": "./lib/builder/cli.js"
   },
   "main": "./lib/builder/index.js",
   "scripts": {
-    "test": "node node_modules/mocha tests/**/**.js --recursive --reporter spec --bail"
+    "test": "mocha ./lib/tests/builder/*.js --reporter list"
   },
   "directories": {
     "test": "tests"
@@ -37,12 +38,14 @@
     "node": "0.10.x"
   },
   "dependencies": {
+    "optimist": ">=0.6.1",
     "fs-walk": "*",
     "detective": "^3.1.0",
     "underscore": "~1.6.0",
     "underscore.string": "~2.3.3"
   },
   "devDependencies": {
+    "mock-fs": ">=2.2.0",
     "mocha": "1.x",
     "coffee-script": "^1.6.3"
   },

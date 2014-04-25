@@ -1,1 +1,0 @@
-var m2 = require("../../module2");

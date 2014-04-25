@@ -57,14 +57,14 @@ class Loop
             
 class Builder
     constructor: (options) ->
-        @root = options.root
-        @extensions = options.extensions
-        @excludes = _(options.excludes).map(globStringToRegex)
-        @paths = options.paths
-        @hosting = for pattern, template of options.hosting
+        @root = path.resolve(process.cwd(), options.root)
+        @extensions = options.extensions ? [".js"]
+        @excludes = _(options.excludes ? []).map(globStringToRegex)
+        @paths = options.paths ? {}
+        @hosting = for pattern, template of options.hosting ? {}
             pattern: globStringToRegex(pattern)
             template: template
-        @manifest = options.manifest
+        @manifest = options.manifest ? "manifest.json"
         @_clear()
 
     filter: (filepath) ->
@@ -80,7 +80,7 @@ class Builder
 
     _enlist: (root) ->
         walk.filesSync root, (basedir, filename, stat) =>
-            filepath = path.join(basedir, filename)
+            filepath = path.resolve(basedir, filename)
             relative = '/' + path.relative(root, filepath)
                 .split(path.sep).join('/')
 
@@ -210,8 +210,6 @@ class Builder
             size: module.size
             deps: module.deps_ids
 
-        console.log(data)
-
         filename = path.resolve(@root, @manifest)
         content = JSON.stringify(data)
         fs.writeFileSync(filename, content)
@@ -228,19 +226,7 @@ class Builder
         @_write_manifest()
         return
 
-module.exports = Builder
-
-builder = new Builder
-    root: path.resolve(process.cwd(), "./tests/building/") 
-    extensions: [".js"]
-    excludes: [
-        "/node_modules/**"
-        #"/module1/**"
-        ]
-    paths:
-        "a1": "/module1/a"
-    hosting:
-        "/(**/*.js)": "http://127.0.0.1:8010/$1"
-    manifest: "manifest.json"
-
-builder.build()
+exports.Builder = Builder
+exports.CyclicDependenciesError = CyclicDependenciesError
+exports.UnresolvedDependencyError = UnresolvedDependencyError
+exports.ExternalDependencyError = ExternalDependencyError
