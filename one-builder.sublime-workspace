@@ -4,20 +4,12 @@
 		"selected_items":
 		[
 			[
-				"le",
-				"length"
+				"fil",
+				"filter"
 			],
 			[
 				"re",
-				"resolved"
-			],
-			[
-				"resol",
-				"resolve"
-			],
-			[
-				"fil",
-				"filter"
+				"req	require"
 			],
 			[
 				"accept",
@@ -331,14 +323,6 @@
 	},
 	"buffers":
 	[
-		{
-			"file": "src/builder/index.coffee",
-			"settings":
-			{
-				"buffer_size": 7738,
-				"line_ending": "Windows"
-			}
-		}
 	],
 	"build_system": "Cake",
 	"command_palette":
@@ -416,37 +400,22 @@
 	},
 	"file_history":
 	[
-		"/O/one-page-builder/tests/building/module2/index.js",
-		"/O/one-page-builder/lib/builder/index.js",
-		"/O/one-page-builder/test_errors.html",
-		"/O/one-page-builder/Cakefile",
-		"/O/one-page-builder/tests/building/module1/b.js",
-		"/O/one-page-builder/tests/building/module1/a/c.js",
-		"/O/one-page-builder/node_modules/minimatch/minimatch.js",
-		"/O/one-page-builder/node_modules/resolve/lib/sync.js",
-		"/O/one-page-builder/node_modules/resolve/lib/async.js",
-		"/O/one-page-builder/node_modules/resolve/lib/caller.js",
-		"/O/one-page-builder/tests/building/module2/b.js",
-		"/O/one-page-builder/node_modules/resolve/lib/node-modules-paths.js",
-		"/O/one-page-builder/tests/building/module1/a/index.js",
-		"/O/one-page-builder/tests/building/module2/a.js",
-		"/O/one-page-builder/one-page-builder.sublime-project",
-		"/O/one-page-builder/tests/building/module1/index.js",
-		"/O/one-page-builder/tests/building/module1/a.js",
-		"/F/JavaScript/coffee-script/src/command.coffee",
 		"/O/one-page-builder/src/loader/index.coffee",
 		"/O/one-page-builder/src/builder/index.coffee",
+		"/O/one-page-builder/Cakefile",
 		"/O/one-page-builder/tests/loading/isolator.html",
 		"/O/one-page-builder/tests/loading/pollution.js",
 		"/O/one-page-builder/tests/loading/amd.js",
 		"/O/one-page-builder/tests/loading/commonjs.js",
 		"/F/isolator.html",
+		"/O/one-page-builder/node_modules/minimatch/minimatch.js",
 		"/O/one-page-builder/src/index.coffee",
 		"/O/one-page-builder/src/builder.coffee",
 		"/O/one-page-builder/node_modules/minimatch/node_modules/sigmund/sigmund.js",
 		"/O/one-page-builder/node_modules/minimatch/node_modules/sigmund/README.md",
 		"/O/one-page-builder/lib/builder.js",
 		"/O/one-page-builder/run.cmd",
+		"/F/JavaScript/coffee-script/src/command.coffee",
 		"/O/revigred-server/client/examples/chat/config.yaml",
 		"/O/revigred-server/revigred/__main__.py",
 		"/O/revigred-server/client/tests.html",
@@ -543,11 +512,26 @@
 		"/F/JavaScript/jquery-ui/jquery-ui-evgenus/trunk/ui/mouse.js",
 		"/F/JavaScript/jquery-ui/jquery-ui-git/ui/jquery.ui.mouse.js",
 		"/C/nodejs/grunt.cmd",
-		"/O/revigred/src/math.coffee"
+		"/O/revigred/src/math.coffee",
+		"/O/revigred/src/gizmos.coffee",
+		"/O/revigred/src/flow.coffee",
+		"/O/revigred/src/settings.coffee",
+		"/O/revigred/src/utils.coffee",
+		"/O/revigred/lib/revigred.map",
+		"/I/JavaScript/less.js/lib/less/parser.js",
+		"/I/JavaScript/less.js/lib/less/tree.js",
+		"/I/JavaScript/less.js/lib/less/rhino.js",
+		"/I/JavaScript/less.js/lib/less/lessc_helper.js",
+		"/I/JavaScript/less.js/lib/less/functions.js",
+		"/U/storage/assets.txt",
+		"/I/JavaScript/less.js/lib/less/index.js",
+		"/I/JavaScript/less.js/lib/less/env.js",
+		"/I/JavaScript/less.js/lib/less/colors.js",
+		"/I/JavaScript/less.js/lib/less/browser.js"
 	],
 	"find":
 	{
-		"height": 34.0
+		"height": 23.0
 	},
 	"find_in_files":
 	{
@@ -562,19 +546,6 @@
 		"case_sensitive": true,
 		"find_history":
 		[
-			"not",
-			"filter",
-			"length",
-			"\\\\",
-			" in ",
-			"in",
-			"package",
-			"package ",
-			"packageFilter",
-			"package",
-			"nodeModulesPaths",
-			"opts",
-			"paths",
 			"resolve",
 			"  ",
 			"fs.read",
@@ -689,7 +660,20 @@
 			"Selection",
 			"get",
 			"get: ->",
-			"\\t"
+			"\\t",
+			"importer",
+			"less.Parser.importer",
+			"parseFile",
+			">.*",
+			" value=",
+			" data-texture",
+			"<option data-texture",
+			" data-texturewidth=",
+			"<option data-textureheight=",
+			"glass",
+			"<li",
+			"@ui-error-bg",
+			"//"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -697,7 +681,6 @@
 		"regex": false,
 		"replace_history":
 		[
-			"/",
 			"    ",
 			"@deps",
 			"@id",
@@ -803,39 +786,8 @@
 	"groups":
 	[
 		{
-			"selected": 0,
 			"sheets":
 			[
-				{
-					"buffer": 0,
-					"file": "src/builder/index.coffee",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 7738,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Better CoffeeScript/CoffeeScript.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				}
 			]
 		}
 	],
@@ -881,7 +833,7 @@
 	"project": "one-page-builder.sublime-project",
 	"replace":
 	{
-		"height": 62.0
+		"height": 42.0
 	},
 	"save_all_on_build": true,
 	"select_file":
