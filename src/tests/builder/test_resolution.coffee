@@ -8,6 +8,7 @@ expect = require('chai').expect
 describe 'Modules resolution', ->
 
     before ->
+        @old_cwd = process.cwd()
         process.chdir("/")
         mock(yaml.safeLoad("""
             testimonial: 
@@ -43,3 +44,4 @@ describe 'Modules resolution', ->
 
     after ->
         mock.restore()
+        process.chdir(@old_cwd)
