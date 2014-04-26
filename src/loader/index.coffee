@@ -1,8 +1,8 @@
 class Exception
-class AbstractMethodException extends Exception
-class UndeclaredRequireException extends Exception
+class AbstractMethodError extends Exception
+class UndeclaredRequireError extends Exception
     constructor: (@self_name, @require_name) ->
-class ChangesInWindowObjectException extends Exception
+class ChangesInWindowError extends Exception
     constructor: (@self_name, @props) ->
 
 class BasicLoader
@@ -13,7 +13,7 @@ class BasicLoader
         @this = {}
         @window = @get_window()
         @errors = []
-    render: ->  throw new AbstractMethodException()
+    render: ->  throw new AbstractMethodError()
     load: ->
         func = new Function(@render())
         try 
@@ -29,12 +29,12 @@ class BasicLoader
         return null if @errors.length > 0
         return @_make()
     get_window: -> return __proto__: window
-    get_require: -> throw new AbstractMethodException()
+    get_require: -> throw new AbstractMethodError()
     _fail: (reason) ->
         @errors.push(reason)
         throw reason
-    _check: (result) -> throw new AbstractMethodException()
-    _make: -> throw new AbstractMethodException()
+    _check: (result) -> throw new AbstractMethodError()
+    _make: -> throw new AbstractMethodError()
 
 class CJSLoader extends BasicLoader
     constructor: (options) ->
@@ -52,7 +52,7 @@ class CJSLoader extends BasicLoader
         require = (name) -> 
             value = @deps[name]
             if not value?
-                @_fail(new UndeclaredRequireException(@id, name)) 
+                @_fail(new UndeclaredRequireError(@id, name)) 
             return value
         return require.bind(this);
     _check: (result) ->
