@@ -13,6 +13,19 @@ class ChangesInWindowError extends Error
         @name = @constructor.name
         @message = "During `#{@self_name}` loading window object was polluted with: #{props}"
 
+XHR = ->
+    for factgory in [
+                    -> new XMLHttpRequest()
+                    -> new ActiveXObject("Msxml2.XMLHTTP")
+                    -> new ActiveXObject("Msxml3.XMLHTTP")
+                    -> new ActiveXObject("Microsoft.XMLHTTP")
+                    ]
+        try
+            return factory()
+        catch
+            continue
+    return
+
 class BasicLoader
     constructor: (options) ->
         @id = options.id
