@@ -35,7 +35,7 @@ describe 'Building modules with cyclic dependencies', ->
 
         expect(builder.build.bind(builder))
             .to.throw(spa.CyclicDependenciesError)
-            .to.have.deep.property("loop")
+            .to.have.property("loop")
                 .that.deep.equals(_loop)
 
     after ->
@@ -79,48 +79,72 @@ describe 'Building modules with cyclic dependencies and something else', ->
 
         expect(builder.build.bind(builder))
             .to.throw(spa.CyclicDependenciesError)
-            .to.have.deep.property("loop")
+            .to.have.property("loop")
                 .that.deep.equals(_loop)
 
     after ->
         mock.restore()
         process.chdir(@old_cwd)
 
-# describe 'Building modules with cyclic dependencies', ->
+describe 'Building modules with paths rewired', ->
 
-#     before ->
-#         @old_cwd = process.cwd()
-#         process.chdir("/")
-#         mock(yaml.safeLoad("""
-#             testimonial: 
-#                 module1:
-#                     a:
-#                         c.js: |
-#                             var m2 = require("../../module2");
-#                     b.js: |
-#                         var b2 = require("/module2/b");
-#                         var ac = require("./a/c");
-#                 module2:
-#                     index.js: |
-#                         var a1 = require("a1/../b");
-#                     b.js: |
-#                         var a1 = require("a1/c");
-#                 spa.yaml: |
-#                     root: "/testimonial/"
-#                     extensions: 
-#                         - .js
-#                     paths:
-#                         a1: "/module1/a"
-#                     hosting:
-#                         "/(**/*.js)": "http://127.0.0.1:8010/$1"
-#                     manifest: "manifest.json"
-#             """))
+    before ->
+        @old_cwd = process.cwd()
+        process.chdir("/")
+        mock(yaml.safeLoad("""
+            testimonial: 
+                module1:
+                    a:
+                        c.js: |
+                            // empty
+                    b.js: |
+                        var ac = require("./a/c");
+                module2:
+                    e.js: |
+                        var a1 = require("a1/../b");
+                    d.js: |
+                        var a1 = require("a1/c");
+                spa.yaml: |
+                    root: "/testimonial/"
+                    extensions: 
+                        - .js
+                    paths:
+                        a1: "/module1/a"
+                    hosting:
+                        "/(**/*.js)": "http://127.0.0.1:8010/$1"
+                    manifest: "manifest.json"
+            """))
 
-#     it 'should report loop in dependencies', ->
-#         builder = spa.Builder.from_config("/testimonial/spa.yaml")
-#         expect(builder.build.bind(builder))
-#             .to.throw(spa.CyclicDependenciesError)
+    it 'should report loop in dependencies', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json"), encoding: "utf8")
 
-#     after ->
-#         mock.restore()
-#         process.chdir(@old_cwd)
+        expect(manifest).to.be.an("Array").with.length(4)
+        
+        expect(manifest[0])
+            .to.have.property("id").that.equals("c")
+        expect(manifest[0])
+            .and.to.have.property("deps").that.deep.equals({})
+        
+        expect(manifest[1])
+            .to.have.property("id").that.equals("b")
+        expect(manifest[1])
+            .to.have.property("deps").that.deep.equals
+                "./a/c": "c"
+        
+        expect(manifest[2])
+            .to.have.property("id").that.equals("d")
+        expect(manifest[2])
+            .and.to.have.property("deps").that.deep.equals
+                "a1/c": "c"
+
+        expect(manifest[3])
+            .to.have.property("id").that.equals("e")
+        expect(manifest[3])
+            .and.to.have.property("deps").that.deep.equals
+                "a1/../b": "b"
+
+    after ->
+        mock.restore()
+        process.chdir(@old_cwd)
