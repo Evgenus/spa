@@ -3,9 +3,16 @@ mock = require("mock-fs")
 spa = require("spa")
 yaml = require("js-yaml")
 path = require("path")
-expect = require('chai').expect
+chai = require("chai")
+_ = require("underscore")
 
-describe 'Building modules with cyclic dependencies', ->
+expect = chai.expect
+
+chai.Assertion.addMethod 'properties', (expectedPropertiesObj) ->
+    for own key, func of expectedPropertiesObj
+        func.call(new chai.Assertion(this._obj).property(key))
+
+describe 'Building module with unknown dependency', ->
 
     before ->
         @old_cwd = process.cwd()
@@ -13,13 +20,67 @@ describe 'Building modules with cyclic dependencies', ->
         mock(yaml.safeLoad("""
             testimonial: 
                 a.js: |
-                    var b2 = require("/b");
+                    var b = require("/b");
+                spa.yaml: |
+                    root: "./"
+            """))
+
+    it 'should report unresolved dependency', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        
+        expect(builder.build.bind(builder))
+            .to.throw(spa.UnresolvedDependencyError)
+            .that.deep.equals(new spa.UnresolvedDependencyError("/a.js", "/b"))
+
+    after ->
+        mock.restore()
+        process.chdir(@old_cwd)
+
+describe 'Building module with external dependency', ->
+
+    before ->
+        @old_cwd = process.cwd()
+        process.chdir("/")
+        mock(yaml.safeLoad("""
+            testimonial: 
+                a.js: |
+                    var b = require("/b");
                 b.js: |
-                    var b2 = require("/c");
+                    // empty
+                spa.yaml: |
+                    root: "./"
+                    excludes:
+                        - /b.js
+            """))
+
+    it 'should report dependency out of scope', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        
+        expect(builder.build.bind(builder))
+            .to.throw(spa.ExternalDependencyError)
+            .has.properties
+                alias: -> @equals("/b")
+                path: -> @equals("/a.js")
+
+    after ->
+        mock.restore()
+        process.chdir(@old_cwd)
+
+describe 'Building module with cyclic dependencies', ->
+
+    before ->
+        @old_cwd = process.cwd()
+        process.chdir("/")
+        mock(yaml.safeLoad("""
+            testimonial:
+                a.js: |
+                    var b = require("/b");
+                b.js: |
+                    var c = require("/c");
                 c.js: |
-                    var b2 = require("/d");
+                    var d = require("/d");
                 d.js: |
-                    var b2 = require("/a");
+                    var a = require("/a");
                 spa.yaml: |
                     root: "./"
             """))
@@ -42,7 +103,7 @@ describe 'Building modules with cyclic dependencies', ->
         mock.restore()
         process.chdir(@old_cwd)
 
-describe 'Building modules with cyclic dependencies and something else', ->
+describe 'Building module with cyclic dependencies and something else', ->
 
     before ->
         @old_cwd = process.cwd()
@@ -52,19 +113,19 @@ describe 'Building modules with cyclic dependencies and something else', ->
                 a.js: |
                     // empty
                 b.js: |
-                    var b2 = require("/a");
+                    var a = require("/a");
                 c.js: |
-                    var b2 = require("/d");
-                    var b2 = require("/b");
+                    var d = require("/d");
+                    var b = require("/b");
                 d.js: |
-                    var b2 = require("/e");
-                    var b2 = require("/f");
-                    var b2 = require("/b");
+                    var e = require("/e");
+                    var f = require("/f");
+                    var b = require("/b");
                 e.js: |
-                    var b2 = require("/c");
-                    var b2 = require("/f");
+                    var c = require("/c");
+                    var f = require("/f");
                 f.js: |
-                    var b2 = require("/a");
+                    var a = require("/a");
                 spa.yaml: |
                     root: "./"
             """))
@@ -86,7 +147,7 @@ describe 'Building modules with cyclic dependencies and something else', ->
         mock.restore()
         process.chdir(@old_cwd)
 
-describe 'Building modules with paths rewired', ->
+describe 'Building module with paths rewired', ->
 
     before ->
         @old_cwd = process.cwd()
@@ -115,34 +176,30 @@ describe 'Building modules with paths rewired', ->
                     manifest: "manifest.json"
             """))
 
-    it 'should report loop in dependencies', ->
+    it 'should successfully build', ->
         builder = spa.Builder.from_config("/testimonial/spa.yaml")
         builder.build()
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json"), encoding: "utf8")
 
         expect(manifest).to.be.an("Array").with.length(4)
         
-        expect(manifest[0])
-            .to.have.property("id").that.equals("c")
-        expect(manifest[0])
-            .and.to.have.property("deps").that.deep.equals({})
+        expect(manifest[0]).to.have.properties
+            id: -> @that.equals("c")
+            deps: -> @that.deep.equals({})
         
-        expect(manifest[1])
-            .to.have.property("id").that.equals("b")
-        expect(manifest[1])
-            .to.have.property("deps").that.deep.equals
+        expect(manifest[1]).to.have.properties
+            id: -> @that.equals("b")
+            deps: -> @that.deep.equals
                 "./a/c": "c"
         
-        expect(manifest[2])
-            .to.have.property("id").that.equals("d")
-        expect(manifest[2])
-            .and.to.have.property("deps").that.deep.equals
+        expect(manifest[2]).to.have.properties
+            id: -> @that.equals("d")
+            deps: -> @that.deep.equals
                 "a1/c": "c"
-
-        expect(manifest[3])
-            .to.have.property("id").that.equals("e")
-        expect(manifest[3])
-            .and.to.have.property("deps").that.deep.equals
+        
+        expect(manifest[3]).to.have.properties
+            id: -> @that.equals("e")
+            deps: -> @that.deep.equals
                 "a1/../b": "b"
 
     after ->
