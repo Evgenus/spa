@@ -1,9 +1,17 @@
-class Exception
-class AbstractMethodError extends Exception
-class UndeclaredRequireError extends Exception
+class AbstractMethodError extends Error
+    constructor: ->
+        @name = @constructor.name
+        @message = "Calling abstract method detected."
+
+class UndeclaredRequireError extends Error
     constructor: (@self_name, @require_name) ->
-class ChangesInWindowError extends Exception
+        @name = @constructor.name
+        @message = "Found unreserved attempt to require of `#{@require_name}` inside `#{@self_name}`"
+
+class ChangesInWindowError extends Error
     constructor: (@self_name, @props) ->
+        @name = @constructor.name
+        @message = "During `#{@self_name}` loading window object was polluted with: #{props}"
 
 class BasicLoader
     constructor: (options) ->
@@ -112,10 +120,10 @@ class PollutionLoader extends BasicLoader
         return __proto__: result
     _make: ->
         result = {}
-        for name in Object.keys(@window)
-            result[name] = @window[name]
-        for name in Object.keys(@this)
-            result[name] = @this[value]
+        for own name, value of @window
+            result[name] = value
+        for own name, value of @this
+            result[name] = value
         return result
 
 class Loader
