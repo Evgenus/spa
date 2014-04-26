@@ -3,6 +3,7 @@ walk = require('fs-walk')
 path = require('path')
 detective = require('detective')
 crypto = require('crypto')
+yaml = require('js-yaml')
 _  = require('underscore')
 _.string =  require('underscore.string')
 _.mixin(_.string.exports())
@@ -21,9 +22,9 @@ globStringToRegex = (str) ->
 
 class CyclicDependenciesError extends Error
     constructor: (_loop) ->
-        @_loop = _loop
+        @loop = _loop
         @name = @constructor.name
-        @message = "Can't sort modules. Loop found: \n#{@_loop}"
+        @message = "Can't sort modules. Loop found: \n#{@loop}"
 
 class UnresolvedDependencyError extends Error
     constructor: (path, alias) ->
@@ -43,8 +44,8 @@ class ExternalDependencyError extends Error
                    "as `#{alias}`, but it cant be found inside building scope."
 
 class Loop
-    constructor: (path, alias) ->
-        @_parts = [[path, alias]]
+    constructor: () ->
+        @_parts = []
     prepend: (path, alias) ->
         @_parts.unshift([path, alias])
         return this
@@ -164,7 +165,7 @@ class Builder
                 for alias, dep of deps
                     continue unless dep in candidates
                     continue if dep in walked
-                    return new Loop(relative, alias) if dep is candidate
+                    return new Loop().prepend(relative, alias) if dep is candidate
                     walked.push(dep)
                     deep = _go_deep(dep)
                     walked.pop()
@@ -226,7 +227,32 @@ class Builder
         @_write_manifest()
         return
 
+load_json = (filepath) ->
+    return unless filepath?
+    source = fs.readFileSync(filepath)
+    return JSON.parse(source)
+
+load_yaml = (filepath) ->
+    return unless filepath?
+    source = fs.readFileSync(filepath, encoding: "utf8")
+    return yaml.safeLoad(source)
+    
+get_config_content = (filepath) ->
+    switch path.extname(filepath)
+        when ".yaml", ".yml"
+            return load_yaml(filepath)
+        when ".json"
+            return load_json(filepath)
+
+Builder.from_config = (config_path) ->
+    basedir = path.dirname(config_path)
+    config = get_config_content(config_path)
+    config.root ?= "."
+    config.root = path.resolve(process.cwd(), basedir, config.root) 
+    return new Builder(config)
+
 exports.Builder = Builder
 exports.CyclicDependenciesError = CyclicDependenciesError
 exports.UnresolvedDependencyError = UnresolvedDependencyError
 exports.ExternalDependencyError = ExternalDependencyError
+exports.Loop = Loop
