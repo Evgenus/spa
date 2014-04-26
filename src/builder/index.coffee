@@ -21,24 +21,18 @@ globStringToRegex = (str) ->
         , 'm')
 
 class CyclicDependenciesError extends Error
-    constructor: (_loop) ->
-        @loop = _loop
+    constructor: (@loop) ->
         @name = @constructor.name
         @message = "Can't sort modules. Loop found: \n#{@loop}"
 
 class UnresolvedDependencyError extends Error
-    constructor: (path, alias) ->
-        @path = path
-        @alias = alias
+    constructor: (@path, @alias) ->
         @name = @constructor.name
         @message = "Can't resolve dependency `#{@alias}` "+
                    "inside module `#{@path}`"
 
 class ExternalDependencyError extends Error
-    constructor: (path, alias, dep) ->
-        @path = path
-        @alias = alias
-        @dep = dep
+    constructor: (@path, @alias, @dep) ->
         @name = @constructor.name
         @message = "Module at path `#{dep}` is required from `#{path}` " +
                    "as `#{alias}`, but it cant be found inside building scope."
