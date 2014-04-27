@@ -28,7 +28,7 @@ XHR = ->
     catch
     return null
 
-class BasicLoader
+class BasicEvaluator
     constructor: (options) ->
         @id = options.id
         @source = options.source
@@ -37,7 +37,7 @@ class BasicLoader
         @window = @get_window()
         @errors = []
     render: ->  throw new AbstractMethodError()
-    load: ->
+    run: ->
         func = new Function(@render())
         try 
             result = func.call(this)
@@ -59,7 +59,7 @@ class BasicLoader
     _check: (result) -> throw new AbstractMethodError()
     _make: -> throw new AbstractMethodError()
 
-class CJSLoader extends BasicLoader
+class CJSEvaluator extends BasicEvaluator
     constructor: (options) ->
         super(options)
         @module = {}
@@ -86,7 +86,7 @@ class CJSLoader extends BasicLoader
     _make: ->
         return @module.exports
 
-class AMDLoader extends BasicLoader
+class AMDEvaluator extends BasicEvaluator
     constructor: (options) ->
         super(options)
         @define = @get_define()
@@ -108,7 +108,7 @@ class AMDLoader extends BasicLoader
     _make: ->
         return @result
 
-class PollutionLoader extends BasicLoader
+class PollutionEvaluator extends BasicEvaluator
     render: ->
         names = ["window"]
             .concat(name for name of @deps)
@@ -141,32 +141,49 @@ class PollutionLoader extends BasicLoader
             result[name] = value
         return result
 
+class Storage
+    get: (name) -> throw new AbstractMethodError()
+    set: (name, value) -> throw new AbstractMethodError()
+
 class Loader
     constructor: (options) ->
+        @_all_modules = {}
 
+    get: (name) ->
+        return window.localStorage[name]
+
+    onModuleBeginDownload
+    onModuleDownloaded
+    onModuleDownloadProgress
+    onTotalDownloadProgress
+    onApplicationReady
+    onEvaluationError
+
+    _start: ->
+        manifest_source = @get("spa:manifest")
+        if manifest_source?
+            manifest = JSON.parse(manifest_source)
+            for module in manifest
+                module_source = @get("spa:" + module.md5 + ":" + module.url)
+                if module_source?
+                    deps = {}
+                    for alias, dep of module.deps
+                        deps[alias] = @_all_modules[dep]
+
+                    evaluator = new CJSEvaluator
+                        id: module.id
+                        source: module_source
+                        deps: deps
+
+                    @_all_modules[module.id] = evaluator.run()
+
+                else
+                    #module somehow was not loaded
+
+        @checkUpdate()
+
+    checkUpdate: ->
 
 window.onload = ->
-    env = new CJSLoader
-        name: "user-code-cjs"
-        source: document.getElementById("user-code-cjs").text
-        dependencies:
-            test: console
-    env.load()
-    module = env.load()
-    module.greetings();
-
-    env = new AMDLoader
-        name: "user-code-amd"
-        source: document.getElementById("user-code-amd").text
-        dependencies:
-            test: console
-    module = env.load()
-    module.greetings();
-
-    env = new PollutionLoader
-        name: "user-code-pollution"
-        source: document.getElementById("user-code-pollution").text
-        dependencies:
-            test: console
-    module = env.load()
-    module.greetings();
+    loader =  new Loader()
+    loader.start()
