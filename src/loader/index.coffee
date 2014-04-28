@@ -13,6 +13,11 @@ class ChangesInWindowError extends Error
         @name = @constructor.name
         @message = "During `#{@self_name}` loading window object was polluted with: #{props}"
 
+class NoSourceError extends Error
+    constructor: (@module_md5, @module_url) ->
+        @name = @constructor.name
+        @message = "Module source with checksum of `#{@module_md5}` was not found in localStorage. Probably it was not loaded from #{module_url}."
+
 XHR = ->
     try return new XMLHttpRequest()
     catch
@@ -148,41 +153,113 @@ class Storage
 class Loader
     constructor: (options) ->
         @_all_modules = {}
+        @_modules_in_update = []
+        @_update_started = false
 
     get: (name) ->
-        return window.localStorage[name]
+        return window.localStorage.getItem(name)
 
-    onModuleBeginDownload
-    onModuleDownloaded
-    onModuleDownloadProgress
-    onTotalDownloadProgress
-    onApplicationReady
-    onEvaluationError
+    set: (name, value) ->
+        console.log("setting key", name)
+        window.localStorage.setItem(name, value)
 
-    _start: ->
-        manifest_source = @get("spa:manifest")
+    onUpdateFound: (event) -> 
+        console.log("onUpdateFound", arguments) # when downloaded manifest varies from found in localStorage
+        @startUpdate()
+    onUpToDate: -> console.log("onUpToDate", arguments) # when downloaded manifest equals to found in localStorage
+    onUpdateFailed: -> console.log("onUpdateFailed", arguments) # when somehow it is impossible to download any file from the web
+    onUpdateCompletted: (event) -> console.log("onUpdateCompletted", arguments) # when downloaded manifest varies from found in localStorage
+
+    onModuleBeginDownload: -> console.log("onModuleBeginDownload", arguments) 
+    onModuleDownloaded: -> console.log("onModuleDownloaded", arguments) 
+    onModuleDownloadFailed: -> console.log("onModuleDownloadFailed", arguments) 
+    onModuleDownloadProgress: -> console.log("onModuleDownloadProgress", arguments) 
+    onTotalDownloadProgress: -> console.log("onTotalDownloadProgress", arguments) 
+
+    onApplicationReady: -> console.log("onApplicationReady", arguments) 
+    onEvaluationError: -> console.log("onEvaluationError", arguments) #last version of application can't be runned
+
+    start: ->
+        manifest_source = @get("spa::manifest")
         if manifest_source?
             manifest = JSON.parse(manifest_source)
             for module in manifest
                 module_source = @get("spa:" + module.md5 + ":" + module.url)
-                if module_source?
-                    deps = {}
-                    for alias, dep of module.deps
-                        deps[alias] = @_all_modules[dep]
+                unless module_source?
+                    @onEvaluationError(new NoSourceError(module.md5, module.url))
+                    # no source found in localStorage
 
-                    evaluator = new CJSEvaluator
-                        id: module.id
-                        source: module_source
-                        deps: deps
+                deps = {}
+                for alias, dep of module.deps
+                    deps[alias] = @_all_modules[dep]
 
+                evaluator = new CJSEvaluator
+                    id: module.id
+                    source: module_source
+                    deps: deps
+
+                try
                     @_all_modules[module.id] = evaluator.run()
+                catch error
+                    @onEvaluationError(error)
+            @onApplicationReady()
+            @checkUpdate(manifest_source)
+        else
+            @checkUpdate()
 
-                else
-                    #module somehow was not loaded
+    checkUpdate: (current) ->
+        return if @_update_started
+        manifest_request = XHR()
+        manifest_request.open("GET", "manifest.json", true)
+        manifest_request.overrideMimeType("application/json; charset=utf-8")
+        manifest_request.onload = (event) =>
+            next = event.target.response;
+            if current?
+                if md5(current) == md5(next)
+                    @onUpToDate()
+                    return
+            @_modules_in_update = JSON.parse(next)
+            @onUpdateFound(event)
 
-        @checkUpdate()
+        manifest_request.onerror = (event) =>
+            @onUpdateFailed(event)
+        manifest_request.send()
 
-    checkUpdate: ->
+    startUpdate: ->
+        @_update_started = true
+        for module in @_modules_in_update
+            @_updateModule(module)
+
+    _updateModule: (module) ->
+        key = "spa:" + module.md5 + ":" + module.url
+        module_source = @get(key)
+        if module_source?
+            module.content = module_source
+            @onUpdateCompletted() if @_checkAllUpdated()
+        else
+            @_downloadModule(module)
+
+    _downloadModule: (module) ->
+        @onModuleBeginDownload(module)
+        module_request = XHR()
+        module_request.open("GET", module.url, true)
+        module_request.onload = (event) =>
+            module_source = event.target.response
+            if md5(module_source) != module.md5
+                @onModuleDownloadFailed(module, event)
+            key = "spa:" + module.md5 + ":" + module.url
+            @set(key, event.target.response)
+            @onModuleDownloaded(event)
+            module.content = module_source
+            @onUpdateCompletted() if @_checkAllUpdated()
+        module_request.onerror = (event) =>
+            @oModuleDownloadFailed(module, event)
+        module_request.send()
+
+    _checkAllUpdated: ->
+        for module in @_modules_in_update
+            return false unless module.content?
+        return true
 
 window.onload = ->
     loader =  new Loader()
