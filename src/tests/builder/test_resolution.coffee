@@ -205,3 +205,27 @@ describe 'Building module with paths rewired', ->
     after ->
         mock.restore()
         process.chdir(@old_cwd)
+
+describe 'Building module without manifest', ->
+
+    before ->
+        @old_cwd = process.cwd()
+        process.chdir("/")
+        mock(yaml.safeLoad("""
+            testimonial: 
+                a.js: // empty
+                spa.yaml: |
+                    root: "/testimonial/"
+                    extensions: 
+                        - .js
+            """))
+
+    it 'should not produce manifest.json', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+
+        expect(fs.existsSync("/testimonial/manifest.json")).not.to.be.true;
+
+    after ->
+        mock.restore()
+        process.chdir(@old_cwd)
