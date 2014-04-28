@@ -59,7 +59,9 @@ class Builder
         @hosting = for pattern, template of options.hosting ? {}
             pattern: globStringToRegex(pattern)
             template: template
-        @manifest = options.manifest ? "manifest.json"
+        @manifest = options.manifest
+        @index = options.index
+        @template = path.join(__dirname, "index.tmpl")
         @_clear()
 
     filter: (filepath) ->
@@ -209,6 +211,9 @@ class Builder
         content = JSON.stringify(data)
         fs.writeFileSync(filename, content)
 
+    _write_index: ->
+
+
     build: () ->
         @_enlist(@root)
         @_set_ids()
@@ -218,7 +223,8 @@ class Builder
         @_sort()
         for module in @_modules
             @_host(module)
-        @_write_manifest()
+        @_write_manifest() if @manifest?
+        @_write_index() if @index?
         return
 
 load_json = (filepath) ->
@@ -242,7 +248,7 @@ Builder.from_config = (config_path) ->
     basedir = path.dirname(config_path)
     config = get_config_content(config_path)
     config.root ?= "."
-    config.root = path.resolve(process.cwd(), basedir, config.root) 
+    config.root = path.resolve(process.cwd(), basedir, config.root)
     return new Builder(config)
 
 exports.Builder = Builder
