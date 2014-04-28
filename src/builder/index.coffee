@@ -245,10 +245,11 @@ get_config_content = (filepath) ->
             return load_json(filepath)
 
 Builder.from_config = (config_path) ->
+    console.log("Reading config from #{config_path}")
     basedir = path.dirname(config_path)
     config = get_config_content(config_path)
     config.root ?= "."
-    config.root = path.resolve(process.cwd(), basedir, config.root)
+    config.root = path.resolve(basedir, config.root)
     return new Builder(config)
 
 exports.Builder = Builder

@@ -3,6 +3,7 @@ fs = require("fs")
 Builder = require("./").Builder
 
 exists = (filepath) ->
+    console.log("Trying to find #{filepath}")
     return unless fs.existsSync(filepath)
     stats = fs.statSync(filepath)
     return unless stats.isFile()
