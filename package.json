@@ -25,11 +25,11 @@
     "email": "chernyshov.eugene@gmail.com"
   },
   "bin": {
-    "spa": "./lib/builder/cli.js"
+    "spa": "./bin/spa"
   },
   "main": "./lib/builder/index.js",
   "scripts": {
-    "test": "mocha ./lib/tests/builder/*.js --reporter spec"
+    "test": "mocha ./lib/tests/builder/test_*.js --reporter spec"
   },
   "directories": {
     "test": "tests"

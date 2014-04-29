@@ -193,32 +193,35 @@ class Loader
     set: (name, value) ->
         window.localStorage.setItem(name, value)
 
+    log: (args...) -> 
+        console.log(args...)
+
     onUpdateFound: (event) -> 
-        console.log("onUpdateFound", arguments)
+        @log("onUpdateFound", arguments)
         @startUpdate()
     onUpToDate: -> 
-        console.log("onUpToDate", arguments)
+        @log("onUpToDate", arguments)
     onUpdateFailed: -> 
-        console.log("onUpdateFailed", arguments)
+        @log("onUpdateFailed", arguments)
     onUpdateCompletted: (event) -> 
-        console.log("onUpdateCompletted", arguments)
+        @log("onUpdateCompletted", arguments)
         window.location.reload()
 
     onModuleBeginDownload: -> 
-        console.log("onModuleBeginDownload", arguments) 
+        @log("onModuleBeginDownload", arguments) 
     onModuleDownloaded: -> 
-        console.log("onModuleDownloaded", arguments) 
+        @log("onModuleDownloaded", arguments) 
     onModuleDownloadFailed: -> 
-        console.log("onModuleDownloadFailed", arguments) 
+        @log("onModuleDownloadFailed", arguments) 
     onModuleDownloadProgress: -> 
-        console.log("onModuleDownloadProgress", arguments) 
+        @log("onModuleDownloadProgress", arguments) 
     onTotalDownloadProgress: -> 
-        console.log("onTotalDownloadProgress", arguments) 
+        @log("onTotalDownloadProgress", arguments) 
 
     onApplicationReady: -> 
-        console.log("onApplicationReady", arguments) 
+        @log("onApplicationReady", arguments) 
     onEvaluationError: -> 
-        console.log("onEvaluationError", arguments)
+        @log("onEvaluationError", arguments)
 
     start: ->
         @_current_manifest = @get("spa::manifest")
@@ -252,6 +255,7 @@ class Loader
 
     checkUpdate: () ->
         return if @_update_started
+        @log("Checking for update...")
         manifest_request = XHR()
         manifest_request.open("GET", "manifest.json", true)
         manifest_request.overrideMimeType("application/json; charset=utf-8")
@@ -269,7 +273,7 @@ class Loader
         return
 
     startUpdate: ->
-        console.log("starting update...")
+        @log("Starting update...")
         @_update_started = true
         @_modules_in_update = JSON.parse(@_new_manifest)
         @_total_size = 0
