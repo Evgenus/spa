@@ -1,1 +1,9 @@
-[{"id":"commonjs","url":"http://127.0.0.1:8000/tests/loading/commonjs.js","md5":"92850b92c8a5746b07fda883a1b7357f","size":228,"deps":{}}]
+[
+  {
+    "id": "commonjs",
+    "url": "http://127.0.0.1:8000/tests/loading/commonjs.js",
+    "md5": "2197ec73bc22975b90ad0990649018d1",
+    "size": 225,
+    "deps": {}
+  }
+]

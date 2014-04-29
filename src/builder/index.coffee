@@ -63,6 +63,7 @@ class Builder
         @index = options.index
         @template = path.join(__dirname, "index.tmpl")
         @_built_ins = ["loader"]
+        @pretty = options.pretty ? false
         @_clear()
 
     filter: (filepath) ->
@@ -210,7 +211,7 @@ class Builder
             deps: module.deps_ids
 
         filename = path.resolve(@root, @manifest)
-        content = JSON.stringify(data)
+        content = JSON.stringify(data, null, if @pretty then "  ")
         fs.writeFileSync(filename, content)
 
     _write_index: ->

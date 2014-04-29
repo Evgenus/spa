@@ -33,6 +33,11 @@ class ThisPollutionError extends Error
         @name = "ThisPollutionError"
         @message = ""
 
+class AMDReturnsNothingError extends Error 
+    constructor: (@self_name) ->
+        @name = "AMDReturnsNothingError"
+        @message = ""
+
 XHR = ->
     try return new XMLHttpRequest()
     catch
@@ -92,11 +97,15 @@ class CJSEvaluator extends BasicEvaluator
         return require.bind(this);
     _check: (result) ->
         window_keys = Object.keys(@window)
-        throw new ChangesInWindowError(@id, window_keys) unless window_keys.length == 0
-        throw new ExportsViolationError(@id) unless @exports is @module.exports or Object.keys(@exports).length == 0
-        throw new ReturnPollutionError(@id, Object.keys(result)) if result?
+        unless window_keys.length == 0
+            throw new ChangesInWindowError(@id, window_keys) 
+        unless @exports is @module.exports or Object.keys(@exports).length == 0
+            throw new ExportsViolationError(@id) 
+        if result?
+            throw new ReturnPollutionError(@id, Object.keys(result)) 
         this_keys = Object.keys(@this)
-        throw new ThisPollutionError(@id, this_keys) unless this_keys.length == 0
+        unless this_keys.length == 0
+            throw new ThisPollutionError(@id, this_keys) 
     _make: ->
         return @module.exports
 
@@ -115,10 +124,16 @@ class AMDEvaluator extends BasicEvaluator
             @result = func.apply(this.this, deps)
         return define.bind(this);
     _check: (result) ->
-        # assert window unchanged
-        # assert result is undefined
-        # assert @result contains module
-        # assert this empty
+        window_keys = Object.keys(@window)
+        unless window_keys.length == 0
+            throw new ChangesInWindowError(@id, window_keys) 
+        if result?
+            throw new ReturnPollutionError(@id, Object.keys(result)) 
+        this_keys = Object.keys(@this)
+        unless this_keys.length == 0
+            throw new ThisPollutionError(@id, this_keys)
+        unless @result?
+            throw new AMDReturnsNothingError(@id)
     _make: ->
         return @result
 
@@ -138,9 +153,8 @@ class PollutionEvaluator extends BasicEvaluator
             }).call(#{args});
         """
     _check: (result) ->
-        # assert result is undefined
-        # assert @result contains module
-        # assert this empty
+        if result?
+            throw new ReturnPollutionError(@id, Object.keys(result)) 
     get_window: -> 
         result = 
             __proto__: super()

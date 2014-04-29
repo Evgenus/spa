@@ -4,3 +4,4 @@ extensions:
 hosting:
     "/(**/*.js)": "http://127.0.0.1:8000/tests/$1"
 manifest: "manifest.json"
+pretty: true
