@@ -1,1 +1,1 @@
-[{"id":"amd","url":"http://127.0.0.1:8000/tests/loading/amd.js","md5":"61b295553627413f9b66e831748636af","size":142,"deps":{}},{"id":"commonjs","url":"http://127.0.0.1:8000/tests/loading/commonjs.js","md5":"d33bd6a5b688e4c785735b511b1e43a7","size":75,"deps":{}},{"id":"pollution","url":"http://127.0.0.1:8000/tests/loading/pollution.js","md5":"d5b67b93093242c989f1c953aee8acfc","size":98,"deps":{}}]
+[{"id":"commonjs","url":"http://127.0.0.1:8000/tests/loading/commonjs.js","md5":"92850b92c8a5746b07fda883a1b7357f","size":228,"deps":{}}]

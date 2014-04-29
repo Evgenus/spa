@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "optimist": ">=0.6.1",
+    "js-yaml": ">=3.0.0",
     "fs-walk": "*",
     "detective": "^3.1.0",
     "underscore": "~1.6.0",
@@ -47,7 +48,7 @@
   "devDependencies": {
     "mock-fs": ">=2.2.0",
     "mocha": "1.x",
-    "coffee-script": "^1.6.3"
+    "coffee-script": "^1.7.1"
   },
   "license": "MIT"
 }

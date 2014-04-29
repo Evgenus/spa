@@ -62,6 +62,7 @@ class Builder
         @manifest = options.manifest
         @index = options.index
         @template = path.join(__dirname, "index.tmpl")
+        @_built_ins = ["loader"]
         @_clear()
 
     filter: (filepath) ->
@@ -146,6 +147,7 @@ class Builder
         module.deps_paths = {}
 
         for dep in detective(source)
+            continue if dep in @_built_ins
             resolved = @_resolve(module, dep)
             unless resolved?
                 throw new UnresolvedDependencyError(module.relative, dep)

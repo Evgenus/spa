@@ -1,22 +1,37 @@
 class AbstractMethodError extends Error
     constructor: ->
-        @name = @constructor.name
+        @name = "AbstractMethodError"
         @message = "Calling abstract method detected."
 
 class UndeclaredRequireError extends Error
     constructor: (@self_name, @require_name) ->
-        @name = @constructor.name
+        @name = "UndeclaredRequireError"
         @message = "Found unreserved attempt to require of `#{@require_name}` inside `#{@self_name}`"
 
 class ChangesInWindowError extends Error
     constructor: (@self_name, @props) ->
-        @name = @constructor.name
+        @name = "ChangesInWindowError"
         @message = "During `#{@self_name}` loading window object was polluted with: #{props}"
 
 class NoSourceError extends Error
     constructor: (@module_md5, @module_url) ->
-        @name = @constructor.name
+        @name = "NoSourceError"
         @message = "Module source with checksum of `#{@module_md5}` was not found in localStorage. Probably it was not loaded from #{module_url}."
+
+class ExportsViolationError extends Error
+    constructor: (@self_name) ->
+        @name = "ExportsViolationError"
+        @message = ""
+
+class ReturnPollutionError extends Error 
+    constructor: (@self_name, @props) ->
+        @name = "ReturnPollutionError"
+        @message = ""
+
+class ThisPollutionError extends Error 
+    constructor: (@self_name, @props) ->
+        @name = "ThisPollutionError"
+        @message = ""
 
 XHR = ->
     try return new XMLHttpRequest()
@@ -44,16 +59,8 @@ class BasicEvaluator
     render: ->  throw new AbstractMethodError()
     run: ->
         func = new Function(@render())
-        try 
-            result = func.call(this)
-        catch error
-            console.log(error)
-        
-        try
-            @_check(result)
-        catch error 
-            console.log(error)
-
+        result = func.call(this)
+        @_check(result)
         return null if @errors.length > 0
         return @_make()
     get_window: -> return __proto__: window
@@ -84,10 +91,12 @@ class CJSEvaluator extends BasicEvaluator
             return value
         return require.bind(this);
     _check: (result) ->
-        # assert window unchanged
-        # assert exports empty or exports === module.exports
-        # assert result === undefined
-        # assert this empty
+        window_keys = Object.keys(@window)
+        throw new ChangesInWindowError(@id, window_keys) unless window_keys.length == 0
+        throw new ExportsViolationError(@id) unless @exports is @module.exports or Object.keys(@exports).length == 0
+        throw new ReturnPollutionError(@id, Object.keys(result)) if result?
+        this_keys = Object.keys(@this)
+        throw new ThisPollutionError(@id, this_keys) unless this_keys.length == 0
     _make: ->
         return @module.exports
 
@@ -153,91 +162,128 @@ class Storage
 class Loader
     constructor: (options) ->
         @_all_modules = {}
-        @_modules_in_update = []
+
+        @_modules_running = []
+        @_current_manifest = null
+
         @_update_started = false
+
+        @_modules_in_update = []
+        @_new_manifest = null
+        @_total_size = 0
+        @_loaded_sizes = {}
 
     get: (name) ->
         return window.localStorage.getItem(name)
 
     set: (name, value) ->
-        console.log("setting key", name)
         window.localStorage.setItem(name, value)
 
     onUpdateFound: (event) -> 
-        console.log("onUpdateFound", arguments) # when downloaded manifest varies from found in localStorage
+        console.log("onUpdateFound", arguments)
         @startUpdate()
-    onUpToDate: -> console.log("onUpToDate", arguments) # when downloaded manifest equals to found in localStorage
-    onUpdateFailed: -> console.log("onUpdateFailed", arguments) # when somehow it is impossible to download any file from the web
-    onUpdateCompletted: (event) -> console.log("onUpdateCompletted", arguments) # when downloaded manifest varies from found in localStorage
+    onUpToDate: -> 
+        console.log("onUpToDate", arguments)
+    onUpdateFailed: -> 
+        console.log("onUpdateFailed", arguments)
+    onUpdateCompletted: (event) -> 
+        console.log("onUpdateCompletted", arguments)
+        window.location.reload()
 
-    onModuleBeginDownload: -> console.log("onModuleBeginDownload", arguments) 
-    onModuleDownloaded: -> console.log("onModuleDownloaded", arguments) 
-    onModuleDownloadFailed: -> console.log("onModuleDownloadFailed", arguments) 
-    onModuleDownloadProgress: -> console.log("onModuleDownloadProgress", arguments) 
-    onTotalDownloadProgress: -> console.log("onTotalDownloadProgress", arguments) 
+    onModuleBeginDownload: -> 
+        console.log("onModuleBeginDownload", arguments) 
+    onModuleDownloaded: -> 
+        console.log("onModuleDownloaded", arguments) 
+    onModuleDownloadFailed: -> 
+        console.log("onModuleDownloadFailed", arguments) 
+    onModuleDownloadProgress: -> 
+        console.log("onModuleDownloadProgress", arguments) 
+    onTotalDownloadProgress: -> 
+        console.log("onTotalDownloadProgress", arguments) 
 
-    onApplicationReady: -> console.log("onApplicationReady", arguments) 
-    onEvaluationError: -> console.log("onEvaluationError", arguments) #last version of application can't be runned
+    onApplicationReady: -> 
+        console.log("onApplicationReady", arguments) 
+    onEvaluationError: -> 
+        console.log("onEvaluationError", arguments)
 
     start: ->
-        manifest_source = @get("spa::manifest")
-        if manifest_source?
-            manifest = JSON.parse(manifest_source)
-            for module in manifest
+        @_current_manifest = @get("spa::manifest")
+        if @_current_manifest?
+            @_modules_running = JSON.parse(@_current_manifest)
+            for module in @_modules_running
                 module_source = @get("spa:" + module.md5 + ":" + module.url)
                 unless module_source?
                     @onEvaluationError(new NoSourceError(module.md5, module.url))
-                    # no source found in localStorage
+
+                module.source = module_source
 
                 deps = {}
                 for alias, dep of module.deps
                     deps[alias] = @_all_modules[dep]
+                deps["loader"] = this
 
                 evaluator = new CJSEvaluator
                     id: module.id
-                    source: module_source
-                    deps: deps
+                    source: module.source
+                    dependencies: deps
 
                 try
-                    @_all_modules[module.id] = evaluator.run()
+                     @_all_modules[module.id] = evaluator.run()
                 catch error
-                    @onEvaluationError(error)
+                     @onEvaluationError(error)
             @onApplicationReady()
-            @checkUpdate(manifest_source)
         else
             @checkUpdate()
+        return
 
-    checkUpdate: (current) ->
+    checkUpdate: () ->
         return if @_update_started
         manifest_request = XHR()
         manifest_request.open("GET", "manifest.json", true)
         manifest_request.overrideMimeType("application/json; charset=utf-8")
         manifest_request.onload = (event) =>
-            next = event.target.response;
-            if current?
-                if md5(current) == md5(next)
+            @_new_manifest = event.target.response;
+            if @_current_manifest?
+                if md5(@_current_manifest) == md5(@_new_manifest)
                     @onUpToDate()
                     return
-            @_modules_in_update = JSON.parse(next)
             @onUpdateFound(event)
-
+        
         manifest_request.onerror = (event) =>
             @onUpdateFailed(event)
         manifest_request.send()
+        return
 
     startUpdate: ->
+        console.log("starting update...")
         @_update_started = true
+        @_modules_in_update = JSON.parse(@_new_manifest)
+        @_total_size = 0
+        for module in @_modules_in_update
+            @_total_size += module.size
+            @_loaded_sizes[module.id] = 0
         for module in @_modules_in_update
             @_updateModule(module)
+        return
 
     _updateModule: (module) ->
         key = "spa:" + module.md5 + ":" + module.url
         module_source = @get(key)
         if module_source?
-            module.content = module_source
-            @onUpdateCompletted() if @_checkAllUpdated()
+            module.source = module_source
+            @onTotalDownloadProgress
+                loaded: @_getLoadedSize()
+                total: @_total_size 
+            @_checkAllUpdated()
         else
             @_downloadModule(module)
+        return
+
+    _getLoadedSize: ->
+        loaded_size = 0
+        for name, size of @_loaded_sizes
+            loaded_size += size
+        return loaded_size
 
     _downloadModule: (module) ->
         @onModuleBeginDownload(module)
@@ -248,19 +294,41 @@ class Loader
             if md5(module_source) != module.md5
                 @onModuleDownloadFailed(module, event)
             key = "spa:" + module.md5 + ":" + module.url
-            @set(key, event.target.response)
+            module.source = module_source
+            @set(key, module_source)
+            @_loaded_sizes[module.id] = module.size
             @onModuleDownloaded(event)
-            module.content = module_source
-            @onUpdateCompletted() if @_checkAllUpdated()
+            @onTotalDownloadProgress
+                loaded: @_getLoadedSize()
+                total: @_total_size 
+            @_checkAllUpdated()
+        module_request.onprogress = (event) =>
+            @_loaded_sizes[module.id] = event.loaded
+            @onModuleDownloadProgress
+                loaded: event.loaded
+                total: module.size
+            @onTotalDownloadProgress
+                loaded: @_getLoadedSize()
+                total: @_total_size 
         module_request.onerror = (event) =>
             @oModuleDownloadFailed(module, event)
+        module_request.onabort = (event) =>
+            @oModuleDownloadFailed(module, event)
         module_request.send()
+        return
 
     _checkAllUpdated: ->
         for module in @_modules_in_update
-            return false unless module.content?
-        return true
+            return unless module.source?
+        @set("spa::manifest", @_new_manifest)
+        @_current_manifest = @_new_manifest
+        @_new_manifest = null
+        @_update_started = false
+        @_modules_in_update = []
+        @onUpdateCompletted() 
+        return
 
 window.onload = ->
     loader =  new Loader()
     loader.start()
+    return true
