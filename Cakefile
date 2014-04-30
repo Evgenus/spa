@@ -4,6 +4,19 @@ coffee = require("coffee-script")
 uglify = require("uglify-js")
 walk = require('fs-walk')
 
+
+preg_quote = (str, delimiter) ->
+    return (str + '')
+        .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&')
+
+globStringToRegex = (str) ->
+    return new RegExp(
+        preg_quote(str)
+            .replace(/\\\*\\\*\//g, '(?:[^/]+/)*')
+            .replace(/\\\*/g, '[^/]*')
+            .replace(/\\\?/g, '[^/]')
+        , 'm')
+
 minify = (source) -> 
     ast = uglify.parse(source)
     ast.figure_out_scope()
@@ -33,61 +46,37 @@ minify = (source) ->
 
     return minified
 
-copy = (input, output) ->
-    result = fs.readFileSync(input)
-    fs.writeFileSync(output, result)
-
+transform = (source, destination, func) -> 
+    source = globStringToRegex(source)
+    walk.filesSync ".", (basedir, filename, stat) =>
+        filepath = path.join(basedir, filename)
+        input = '/' + path.relative(".", filepath).split(path.sep).join('/')
+        return unless source.test(input)
+        output = input.replace(source, destination)
+        result = fs.readFileSync(filepath, encoding: "utf8")
+        result = func(input, output, result)
+        fs.writeFileSync(path.join(".", output), result)
 
 task "compile-builder", "compile builder coffee source into javascript", ->
-    root = "./src/builder"
-    walk.filesSync root, (basedir, filename, stat) =>
-        ext = path.extname(filename)
-        return unless ext is ".coffee"
-        input = path.resolve(basedir, filename)
-        output = path.resolve(
-            "./lib"
-            path.relative(root, basedir)
-            path.basename(filename, ext) + ".js"
-            )
-    
+    console.log("Compiling builder")
+    transform "/src/builder/(**/*).coffee", "/lib/$1.js", (input, output, data) ->
         console.log("Compiling %s --> %s", input, output)
-        result = fs.readFileSync(input, encoding: "utf8")
-        result = coffee.compile(result, bare: true)
-        fs.writeFileSync(output, result)
+        return coffee.compile(data, bare: true)
 
 task "compile-loader", "compile loader coffee source into javascript", ->
-    root = "./src/loader"
-    walk.filesSync root, (basedir, filename, stat) =>
-        ext = path.extname(filename)
-        return unless ext is ".coffee"
-        input = path.resolve(basedir, filename)
-        output = path.resolve(
-            "./lib/assets"
-            path.relative(root, basedir)
-            path.basename(filename, ext) + ".js"
-            )
-    
+    console.log("Compiling loader")
+    transform "/src/loader/(**/*).coffee", "/lib/assets/$1.js", (input, output, data) ->
         console.log("Compiling %s --> Minifying --> %s", input, output)
-        result = fs.readFileSync(input, encoding: "utf8")
-        result = coffee.compile(result, bare: true)
-        result = minify(result)
-        fs.writeFileSync(output, result)
+        result = coffee.compile(data, bare: true)
+        return minify(result)
 
-    root = "./contrib"
-    walk.filesSync root, (basedir, filename, stat) =>
-        ext = path.extname(filename)
-        return unless ext is ".js"
-        input = path.resolve(basedir, filename)
-        output = path.resolve(
-            "./lib/assets"
-            path.relative(root, basedir)
-            path.basename(filename, ext) + ".js"
-            )
-    
-        console.log("Compiling %s --> Minifying --> %s", input, output)
-        result = fs.readFileSync(input, encoding: "utf8")
-        result = minify(result)
-        fs.writeFileSync(output, result)
+    transform "/contrib/(*).js", "/lib/assets/$1.js", (input, output, data) ->
+        console.log("Minifying %s --> %s", input, output)
+        return minify(data)
+
+    transform "/src/builder/index.tmpl", "lib/assets/index.tmpl", (input, output, data) ->
+        console.log("Copying %s --> %s", input, output)
+        return data
 
 task "build", "compile all coffeescript files to javascript", ->
     invoke 'compile-builder'
@@ -95,3 +84,5 @@ task "build", "compile all coffeescript files to javascript", ->
 
 task "sbuild", "build routine for sublime", ->
     invoke 'build'
+
+task "clean", "remove all generated files", ->
