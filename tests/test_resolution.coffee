@@ -1,10 +1,11 @@
 fs = require("fs")
 mock = require("mock-fs")
-spa = require("spa")
 yaml = require("js-yaml")
 path = require("path")
 chai = require("chai")
 _ = require("underscore")
+
+spa = require("../lib")
 
 expect = chai.expect
 
