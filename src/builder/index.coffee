@@ -15,7 +15,7 @@ preg_quote = (str, delimiter) ->
 globStringToRegex = (str) ->
     return new RegExp(
         preg_quote(str)
-            .replace(/\\\*\\\*/g, '[^/]*(?:/[^/]+)*')
+            .replace(/\\\*\\\*\//g, '(?:[^/]+/)*')
             .replace(/\\\*/g, '[^/]*')
             .replace(/\\\?/g, '[^/]')
         , 'm')
