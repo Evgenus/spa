@@ -225,6 +225,7 @@ class Loader
 
     start: ->
         @_current_manifest = @get("spa::manifest")
+        @log("Current manifest", @_current_manifest)
         if @_current_manifest?
             @_modules_running = JSON.parse(@_current_manifest)
             for module in @_modules_running

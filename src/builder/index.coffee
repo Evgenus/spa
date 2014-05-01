@@ -4,6 +4,7 @@ path = require('path')
 detective = require('detective')
 crypto = require('crypto')
 yaml = require('js-yaml')
+handlebars = require("handlebars")
 _  = require('underscore')
 _.string =  require('underscore.string')
 _.mixin(_.string.exports())
@@ -61,9 +62,14 @@ class Builder
             template: template
         @manifest = options.manifest
         @index = options.index
-        @template = path.join(__dirname, "index.tmpl")
         @_built_ins = ["loader"]
         @pretty = options.pretty ? false
+        @assets = 
+            "template": path.join(__dirname, "assets/index.tmpl")
+            "md5": path.join(__dirname, "assets/md5.js")
+            "loader": path.join(__dirname, "assets/loader.js")
+        for own name, value of options.assets
+            @assets[name] = value
         @_clear()
 
     filter: (filepath) ->
@@ -215,9 +221,17 @@ class Builder
         fs.writeFileSync(filename, content)
 
     _write_index: ->
+        assets = {}
+        for own name, value of @assets
+            assets[name] = fs.readFileSync(value, encoding: "utf8")
 
+        template = assets["template"]
+        compiled = handlebars.compile(template)
+        filename = path.resolve(@root, @index)
+        content = compiled(assets)
+        fs.writeFileSync(filename, content)
 
-    build: () ->
+    build: ->
         @_enlist(@root)
         @_set_ids()
         for module in @_modules
