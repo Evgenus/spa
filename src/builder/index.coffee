@@ -51,6 +51,9 @@ class Loop
             "#{p[i][0]} --[#{p[i][1]}]--> #{p[i+1][0]}" 
             ).join("\n")
             
+make_md5 = (content) -> 
+    return crypto.createHash('md5').update(content).digest('hex')
+
 class Builder
     constructor: (options) ->
         @root = path.resolve(process.cwd(), options.root)
@@ -65,13 +68,16 @@ class Builder
         @_built_ins = ["loader"]
         @pretty = options.pretty ? false
         @assets = 
-            "template": path.join(__dirname, "assets/index.tmpl")
-            "md5": path.join(__dirname, "assets/md5.js")
-            "loader": path.join(__dirname, "assets/loader.js")
-            "fake_app": path.join(__dirname, "assets/fake/app.js")
-            "fake_manifest": path.join(__dirname, "assets/fake/manifest.json")
+            appcache_template: path.join(__dirname, "assets/appcache.tmpl")
+            index_template: path.join(__dirname, "assets/index.tmpl")
+            md5: path.join(__dirname, "assets/md5.js")
+            loader: path.join(__dirname, "assets/loader.js")
+            fake_app: path.join(__dirname, "assets/fake/app.js")
+            fake_manifest: path.join(__dirname, "assets/fake/manifest.json")
         for own name, value of options.assets
             @assets[name] = value
+        @appcache = options.appcache
+        @cached = options.cached
         @_clear()
 
     filter: (filepath) ->
@@ -85,11 +91,13 @@ class Builder
         @_by_path = {}
         @_by_id = {}
 
+    _relativate: (filepath) -> 
+        return '/' + filepath.split(path.sep).join('/')
+
     _enlist: (root) ->
         walk.filesSync root, (basedir, filename, stat) =>
             filepath = path.resolve(basedir, filename)
-            relative = '/' + path.relative(root, filepath)
-                .split(path.sep).join('/')
+            relative = @_relativate(path.relative(root, filepath))
 
             return unless @filter(relative)
 
@@ -151,7 +159,7 @@ class Builder
 
     _analyze: (module) ->
         source = fs.readFileSync(module.path)
-        module.md5 = crypto.createHash('md5').update(source).digest('hex');
+        module.md5 = make_md5(source)
         module.size = source.length
         module.deps_paths = {}
 
@@ -203,11 +211,10 @@ class Builder
                 else
                     throw new ExternalDependencyError(module.relative, dep, resolved)
 
-    _host: (module) ->
+    _host: (filepath) ->
         for rule in @hosting
-            continue unless rule.pattern.test(module.relative)
-            module.url = module.relative.replace(rule.pattern, rule.template)
-            break
+            continue unless rule.pattern.test(filepath)
+            return filepath.replace(rule.pattern, rule.template)
         return
 
     _write_manifest: ->
@@ -220,6 +227,7 @@ class Builder
 
         filename = path.resolve(@root, @manifest)
         content = JSON.stringify(data, null, if @pretty then "  ")
+        console.log("Writing #{filename}")
         fs.writeFileSync(filename, content)
 
     _write_index: ->
@@ -227,10 +235,35 @@ class Builder
         for own name, value of @assets
             assets[name] = fs.readFileSync(value, encoding: "utf8")
 
-        compiled = ejs.compile(assets["template"])
+        compiled = ejs.compile(assets["index_template"])
         filename = path.resolve(@root, @index)
-        content = compiled(assets)
-        fs.writeFileSync(filename, content)
+        @_index_content = compiled(assets)
+        console.log("Writing #{filename}")
+        fs.writeFileSync(filename, @_index_content)
+
+    _write_appcache: ->
+        assets = {}
+        for filename of @cached
+            url = @_host(filename)
+            continue unless url?
+            filepath = path.resolve(root, filename)
+            content = fs.readFileSync(filename, encoding: "utf8")
+            assets[url] = make_md5(content)
+        if @index?
+            filepath = path.resolve(@root, @index)
+            relative = @_relativate(path.relative(@root, filepath))
+            url = @_host(relative)
+            if url?
+                filename = path.resolve(@root, @index)
+                assets[url] = make_md5(@_index_content)
+
+        template = @assets["appcache_template"]
+        compiled = ejs.compile(fs.readFileSync(template, encoding: "utf8"))
+        filename = path.resolve(@root, @appcache)
+        content = compiled
+            assets: assets
+        console.log("Writing #{filename}")
+        fs.writeFileSync(filename, content)        
 
     build: ->
         @_enlist(@root)
@@ -240,9 +273,10 @@ class Builder
         @_link()
         @_sort()
         for module in @_modules
-            @_host(module)
+            module.url = @_host(module.relative)
         @_write_manifest() if @manifest?
         @_write_index() if @index?
+        @_write_appcache() if @appcache?
         return
 
 load_json = (filepath) ->

@@ -13,6 +13,19 @@ chai.Assertion.addMethod 'properties', (expectedPropertiesObj) ->
     for own key, func of expectedPropertiesObj
         func.call(new chai.Assertion(this._obj).property(key))
 
+mount = (target, name, dirname) ->
+    result = target[name] ?= {}
+    for name in fs.readdirSync(dirname)
+        continue if name is "."
+        continue if name is ".."
+        child = path.join(dirname, name)
+        stats = fs.statSync(child)
+        if stats.isDirectory()
+            mount(result, name, child)
+        if stats.isFile()
+            result[name] = fs.readFileSync(child)
+    return result
+
 describe 'Building module with unknown dependency', ->
 
     before ->
@@ -225,7 +238,47 @@ describe 'Building module without manifest', ->
         builder = spa.Builder.from_config("/testimonial/spa.yaml")
         builder.build()
 
-        expect(fs.existsSync("/testimonial/manifest.json")).not.to.be.true;
+        expect(fs.existsSync("/testimonial/manifest.json")).not.to.be.true
+
+    after ->
+        mock.restore()
+        process.chdir(@old_cwd)
+
+describe 'Building module with appcache and index', ->
+
+    before ->
+        @old_cwd = process.cwd()
+        process.chdir("/")
+        system = yaml.safeLoad("""
+            testimonial: 
+                a.js: // empty
+                spa.yaml: |
+                    root: "/testimonial/"
+                    index: index.html
+                    appcache: main.appcache
+                    assets:
+                        index_template: /assets/index.tmpl
+                        appcache_template: /assets/appcache.tmpl
+                        loader: /assets/loader.js
+                        md5: /assets/md5.js
+                        fake_app: /assets/fake/app.js
+                        fake_manifest: /assets/fake/manifest.json
+                    cached:
+                        - a.js
+                    hosting:
+                        "/(**/*.*)": "http://127.0.0.1:8010/$1"
+            """)
+        mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should produce appcache file', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+
+        expect(fs.existsSync("/testimonial/index.html")).to.be.true
+        expect(fs.existsSync("/testimonial/main.appcache")).to.be.true
+
+        console.log(fs.readFileSync("/testimonial/main.appcache", encoding: "utf8"))
 
     after ->
         mock.restore()

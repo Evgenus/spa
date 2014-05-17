@@ -85,6 +85,10 @@ task "compile-loader", "compile loader coffee source into javascript", ->
         console.log("Copying %s --> %s", input, output)
         return data
 
+    transform "/src/builder/appcache.tmpl", "lib/assets/appcache.tmpl", (input, output, data) ->
+        console.log("Copying %s --> %s", input, output)
+        return data
+
     console.log("Building fake manifest")
     Builder = require("./lib").Builder
     builder = new Builder
