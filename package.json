@@ -44,12 +44,14 @@
     "fs-walk": "*",
     "detective": "^3.1.0",
     "underscore": "~1.6.0",
-    "underscore.string": "~2.3.3"
+    "underscore.string": "~2.3.3",
+    "handlebars": "^2.0.0"
   },
   "devDependencies": {
     "mock-fs": ">=2.2.0",
     "mocha": "1.x",
-    "coffee-script": "^1.7.1"
+    "coffee-script": "^1.7.1",
+    "connect": "2.x.x"
   },
   "license": "MIT"
 }
