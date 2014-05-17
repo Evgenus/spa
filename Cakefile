@@ -3,7 +3,7 @@ path = require("path")
 coffee = require("coffee-script")
 uglify = require("uglify-js")
 walk = require('fs-walk')
-
+mkdirpSync = require('mkdirp').sync
 
 preg_quote = (str, delimiter) ->
     return (str + '')
@@ -55,7 +55,9 @@ transform = (source, destination, func) ->
         output = input.replace(source, destination)
         result = fs.readFileSync(filepath, encoding: "utf8")
         result = func(input, output, result)
-        fs.writeFileSync(path.join(".", output), result)
+        outpath = path.join(".", output)
+        mkdirpSync(path.dirname(outpath))
+        fs.writeFileSync(outpath, result)
 
 task "compile-builder", "compile builder coffee source into javascript", ->
     console.log("Compiling builder")
@@ -65,12 +67,12 @@ task "compile-builder", "compile builder coffee source into javascript", ->
 
 task "compile-loader", "compile loader coffee source into javascript", ->
     console.log("Compiling loader")
-    transform "/src/loader/loader.coffee", "/lib/assets/loader.js", (input, output, data) ->
+    transform "/src/loader/(**/*).coffee", "/lib/assets/$1.js", (input, output, data) ->
         console.log("Compiling %s --> Minifying --> %s", input, output)
         result = coffee.compile(data, bare: true)
         return minify(result)
 
-    transform "/src/loader/fake-app.coffee", "/lib/assets/fake-app.fjs", (input, output, data) ->
+    transform "/src/fake/(**/*).coffee", "/lib/assets/fake/$1.js", (input, output, data) ->
         console.log("Compiling %s --> Minifying --> %s", input, output)
         result = coffee.compile(data, bare: true)
         return minify(result)
@@ -86,11 +88,10 @@ task "compile-loader", "compile loader coffee source into javascript", ->
     console.log("Building fake manifest")
     Builder = require("./lib").Builder
     builder = new Builder
-        root: "./lib/assets/"
-        extensions: [".fjs"]
-        manifest: "fake-manifest.json"
+        root: "./lib/assets/fake"
+        manifest: "manifest.json"
         hosting: 
-            "/fake-app.fjs": "fake://app.js"
+            "/(*)": "fake://$1"
     builder.build()
 
 task "build", "compile all coffeescript files to javascript", ->

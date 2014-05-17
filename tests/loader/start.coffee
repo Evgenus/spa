@@ -177,8 +177,8 @@ system = yaml.safeLoad("""
                         template: /assets/index.tmpl
                         loader: /assets/loader.js
                         md5: /assets/md5.js
-                        fake_app: /assets/fake-app.fjs
-                        fake_manifest: /assets/fake-manifest.json
+                        fake_app: /assets/fake/app.js
+                        fake_manifest: /assets/fake/manifest.json
                     hosting:
                         "/a.js": "/test1/phase1/a.js"
             phase2:
@@ -208,8 +208,8 @@ system = yaml.safeLoad("""
                         template: /assets/index.tmpl
                         loader: /assets/loader.js
                         md5: /assets/md5.js
-                        fake_app: /assets/fake-app.fjs
-                        fake_manifest: /assets/fake-manifest.json
+                        fake_app: /assets/fake/app.js
+                        fake_manifest: /assets/fake/manifest.json
                     hosting:
                         "/a.js": "/test1/phase2/a.js"
     """)

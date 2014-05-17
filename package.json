@@ -51,7 +51,9 @@
     "mock-fs": ">=2.2.0",
     "mocha": "1.x",
     "coffee-script": "^1.7.1",
-    "connect": "2.x.x"
+    "connect": "2.x.x",
+    "uglify-js": "2.x.x",
+    "mkdirp": "*"
   },
   "license": "MIT"
 }
