@@ -68,6 +68,7 @@ class Builder
             "template": path.join(__dirname, "assets/index.tmpl")
             "md5": path.join(__dirname, "assets/md5.js")
             "loader": path.join(__dirname, "assets/loader.js")
+            "fake-app": path.join(__dirname, "assets/fake-app.js")
         for own name, value of options.assets
             @assets[name] = value
         @_clear()
