@@ -27,7 +27,7 @@
   "bin": {
     "spa": "./bin/spa"
   },
-  "main": "./lib/builder/index.js",
+  "main": "./lib/index.js",
   "scripts": {
     "test": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_*.coffee --reporter spec",
     "start": "coffee ./tests/loader/start.coffee --nodejs"
