@@ -166,7 +166,8 @@ system = yaml.safeLoad("""
                         location.replace(phase);
                     };
                     loader.onUpdateCompletted = function() {
-                        location.reload();
+                        setTimeout(location.reload.bind(location), 0)
+                        return true
                     };
                 spa.yaml: |
                     root: "./"
@@ -196,7 +197,8 @@ system = yaml.safeLoad("""
                         location.replace(phase)
                     };
                     loader.onUpdateCompletted = function() {
-                        location.reload();
+                        setTimeout(location.reload.bind(location), 0)
+                        return true
                     };
                 spa.yaml: |
                     root: "./"
