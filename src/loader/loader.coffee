@@ -205,7 +205,7 @@ class Loader
         @log("onUpdateFailed", arguments)
     onUpdateCompletted: (event) -> 
         @log("onUpdateCompletted", arguments)
-        window.location.reload()
+        return true
 
     onModuleBeginDownload: -> 
         @log("onModuleBeginDownload", arguments) 
@@ -218,40 +218,48 @@ class Loader
     onTotalDownloadProgress: -> 
         @log("onTotalDownloadProgress", arguments) 
 
-    onApplicationReady: -> 
-        @log("onApplicationReady", arguments) 
     onEvaluationError: -> 
         @log("onEvaluationError", arguments)
+    onApplicationReady: -> 
+        @log("onApplicationReady", arguments)
+        @checkUpdate()
+        
+    write_fake: ->
+        manifest = JSON.parse(FAKE_MANIFEST)
+        @set("spa::manifest", FAKE_MANIFEST)
+        @set("spa:" + manifest[0].md5 + ":" + manifest[0].url, FAKE_APP)
 
     start: ->
         @_current_manifest = @get("spa::manifest")
         @log("Current manifest", @_current_manifest)
-        if @_current_manifest?
-            @_modules_running = JSON.parse(@_current_manifest)
-            for module in @_modules_running
-                module_source = @get("spa:" + module.md5 + ":" + module.url)
-                unless module_source?
-                    @onEvaluationError(new NoSourceError(module.md5, module.url))
+        unless @_current_manifest?
+            @log("Writing fake application")
+            @write_fake()
+            @_current_manifest = @get("spa::manifest")
 
-                module.source = module_source
+        @_modules_running = JSON.parse(@_current_manifest)
+        for module in @_modules_running
+            module_source = @get("spa:" + module.md5 + ":" + module.url)
+            unless module_source?
+                @onEvaluationError(new NoSourceError(module.md5, module.url))
 
-                deps = {}
-                for alias, dep of module.deps
-                    deps[alias] = @_all_modules[dep]
-                deps["loader"] = this
+            module.source = module_source
 
-                evaluator = new CJSEvaluator
-                    id: module.id
-                    source: module.source
-                    dependencies: deps
+            deps = {}
+            for alias, dep of module.deps
+                deps[alias] = @_all_modules[dep]
+            deps["loader"] = this
 
-                try
-                     @_all_modules[module.id] = evaluator.run()
-                catch error
-                     @onEvaluationError(error)
-            @onApplicationReady()
-        else
-            @checkUpdate()
+            evaluator = new CJSEvaluator
+                id: module.id
+                source: module.source
+                dependencies: deps
+
+            try
+                 @_all_modules[module.id] = evaluator.run()
+            catch error
+                 @onEvaluationError(error)
+        @onApplicationReady()
         return
 
     checkUpdate: () ->
@@ -267,7 +275,6 @@ class Loader
                     @onUpToDate()
                     return
             @onUpdateFound(event)
-        
         manifest_request.onerror = (event) =>
             @onUpdateFailed(event)
         manifest_request.send()
@@ -330,21 +337,21 @@ class Loader
                 loaded: @_getLoadedSize()
                 total: @_total_size 
         module_request.onerror = (event) =>
-            @oModuleDownloadFailed(module, event)
+            @onModuleDownloadFailed(module, event)
         module_request.onabort = (event) =>
-            @oModuleDownloadFailed(module, event)
+            @onModuleDownloadFailed(module, event)
         module_request.send()
         return
 
     _checkAllUpdated: ->
         for module in @_modules_in_update
             return unless module.source?
-        @set("spa::manifest", @_new_manifest)
-        @_current_manifest = @_new_manifest
-        @_new_manifest = null
+        if @onUpdateCompletted()
+            @set("spa::manifest", @_new_manifest)
+            @_current_manifest = @_new_manifest
+            @_new_manifest = null
         @_update_started = false
         @_modules_in_update = []
-        @onUpdateCompletted() 
         return
 
 window.onload = ->

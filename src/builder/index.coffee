@@ -4,7 +4,7 @@ path = require('path')
 detective = require('detective')
 crypto = require('crypto')
 yaml = require('js-yaml')
-handlebars = require("handlebars")
+ejs = require("ejs")
 _  = require('underscore')
 _.string =  require('underscore.string')
 _.mixin(_.string.exports())
@@ -68,7 +68,8 @@ class Builder
             "template": path.join(__dirname, "assets/index.tmpl")
             "md5": path.join(__dirname, "assets/md5.js")
             "loader": path.join(__dirname, "assets/loader.js")
-            "fake-app": path.join(__dirname, "assets/fake-app.js")
+            "fake_app": path.join(__dirname, "assets/fake-app.fjs")
+            "fake_manifest": path.join(__dirname, "assets/fake-manifest.json")
         for own name, value of options.assets
             @assets[name] = value
         @_clear()
@@ -226,8 +227,7 @@ class Builder
         for own name, value of @assets
             assets[name] = fs.readFileSync(value, encoding: "utf8")
 
-        template = assets["template"]
-        compiled = handlebars.compile(template)
+        compiled = ejs.compile(assets["template"])
         filename = path.resolve(@root, @index)
         content = compiled(assets)
         fs.writeFileSync(filename, content)

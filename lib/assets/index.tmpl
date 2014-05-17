@@ -3,8 +3,10 @@
 <head>
 <script type="text/javascript">
 (function() {
-    {{{md5}}}
-    {{{loader}}}
+    var FAKE_APP = <%- JSON.stringify(fake_app) %>
+    var FAKE_MANIFEST = <%- JSON.stringify(fake_manifest) %>
+    <%- md5 %>
+    <%- loader %>
 })();
 </script>
 </head>

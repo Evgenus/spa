@@ -65,7 +65,12 @@ task "compile-builder", "compile builder coffee source into javascript", ->
 
 task "compile-loader", "compile loader coffee source into javascript", ->
     console.log("Compiling loader")
-    transform "/src/loader/(**/*).coffee", "/lib/assets/$1.js", (input, output, data) ->
+    transform "/src/loader/loader.coffee", "/lib/assets/loader.js", (input, output, data) ->
+        console.log("Compiling %s --> Minifying --> %s", input, output)
+        result = coffee.compile(data, bare: true)
+        return result#minify(result)
+
+    transform "/src/loader/fake-app.coffee", "/lib/assets/fake-app.fjs", (input, output, data) ->
         console.log("Compiling %s --> Minifying --> %s", input, output)
         result = coffee.compile(data, bare: true)
         return minify(result)
@@ -77,6 +82,16 @@ task "compile-loader", "compile loader coffee source into javascript", ->
     transform "/src/builder/index.tmpl", "lib/assets/index.tmpl", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
         return data
+
+    console.log("Building fake manifest")
+    Builder = require("./lib").Builder
+    builder = new Builder
+        root: "./lib/assets/"
+        extensions: [".fjs"]
+        manifest: "fake-manifest.json"
+        hosting: 
+            "/fake-app.fjs": "fake://app.js"
+    builder.build()
 
 task "build", "compile all coffeescript files to javascript", ->
     invoke 'compile-builder'

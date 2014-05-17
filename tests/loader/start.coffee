@@ -163,7 +163,10 @@ system = yaml.safeLoad("""
                     };
                     loader.onUpToDate = function() {
                         console.log(phase, "onUpToDate");
-                        location.replace(phase)
+                        location.replace(phase);
+                    };
+                    loader.onUpdateCompletted = function() {
+                        location.reload();
                     };
                 spa.yaml: |
                     root: "./"
@@ -173,6 +176,8 @@ system = yaml.safeLoad("""
                         template: /assets/index.tmpl
                         loader: /assets/loader.js
                         md5: /assets/md5.js
+                        fake_app: /assets/fake-app.fjs
+                        fake_manifest: /assets/fake-manifest.json
                     hosting:
                         "/a.js": "/test1/phase1/a.js"
             phase2:
@@ -190,6 +195,9 @@ system = yaml.safeLoad("""
                         console.log(phase, "onUpToDate");
                         location.replace(phase)
                     };
+                    loader.onUpdateCompletted = function() {
+                        location.reload();
+                    };
                 spa.yaml: |
                     root: "./"
                     manifest: "./manifest.json"
@@ -198,6 +206,8 @@ system = yaml.safeLoad("""
                         template: /assets/index.tmpl
                         loader: /assets/loader.js
                         md5: /assets/md5.js
+                        fake_app: /assets/fake-app.fjs
+                        fake_manifest: /assets/fake-manifest.json
                     hosting:
                         "/a.js": "/test1/phase2/a.js"
     """)
