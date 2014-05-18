@@ -174,7 +174,8 @@ system = yaml.safeLoad("""
                     manifest: "./manifest.json"
                     index: "./index.html"
                     assets:
-                        template: /assets/index.tmpl
+                        index_template: /assets/index.tmpl
+                        appcache_template: /assets/appcache.tmpl
                         loader: /assets/loader.js
                         md5: /assets/md5.js
                         fake_app: /assets/fake/app.js
@@ -205,7 +206,8 @@ system = yaml.safeLoad("""
                     manifest: "./manifest.json"
                     index: "./index.html"
                     assets:
-                        template: /assets/index.tmpl
+                        index_template: /assets/index.tmpl
+                        appcache_template: /assets/appcache.tmpl
                         loader: /assets/loader.js
                         md5: /assets/md5.js
                         fake_app: /assets/fake/app.js
