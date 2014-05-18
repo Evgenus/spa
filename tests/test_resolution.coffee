@@ -278,8 +278,6 @@ describe 'Building module with appcache and index', ->
         expect(fs.existsSync("/testimonial/index.html")).to.be.true
         expect(fs.existsSync("/testimonial/main.appcache")).to.be.true
 
-        console.log(fs.readFileSync("/testimonial/main.appcache", encoding: "utf8"))
-
     after ->
         mock.restore()
         process.chdir(@old_cwd)

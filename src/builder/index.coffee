@@ -243,11 +243,12 @@ class Builder
 
     _write_appcache: ->
         assets = {}
-        for filename of @cached
-            url = @_host(filename)
+        for filename in @cached
+            filepath = path.resolve(@root, filename)
+            relative = @_relativate(path.relative(@root, filepath))
+            url = @_host(relative)
             continue unless url?
-            filepath = path.resolve(root, filename)
-            content = fs.readFileSync(filename, encoding: "utf8")
+            content = fs.readFileSync(filepath, encoding: "utf8")
             assets[url] = make_md5(content)
         if @index?
             filepath = path.resolve(@root, @index)
