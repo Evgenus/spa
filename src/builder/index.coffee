@@ -63,6 +63,10 @@ class Builder
         @hosting = for pattern, template of options.hosting ? {}
             pattern: globStringToRegex(pattern)
             template: template
+        @default_loader = options.default_loader ? "cjs"
+        @loaders = for pattern, type of options.loaders ? {}
+            pattern: globStringToRegex(pattern)
+            type: type            
         @manifest = options.manifest
         @index = options.index
         @_built_ins = ["loader"]
@@ -217,12 +221,19 @@ class Builder
             return filepath.replace(rule.pattern, rule.template)
         return
 
+    _get_type: (filepath) ->
+        for rule in @loaders
+            continue unless rule.pattern.test(filepath)
+            return rule.type
+        return @default_loader
+
     _write_manifest: ->
         data = for module in @_modules
             id: module.id
             url: module.url
             md5: module.md5
             size: module.size
+            type: module.type
             deps: module.deps_ids
 
         filename = path.resolve(@root, @manifest)
@@ -271,6 +282,8 @@ class Builder
         @_set_ids()
         for module in @_modules
             @_analyze(module)
+        for module in @_modules
+            module.type = @_get_type(module.relative)
         @_link()
         @_sort()
         for module in @_modules

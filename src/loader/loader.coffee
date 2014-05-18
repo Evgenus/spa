@@ -169,6 +169,12 @@ class PollutionEvaluator extends BasicEvaluator
             result[name] = value
         return result
 
+class RawEvaluator extends BasicEvaluator
+    render: -> return @source
+    _check: (result) ->
+    get_window: -> return window
+    _make: -> return {}
+
 class Storage
     get: (name) -> throw new AbstractMethodError()
     set: (name, value) -> throw new AbstractMethodError()
@@ -186,6 +192,12 @@ class Loader
         @_new_manifest = null
         @_total_size = 0
         @_loaded_sizes = {}
+
+        @_evaluators =
+            cjs: CJSEvaluator
+            amd: AMDEvaluator
+            junk: PollutionEvaluator
+            raw: RawEvaluator
 
     get: (name) ->
         return window.localStorage.getItem(name)
@@ -250,7 +262,7 @@ class Loader
                 deps[alias] = @_all_modules[dep]
             deps["loader"] = this
 
-            evaluator = new CJSEvaluator
+            evaluator = new @_evaluators[module.type ? "cjs"]
                 id: module.id
                 source: module.source
                 dependencies: deps
