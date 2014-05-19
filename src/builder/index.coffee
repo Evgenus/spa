@@ -161,7 +161,7 @@ class Builder
                @_resolve_to_file(dep + ".js") ? 
                @_resolve_to_directory(dep)
 
-    _analyze: (module) ->
+    _analyze_cjs: (module) ->
         source = fs.readFileSync(module.path)
         module.md5 = make_md5(source)
         module.size = source.length
@@ -225,6 +225,7 @@ class Builder
         for rule in @loaders
             continue unless rule.pattern.test(filepath)
             return rule.type
+        # guess type here
         return @default_loader
 
     _write_manifest: ->
@@ -281,9 +282,9 @@ class Builder
         @_enlist(@root)
         @_set_ids()
         for module in @_modules
-            @_analyze(module)
-        for module in @_modules
             module.type = @_get_type(module.relative)
+            switch module.type
+                when "cjs" then @_analyze_cjs(module)
         @_link()
         @_sort()
         for module in @_modules

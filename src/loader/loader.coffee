@@ -239,7 +239,9 @@ class Loader
     write_fake: ->
         manifest = JSON.parse(FAKE_MANIFEST)
         @set("spa::manifest", FAKE_MANIFEST)
-        @set("spa:" + manifest[0].md5 + ":" + manifest[0].url, FAKE_APP)
+        module = manifest[0]
+        key = "spa:" + module.md5 + ":" + module.url
+        @set(key, FAKE_APP)
 
     start: ->
         @_current_manifest = @get("spa::manifest")
