@@ -1,4 +1,6 @@
-**S**ingle **P**age **A**pplications builder with continuous integration, granular updates and loader.
+#SPA
+
+**S** ingle **P** age **A** pplications builder with continuous integration, granular updates and loader.
 
 The general idea is to calculate dependencies offline and then eagerly cache/load modules in predefined order.
 Also we can detect which files are changed and do partial updates.
