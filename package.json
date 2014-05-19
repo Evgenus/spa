@@ -1,6 +1,6 @@
 {
   "name": "spa",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "homepage": "http://github.com/Evgenus/spa",
   "author": "Eugene Chernyshov <chernyshov.eugene@gmail.com>",
   "description": "Single-page applications builder with continuous integration, granular updates and loader.",
