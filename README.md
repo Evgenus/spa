@@ -65,7 +65,7 @@ Keys - rules as in `excludes`, values - format types. Available formats:
 - _cjs_ - `CommonJS`
 - _amd_ - `AMD` or `UMD`.
 - _junk_ - module needs to mutate `window`
-- _raw_ - local variables from module needs to be in `global` context (like <script>)
+- _raw_ - local variables from module needs to be in `global` context (like `<script>`)
 
 **default_loader** - loader for files not matched by loaders
 
