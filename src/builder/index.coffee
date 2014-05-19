@@ -1,7 +1,9 @@
 fs = require('fs')
 walk = require('fs-walk')
 path = require('path')
-detective = require('detective')
+detectiveCJS = require('detective')
+detectiveAMD = require('detective-amd')
+definition = require('module-definition').sync
 crypto = require('crypto')
 yaml = require('js-yaml')
 ejs = require("ejs")
@@ -145,6 +147,15 @@ class Builder
                 return @_resolve_to_file(path.join(dirpath, "index.js"))
         return
 
+    _get_type: (module) ->
+        for rule in @loaders
+            continue unless rule.pattern.test(module.relative)
+            return rule.type
+        switch definition(module.path)
+            when "commonjs" then return "cjs"
+            when "amd" then return "amd"
+        return @default_loader
+
     _resolve: (module, dep) ->
         for alias, prefix of @paths
             if _(dep).startsWith(alias)
@@ -161,13 +172,19 @@ class Builder
                @_resolve_to_file(dep + ".js") ? 
                @_resolve_to_directory(dep)
 
-    _analyze_cjs: (module) ->
+    _analyze: (module) ->
         source = fs.readFileSync(module.path)
         module.md5 = make_md5(source)
         module.size = source.length
         module.deps_paths = {}
 
-        for dep in detective(source)
+        deps = switch module.type
+            when "cjs" then detectiveCJS(source)
+            when "amd" then detectiveAMD(source)
+
+        # add into deps hardcoded dependencies from config
+
+        for dep in deps
             continue if dep in @_built_ins
             resolved = @_resolve(module, dep)
             unless resolved?
@@ -221,13 +238,6 @@ class Builder
             return filepath.replace(rule.pattern, rule.template)
         return
 
-    _get_type: (filepath) ->
-        for rule in @loaders
-            continue unless rule.pattern.test(filepath)
-            return rule.type
-        # guess type here
-        return @default_loader
-
     _write_manifest: ->
         data = for module in @_modules
             id: module.id
@@ -276,15 +286,14 @@ class Builder
         content = compiled
             assets: assets
         console.log("Writing #{filename}")
-        fs.writeFileSync(filename, content)        
+        fs.writeFileSync(filename, content)
 
     build: ->
         @_enlist(@root)
         @_set_ids()
         for module in @_modules
-            module.type = @_get_type(module.relative)
-            switch module.type
-                when "cjs" then @_analyze_cjs(module)
+            module.type = @_get_type(module)
+            @_analyze(module)
         @_link()
         @_sort()
         for module in @_modules
