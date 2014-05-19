@@ -45,7 +45,9 @@
     "detective": "^3.1.0",
     "underscore": "~1.6.0",
     "underscore.string": "~2.3.3",
-    "ejs": "^1.0.0"
+    "ejs": "^1.0.0",
+    "detective-amd": "2.x.x",
+    "module-definition": "1.x.x"
   },
   "devDependencies": {
     "mock-fs": ">=2.2.0",
