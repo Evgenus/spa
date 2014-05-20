@@ -281,7 +281,7 @@ class Builder
                 filename = path.resolve(@root, @index)
                 assets[url] = make_md5(@_index_content)
         
-        if assets.length == 0
+        if Object.keys(assets).length == 0
             if @index?
                 console.log("No hosting rule for `#{@index}` file. AppCache manifest `#{@appcache}` appears to be empty")
             else
