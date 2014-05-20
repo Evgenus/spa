@@ -14,9 +14,9 @@ class ChangesInWindowError extends Error
         @message = "During `#{@self_name}` loading window object was polluted with: #{props}"
 
 class NoSourceError extends Error
-    constructor: (@module_md5, @module_url) ->
+    constructor: (@key) ->
         @name = "NoSourceError"
-        @message = "Module source with checksum of `#{@module_md5}` was not found in localStorage. Probably it was not loaded from #{module_url}."
+        @message = "Module #{@key} source was not found in localStorage. Probably it was not loaded."
 
 class ExportsViolationError extends Error
     constructor: (@self_name) ->
@@ -199,11 +199,17 @@ class Loader
             junk: PollutionEvaluator
             raw: RawEvaluator
 
-    get: (name) ->
-        return window.localStorage.getItem(name)
+        @manifest_key = (LOADER_PREFIX ? "spa") + "::manifest"
+    
+    make_key: (module) ->
+        return (LOADER_PREFIX ? "spa") + ":" + module.md5 + ":" + module.url
 
-    set: (name, value) ->
-        window.localStorage.setItem(name, value)
+    get: (key) ->
+        return window.localStorage.getItem(key)
+
+    set: (key, value) ->
+        @log("storing", key)
+        window.localStorage.setItem(key, value)
 
     log: (args...) -> 
         console.log(args...)
@@ -235,27 +241,30 @@ class Loader
     onApplicationReady: -> 
         @log("onApplicationReady", arguments)
         @checkUpdate()
-        
+
     write_fake: ->
         manifest = JSON.parse(FAKE_MANIFEST)
-        @set("spa::manifest", FAKE_MANIFEST)
+        @set(@manifest_key, FAKE_MANIFEST)
         module = manifest[0]
-        key = "spa:" + module.md5 + ":" + module.url
+        key = @make_key(module)
         @set(key, FAKE_APP)
 
     start: ->
-        @_current_manifest = @get("spa::manifest")
+        @_current_manifest = @get(@manifest_key)
         @log("Current manifest", @_current_manifest)
         unless @_current_manifest?
             @log("Writing fake application")
             @write_fake()
-            @_current_manifest = @get("spa::manifest")
+            @_current_manifest = @get(@manifest_key)
+
+        @_cleanUp()
 
         @_modules_running = JSON.parse(@_current_manifest)
         for module in @_modules_running
-            module_source = @get("spa:" + module.md5 + ":" + module.url)
+            key = @make_key(module)
+            module_source = @get(key)
             unless module_source?
-                @onEvaluationError(new NoSourceError(module.md5, module.url))
+                @onEvaluationError(new NoSourceError(key))
 
             module.source = module_source
 
@@ -307,7 +316,7 @@ class Loader
         return
 
     _updateModule: (module) ->
-        key = "spa:" + module.md5 + ":" + module.url
+        key = @make_key(module)
         module_source = @get(key)
         if module_source?
             module.source = module_source
@@ -333,7 +342,7 @@ class Loader
             module_source = event.target.response
             if md5(module_source) != module.md5
                 @onModuleDownloadFailed(module, event)
-            key = "spa:" + module.md5 + ":" + module.url
+            key = @make_key(module)
             module.source = module_source
             @set(key, module_source)
             @_loaded_sizes[module.id] = module.size
@@ -361,12 +370,27 @@ class Loader
         for module in @_modules_in_update
             return unless module.source?
         if @onUpdateCompletted()
-            @set("spa::manifest", @_new_manifest)
+            @set(@manifest_key, @_new_manifest)
             @_current_manifest = @_new_manifest
             @_new_manifest = null
+            @_cleanUp()
         @_update_started = false
         @_modules_in_update = []
         return
+
+    _cleanUp: ->
+        prefix = (LOADER_PREFIX ? "spa")
+        modules = JSON.parse(@_current_manifest)
+        useful = (@make_key(module) for module in modules)
+        useful.push(@manifest_key)
+        @log(useful)
+        for i in [0..localStorage.length-1]
+            key = localStorage.key(i)
+            continue if key in useful
+            @log("removing", key)
+            localStorage.removeItem(key)
+        return
+
 
 window.onload = ->
     loader =  new Loader()
