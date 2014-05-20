@@ -181,6 +181,7 @@ class Builder
         deps = switch module.type
             when "cjs" then detectiveCJS(source)
             when "amd" then detectiveAMD(source)
+            else []
 
         # add into deps hardcoded dependencies from config
 
@@ -279,6 +280,12 @@ class Builder
             if url?
                 filename = path.resolve(@root, @index)
                 assets[url] = make_md5(@_index_content)
+        
+        if assets.length == 0
+            if @index?
+                console.log("No hosting rule for `#{@index}` file. AppCache manifest `#{@appcache}` appears to be empty")
+            else
+                console.log("There are no assets to be included into AppCache manifest `#{@appcache}`")
 
         template = @assets["appcache_template"]
         compiled = ejs.compile(fs.readFileSync(template, encoding: "utf8"))

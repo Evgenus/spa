@@ -377,10 +377,10 @@ describe 'Building mixed-formats modules', ->
                     extensions: 
                         - .js
                     manifest: "manifest.json"
-                default_loader: junk
+                    default_loader: junk
             """))
 
-        it 'should successfully build', ->
+    it 'should successfully build', ->
         builder = spa.Builder.from_config("/testimonial/spa.yaml")
         builder.build()
 
