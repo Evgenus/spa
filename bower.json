@@ -1,0 +1,21 @@
+{
+  "name": "spa",
+  "homepage": "https://github.com/Evgenus/spa",
+  "authors": [
+    "Evgenus <chernyshov.eugene@gmail.com>"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "cryptojslib": "~3.1.2",
+    "es6-promise": "~1.0.0",
+    "localforage": "~0.8.1"
+  }
+}
