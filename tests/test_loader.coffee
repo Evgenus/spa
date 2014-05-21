@@ -1,4 +1,6 @@
 selenium = require('selenium-standalone')
+webdriverjs = require('webdriverjs')
+
 mock = require("mock-fs")
 fs = require("fs")
 path = require("path")
@@ -6,7 +8,6 @@ yaml = require("js-yaml")
 chai = require('chai')
 expect = chai.expect
 assert = chai.assert
-webdriverjs = require('webdriverjs')
 connect = require("connect")
 spa = require("../lib")
 utils = require("./utils")
@@ -25,9 +26,12 @@ before (done) ->
 
     @client = webdriverjs.remote
         desiredCapabilities:
-            #browserName: 'phantomjs'
-            browserName: 'firefox'
+            browserName: 'chrome'
+            #browserName: 'firefox'
     @client.init(done)
+
+after (done) ->
+    @client.end(done)
 
 beforeEach ->
     @old_cwd = process.cwd()
@@ -37,10 +41,9 @@ afterEach ->
     mock.restore()
     process.chdir(@old_cwd)
 
-after (done) ->
-    @client.end(done)
-
 describe 'my webdriverjs tests', ->
+
+    this.timeout(999999)
 
     it 'Github test', (done) ->
         @client

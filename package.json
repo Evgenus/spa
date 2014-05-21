@@ -55,7 +55,8 @@
     "coffee-script": "^1.7.1",
     "connect": "2.x.x",
     "uglify-js": "2.x.x",
-    "mkdirp": "*"
+    "mkdirp": "*",
+    "selenium-standalone": ">=2.40.0"
   },
   "license": "MIT"
 }
