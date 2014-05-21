@@ -1,3 +1,4 @@
+selenium = require('selenium-standalone')
 mock = require("mock-fs")
 fs = require("fs")
 path = require("path")
@@ -12,33 +13,34 @@ utils = require("./utils")
 
 DELAY = 200
 
-describe 'my webdriverjs tests', ->
-
+before (done) ->
     this.timeout(999999)
 
-    before (done) ->
-        @app = connect()
-            .use connect.logger()
-            .use connect.static("/", redirect: true)
-        @server = connect.createServer(@app)
-        @server.listen(3333)
+    @server = selenium()
 
-        @client = webdriverjs.remote
-            desiredCapabilities:
-                #browserName: 'phantomjs'
-                browserName: 'firefox'
-        @client.init(done)
+    @app = connect()
+        .use connect.logger()
+        .use connect.static("/", redirect: true)
+    connect.createServer(@app).listen(3333)
 
-    beforeEach ->
-        @old_cwd = process.cwd()
-        process.chdir("/")
+    @client = webdriverjs.remote
+        desiredCapabilities:
+            #browserName: 'phantomjs'
+            browserName: 'firefox'
+    @client.init(done)
 
-    afterEach ->
-        mock.restore()
-        process.chdir(@old_cwd)
+beforeEach ->
+    @old_cwd = process.cwd()
+    process.chdir("/")
 
-    after (done) ->
-        @client.end(done)
+afterEach ->
+    mock.restore()
+    process.chdir(@old_cwd)
+
+after (done) ->
+    @client.end(done)
+
+describe 'my webdriverjs tests', ->
 
     it 'Github test', (done) ->
         @client
