@@ -54,7 +54,7 @@ describe 'my webdriverjs tests', ->
                             loader.onUpdateCompletted = function(event) {
                                 setTimeout(location.reload.bind(location), 0)
                                 return true
-                            }
+                            };
                         spa.yaml: |
                             root: "./"
                             manifest: "./manifest.json"
