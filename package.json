@@ -55,7 +55,8 @@
     "connect": "2.x.x",
     "uglify-js": "2.x.x",
     "mkdirp": "*",
-    "selenium-standalone": ">=2.40.0"
+    "selenium-standalone": ">=2.40.0",
+    "webdriverjs": ">=1.7.0"
   },
   "license": "MIT"
 }
