@@ -29,8 +29,7 @@
   },
   "main": "./lib/index.js",
   "scripts": {
-    "test_": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_builder.coffee --reporter spec",
-    "test": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_loader.coffee --reporter spec"
+    "test": "mocha --require chai --compilers coffee:coffee-script/register ./tests/*.coffee --reporter spec"
   },
   "directories": {
     "test": "tests"
