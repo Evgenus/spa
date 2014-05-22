@@ -56,7 +56,9 @@
     "uglify-js": "2.x.x",
     "mkdirp": "*",
     "selenium-standalone": ">=2.40.0",
-    "webdriverjs": ">=1.7.0"
+    "webdriverjs": ">=1.7.0",
+    "wd": ">=0.2.21",
+    "chai-as-promised": ">=4.x.x"
   },
   "license": "MIT"
 }
