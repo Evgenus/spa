@@ -14,7 +14,7 @@ utils = require("./utils")
 
 DELAY = 200
 
-describe "webdriverjs", ->
+describe.skip "webdriverjs", ->
     @timeout(20000)
 
     before (done) ->

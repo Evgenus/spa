@@ -265,6 +265,7 @@ class Loader
             module_source = @get(key)
             unless module_source?
                 @onEvaluationError(new NoSourceError(key))
+                return
 
             module.source = module_source
 
@@ -279,9 +280,11 @@ class Loader
                 dependencies: deps
 
             try
-                 @_all_modules[module.id] = evaluator.run()
+                @_all_modules[module.id] = evaluator.run()
             catch error
-                 @onEvaluationError(error)
+                @onEvaluationError(error)
+                return
+
         @onApplicationReady()
         return
 
@@ -386,6 +389,7 @@ class Loader
         @log(useful)
         for i in [0..localStorage.length-1]
             key = localStorage.key(i)
+            continue unless key.indexOf(prefix) is 0
             continue if key in useful
             @log("removing", key)
             localStorage.removeItem(key)
