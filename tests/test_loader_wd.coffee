@@ -42,6 +42,8 @@ describe "WD.js", ->
             connect.createServer(@app).listen(3332)
 
             @browser = wd.promiseChainRemote()
+                .init
+                    browserName:'firefox'
 
         after (done) ->
             @browser
@@ -53,8 +55,6 @@ describe "WD.js", ->
 
         it 'should update single file only after manifest regenerated', (done) ->
             @browser
-                .init
-                    browserName:'firefox'
                 .then ->
                     system = yaml.safeLoad("""
                         index.html: |
@@ -96,11 +96,9 @@ describe "WD.js", ->
                     spa.Builder.from_config("/app/spa.yaml").build()
                 .get('http://127.0.0.1:3332/')
                 .clearLocalStorage()
-                .setLocalStorageKey("test_item", "should_not be removed")
                 .get('http://127.0.0.1:3332/app/')
                 .sleep(DELAY)
                 .title().should.eventually.become("version_1")
-                .getLocalStorageKey("test_item").should.become("should_not be removed")
                 .refresh()
                 .sleep(DELAY)
                 .title().should.eventually.become("version_1")
@@ -120,5 +118,51 @@ describe "WD.js", ->
                 .refresh()
                 .sleep(DELAY)
                 .title().should.eventually.become("version_2")
+                .then -> 
+                    done()
+
+        it 'should not remove not owning kes from localstorage', (done) ->
+            @browser
+                .then ->
+                    system = yaml.safeLoad("""
+                        index.html: |
+                            <html>
+                                <head>
+                                    <title></title>
+                                </head>
+                                <body>
+                                    <h1>Testing</h1>
+                                </body>
+                            </html>
+                        app:
+                            a.js: |
+                                var loader = require("loader");
+                                loader.onApplicationReady = function() {
+                                    document.title = "version_1";
+                                };
+                            spa.yaml: |
+                                root: "./"
+                                manifest: "./manifest.json"
+                                index: "./index.html"
+                                assets:
+                                    index_template: /assets/index.tmpl
+                                    appcache_template: /assets/appcache.tmpl
+                                    loader: /assets/loader.js
+                                    md5: /assets/md5.js
+                                    fake_app: /assets/fake/app.js
+                                    fake_manifest: /assets/fake/manifest.json
+                                hosting:
+                                    "/a.js": "/app/a.js"
+                        """)
+                    utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+                    mock(system)
+                    spa.Builder.from_config("/app/spa.yaml").build()
+                .get('http://127.0.0.1:3332/')
+                .clearLocalStorage()
+                .setLocalStorageKey("test_item", "should_not be removed")
+                .get('http://127.0.0.1:3332/app/')
+                .sleep(DELAY)
+                .title().should.eventually.become("version_1")
+                .getLocalStorageKey("test_item").should.become("should_not be removed")
                 .then -> 
                     done()
