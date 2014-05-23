@@ -76,6 +76,7 @@ class Builder
         @assets = 
             appcache_template: path.join(__dirname, "assets/appcache.tmpl")
             index_template: path.join(__dirname, "assets/index.tmpl")
+            forage: path.join(__dirname, "assets/forage.js")
             md5: path.join(__dirname, "assets/md5.js")
             loader: path.join(__dirname, "assets/loader.js")
             fake_app: path.join(__dirname, "assets/fake/app.js")

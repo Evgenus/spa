@@ -3,8 +3,9 @@
 <head>
 <script type="text/javascript">
 (function() {
-    var FAKE_APP = <%- JSON.stringify(fake_app) %>
-    var FAKE_MANIFEST = <%- JSON.stringify(fake_manifest) %>
+    var FAKE_APP = <%- JSON.stringify(fake_app) %>;
+    var FAKE_MANIFEST = <%- JSON.stringify(fake_manifest) %>;
+    <%- forage %>
     <%- md5 %>
     <%- loader %>
 })();

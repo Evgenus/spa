@@ -19,7 +19,7 @@ spa = require("../lib")
 utils = require("./utils")
 
 describe "WD.js", ->
-    @timeout(20000)
+    @timeout(10000)
 
     DELAY = 200
 
@@ -83,6 +83,7 @@ describe "WD.js", ->
                                 index_template: /assets/index.tmpl
                                 appcache_template: /assets/appcache.tmpl
                                 loader: /assets/loader.js
+                                forage: /assets/localforage.js
                                 md5: /assets/md5.js
                                 fake_app: /assets/fake/app.js
                                 fake_manifest: /assets/fake/manifest.json
@@ -114,7 +115,7 @@ describe "WD.js", ->
             .then ->
                 spa.Builder.from_config("/app/spa.yaml").build()
             .refresh()
-            .sleep(DELAY)
+            .sleep(2 * DELAY)
             .title().should.eventually.become("version_2")
             .then -> 
                 done()
@@ -146,6 +147,7 @@ describe "WD.js", ->
                                 index_template: /assets/index.tmpl
                                 appcache_template: /assets/appcache.tmpl
                                 loader: /assets/loader.js
+                                forage: /assets/localforage.js
                                 md5: /assets/md5.js
                                 fake_app: /assets/fake/app.js
                                 fake_manifest: /assets/fake/manifest.json
@@ -182,7 +184,7 @@ describe "WD.js", ->
                         d.js: |
                             module.exports = function() 
                             {
-                                document.title = "version_1";
+                                document.title = "version_3";
                             };
                         c.js: |
                             var d = require("./d.js");
@@ -211,14 +213,12 @@ describe "WD.js", ->
                                 index_template: /assets/index.tmpl
                                 appcache_template: /assets/appcache.tmpl
                                 loader: /assets/loader.js
+                                forage: /assets/localforage.js
                                 md5: /assets/md5.js
                                 fake_app: /assets/fake/app.js
                                 fake_manifest: /assets/fake/manifest.json
                             hosting:
-                                "/d.js": "/app/d.js"
-                                "/c.js": "/app/c.js"
-                                "/b.js": "/app/b.js"
-                                "/a.js": "/app/a.js"
+                                "/(*.js)": "/app/$1"
                     """)
                 utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -226,7 +226,23 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/')
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
+            .sleep(3 * DELAY)
+            .title().should.eventually.become("version_3")
+            .then ->
+                content = """
+                    var d = require("./d.js");
+                    module.exports = function() 
+                    {
+                        d();
+                    };
+                    """
+                fs.writeFileSync("/app/b.js", content)
+                fs.unlinkSync("/app/c.js")
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
             .sleep(DELAY)
-            .title().should.eventually.become("version_1")
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3 * DELAY)
+            .title().should.eventually.become("version_3")
             .then -> 
                 done()

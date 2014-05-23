@@ -15,7 +15,6 @@
   ],
   "dependencies": {
     "cryptojslib": "~3.1.2",
-    "es6-promise": "~1.0.0",
     "localforage": "~0.8.1"
   }
 }

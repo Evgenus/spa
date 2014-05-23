@@ -81,6 +81,10 @@ task "compile-loader", "compile loader coffee source into javascript", ->
         console.log("Minifying %s --> %s", input, output)
         return minify(data)
 
+    transform "/bower_components/localforage/dist/(localforage).min.js", "/lib/assets/$1.js", (input, output, data) ->
+        console.log("Copying %s --> %s", input, output)
+        return data
+
     transform "/src/builder/index.tmpl", "lib/assets/index.tmpl", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
         return data

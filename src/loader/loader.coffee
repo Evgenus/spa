@@ -200,6 +200,7 @@ class Loader
             raw: RawEvaluator
 
         @manifest_key = (LOADER_PREFIX ? "spa") + "::manifest"
+        localforage.config()
     
     get_manifest: ->
         return window.localStorage.getItem(@manifest_key)
@@ -211,27 +212,33 @@ class Loader
     make_key: (module) ->
         return (LOADER_PREFIX ? "spa") + ":" + module.md5 + ":" + module.url
 
-    get_content: (key, cb) ->
-        cb.call(this, window.localStorage.getItem(key))
-        return
+    get_content: (key, cb) -> 
+        return localforage.getItem(key, cb)
 
     set_content: (key, content, cb) ->
         @log("storing", key)
-        window.localStorage.setItem(key, content)
-        cb.call(this) if cb?
-        return
+        return localforage.setItem(key, content, cb)
 
     get_contents_keys: (cb) ->
-        for i in [0..localStorage.length-1]
-            key = localStorage.key(i)
-            cb.call(this, key)
+        localforage.length (length) =>
+            console.log("length>>>", length)
+            c = 0
+            buf = []
+            receive = (num, key) ->
+                console.log("key>>>", num, key)
+                c++
+                buf[num] = key
+                return if c < length
+                for key in buf
+                    cb(key)
+                return
+            for i in [0..length-1]
+                localforage.key(i, receive.bind(this, i))
         return
 
     del_content: (key, cb) ->
         @log("removing", key)
-        localStorage.removeItem(key)
-        cb.call(this) if cb?
-        return
+        return localforage.removeItem(key, cb)
 
     log: (args...) -> 
         console.log(args...)
