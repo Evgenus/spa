@@ -248,13 +248,13 @@ class Loader
         @startUpdate()
     onUpToDate: -> 
         @log("onUpToDate", arguments)
-    onUpdateFailed: -> 
+    onUpdateFailed: (event)-> 
         @log("onUpdateFailed", arguments)
     onUpdateCompletted: (event) -> 
         @log("onUpdateCompletted", arguments)
         return true
 
-    onModuleBeginDownload: -> 
+    onModuleBeginDownload: (module) -> 
         @log("onModuleBeginDownload", arguments) 
     onModuleDownloaded: -> 
         @log("onModuleDownloaded", arguments) 
@@ -265,7 +265,7 @@ class Loader
     onTotalDownloadProgress: -> 
         @log("onTotalDownloadProgress", arguments) 
 
-    onEvaluationError: -> 
+    onEvaluationError: (error) -> 
         @log("onEvaluationError", arguments)
     onApplicationReady: -> 
         @log("onApplicationReady", arguments)
