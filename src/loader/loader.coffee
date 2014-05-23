@@ -330,6 +330,9 @@ class Loader
         manifest_request.open("GET", "manifest.json", true)
         manifest_request.overrideMimeType("application/json; charset=utf-8")
         manifest_request.onload = (event) =>
+            if event.target.status is 404
+                @onUpdateFailed(event)
+                return
             @_new_manifest = event.target.response;
             if @_current_manifest?
                 if md5(@_current_manifest) == md5(@_new_manifest)

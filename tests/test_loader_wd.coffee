@@ -167,7 +167,7 @@ describe "WD.js", ->
             .then -> 
                 done()
 
-    it 'multiple files loading', (done) ->
+    it 'multiple files loading and updating', (done) ->
         @browser
             .then ->
                 system = yaml.safeLoad("""
@@ -244,5 +244,49 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3 * DELAY)
             .title().should.eventually.become("version_3")
+            .then -> 
+                done()
+
+    it 'no manifest file', (done) ->
+        @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        a.js: |
+                            var loader = require("loader");
+                            loader.onApplicationReady = function() {
+                                document.title = "version_1";
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            assets:
+                                index_template: /assets/index.tmpl
+                                appcache_template: /assets/appcache.tmpl
+                                loader: /assets/loader.js
+                                forage: /assets/localforage.js
+                                md5: /assets/md5.js
+                                fake_app: /assets/fake/app.js
+                                fake_manifest: /assets/fake/manifest.json
+                            hosting:
+                                "/a.js": "/app/a.js"
+                    """)
+                utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(DELAY)
+            .title().should.eventually.become("version_1")
             .then -> 
                 done()
