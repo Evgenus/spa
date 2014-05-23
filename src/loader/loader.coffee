@@ -14,9 +14,9 @@ class ChangesInWindowError extends Error
         @message = "During `#{@self_name}` loading window object was polluted with: #{props}"
 
 class NoSourceError extends Error
-    constructor: (@key) ->
+    constructor: (@url) ->
         @name = "NoSourceError"
-        @message = "Module #{@key} source was not found in localStorage. Probably it was not loaded."
+        @message = "Module #{@url} source was not found in local database. Probably it was not loaded."
 
 class ExportsViolationError extends Error
     constructor: (@self_name) ->
@@ -201,15 +201,37 @@ class Loader
 
         @manifest_key = (LOADER_PREFIX ? "spa") + "::manifest"
     
+    get_manifest: ->
+        return window.localStorage.getItem(@manifest_key)
+
+    set_manifest: (value) ->
+        window.localStorage.setItem(@manifest_key, value)
+        return
+
     make_key: (module) ->
         return (LOADER_PREFIX ? "spa") + ":" + module.md5 + ":" + module.url
 
-    get: (key) ->
-        return window.localStorage.getItem(key)
+    get_content: (key, cb) ->
+        cb.call(this, window.localStorage.getItem(key))
+        return
 
-    set: (key, value) ->
+    set_content: (key, content, cb) ->
         @log("storing", key)
-        window.localStorage.setItem(key, value)
+        window.localStorage.setItem(key, content)
+        cb.call(this) if cb?
+        return
+
+    get_contents_keys: (cb) ->
+        for i in [0..localStorage.length-1]
+            key = localStorage.key(i)
+            cb.call(this, key)
+        return
+
+    del_content: (key, cb) ->
+        @log("removing", key)
+        localStorage.removeItem(key)
+        cb.call(this) if cb?
+        return
 
     log: (args...) -> 
         console.log(args...)
@@ -242,29 +264,22 @@ class Loader
         @log("onApplicationReady", arguments)
         @checkUpdate()
 
-    write_fake: ->
+    write_fake: (cb) ->
         manifest = JSON.parse(FAKE_MANIFEST)
-        @set(@manifest_key, FAKE_MANIFEST)
+        @set_manifest(FAKE_MANIFEST)
         module = manifest[0]
+        @set_content(@make_key(module), FAKE_APP, cb)
+
+    evaluate: (queue) ->
+        if queue.length is 0
+            @onApplicationReady()
+            return
+
+        module = queue.shift()
         key = @make_key(module)
-        @set(key, FAKE_APP)
-
-    start: ->
-        @_current_manifest = @get(@manifest_key)
-        @log("Current manifest", @_current_manifest)
-        unless @_current_manifest?
-            @log("Writing fake application")
-            @write_fake()
-            @_current_manifest = @get(@manifest_key)
-
-        @_cleanUp()
-
-        @_modules_running = JSON.parse(@_current_manifest)
-        for module in @_modules_running
-            key = @make_key(module)
-            module_source = @get(key)
+        @get_content key, (module_source) =>
             unless module_source?
-                @onEvaluationError(new NoSourceError(key))
+                @onEvaluationError(new NoSourceError(module.url))
                 return
 
             module.source = module_source
@@ -285,7 +300,20 @@ class Loader
                 @onEvaluationError(error)
                 return
 
-        @onApplicationReady()
+            @evaluate(queue)
+
+    start: ->
+        @_current_manifest = @get_manifest()
+        @log("Current manifest", @_current_manifest)
+        unless @_current_manifest?
+            @log("Writing fake application")
+            @write_fake( => @start())
+            return
+
+        @_cleanUp()
+
+        @_modules_running = JSON.parse(@_current_manifest)
+        @evaluate(@_modules_running)
         return
 
     checkUpdate: () ->
@@ -319,16 +347,16 @@ class Loader
         return
 
     _updateModule: (module) ->
-        key = @make_key(module)
-        module_source = @get(key)
-        if module_source?
-            module.source = module_source
-            @onTotalDownloadProgress
-                loaded: @_getLoadedSize()
-                total: @_total_size 
-            @_checkAllUpdated()
-        else
-            @_downloadModule(module)
+        @get_content @make_key(module), =>
+            if module_source?
+                module.source = module_source
+                @onTotalDownloadProgress
+                    loaded: @_getLoadedSize()
+                    total: @_total_size 
+                @_checkAllUpdated()
+            else
+                @_downloadModule(module)
+            return
         return
 
     _getLoadedSize: ->
@@ -345,15 +373,15 @@ class Loader
             module_source = event.target.response
             if md5(module_source) != module.md5
                 @onModuleDownloadFailed(module, event)
-            key = @make_key(module)
-            module.source = module_source
-            @set(key, module_source)
-            @_loaded_sizes[module.id] = module.size
-            @onModuleDownloaded(event)
-            @onTotalDownloadProgress
-                loaded: @_getLoadedSize()
-                total: @_total_size 
-            @_checkAllUpdated()
+                return
+            @set_content @make_key(module), module_source, =>
+                module.source = module_source
+                @_loaded_sizes[module.id] = module.size
+                @onModuleDownloaded(event)
+                @onTotalDownloadProgress
+                    loaded: @_getLoadedSize()
+                    total: @_total_size 
+                @_checkAllUpdated()
         module_request.onprogress = (event) =>
             @_loaded_sizes[module.id] = event.loaded
             @onModuleDownloadProgress
@@ -373,7 +401,7 @@ class Loader
         for module in @_modules_in_update
             return unless module.source?
         if @onUpdateCompletted()
-            @set(@manifest_key, @_new_manifest)
+            @set_manifest(@_new_manifest)
             @_current_manifest = @_new_manifest
             @_new_manifest = null
             @_cleanUp()
@@ -386,15 +414,12 @@ class Loader
         modules = JSON.parse(@_current_manifest)
         useful = (@make_key(module) for module in modules)
         useful.push(@manifest_key)
-        @log(useful)
-        for i in [0..localStorage.length-1]
-            key = localStorage.key(i)
-            continue unless key.indexOf(prefix) is 0
-            continue if key in useful
-            @log("removing", key)
-            localStorage.removeItem(key)
+        @get_contents_keys (key) =>
+            return unless key.indexOf(prefix) is 0
+            return if key in useful
+            @del_content(key)
+            return
         return
-
 
 window.onload = ->
     loader =  new Loader()
