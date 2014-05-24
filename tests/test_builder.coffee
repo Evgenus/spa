@@ -337,12 +337,45 @@ describe 'Building module with appcache and index', ->
         utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
         mock(system)
 
-    it 'should produce appcache file', ->
+    it 'should produce appcache and index files', ->
         builder = spa.Builder.from_config("/testimonial/spa.yaml")
         builder.build()
 
         expect(fs.existsSync("/testimonial/index.html")).to.be.true
         expect(fs.existsSync("/testimonial/main.appcache")).to.be.true
+
+describe 'Building renamed manifest', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            testimonial: 
+                a.js: // empty
+                spa.yaml: |
+                    root: "/testimonial/"
+                    index: index.html
+                    manifest: "../spa-loader.json"
+                    assets:
+                        index_template: /assets/index.tmpl
+                        appcache_template: /assets/appcache.tmpl
+                        loader: /assets/loader.js
+                        hash: /assets/md5.js
+                        forage: /assets/localforage.js
+                        fake_app: /assets/fake/app.js
+                        fake_manifest: /assets/fake/manifest.json
+                    cached:
+                        - a.js
+                    hosting:
+                        "/(**/*.*)": "http://127.0.0.1:8010/$1"
+                        "/../(*.json)": "/$1"
+            """)
+        utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should produce index and manifest files', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+
+        expect(fs.existsSync("/testimonial/index.html")).to.be.true
+        expect(fs.existsSync("/spa-loader.json")).to.be.true
 
 describe 'Building mixed-formats modules', ->
     beforeEach ->
