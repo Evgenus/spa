@@ -108,3 +108,51 @@ cached:
 hosting:
     "/(**/*.*)": "http://127.0.0.1:8010/$1"
 ```
+
+## Alternatives
+
+Other modules you should definitelly look at:
+
+ * [gluejs](http://mixu.net/gluejs/)
+ * [browserbuild](https://github.com/learnboost/browserbuild/)
+ * [browserify](http://browserify.org/)
+
+## Development
+
+Report new [issues](https://github.com/Evgenus/spa/issues). I'm open for collaboration.
+
+### Project structure
+
+```
+spa
+├───bin                             executable builder file
+├───bower_components                loader dependencies; installs with `bower`
+├───lib                             compiled builder files
+│   └───assets                      builder assets (templates, compiled loader, loader assets)
+│       └───fake                    compiled startup application (version 0)
+├───node_modules                    builder dependencies; installs with `npm`
+├───src                             coffee-script source code
+│   ├───builder                     source code of builder
+│   ├───fake                        source code of startup application
+│   └───loader                      source code of loader
+└───tests                           tests for builder and loader
+```
+
+### Installing dependencies
+
+```
+npm install
+bower install
+```
+
+### Compiling project
+
+```
+cake build
+```
+
+### Testing 
+
+```
+npm test
+```
