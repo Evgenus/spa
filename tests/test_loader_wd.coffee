@@ -84,7 +84,7 @@ describe "WD.js", ->
                                 appcache_template: /assets/appcache.tmpl
                                 loader: /assets/loader.js
                                 forage: /assets/localforage.js
-                                md5: /assets/md5.js
+                                hash: /assets/md5.js
                                 fake_app: /assets/fake/app.js
                                 fake_manifest: /assets/fake/manifest.json
                             hosting:
@@ -148,7 +148,7 @@ describe "WD.js", ->
                                 appcache_template: /assets/appcache.tmpl
                                 loader: /assets/loader.js
                                 forage: /assets/localforage.js
-                                md5: /assets/md5.js
+                                hash: /assets/md5.js
                                 fake_app: /assets/fake/app.js
                                 fake_manifest: /assets/fake/manifest.json
                             hosting:
@@ -214,7 +214,7 @@ describe "WD.js", ->
                                 appcache_template: /assets/appcache.tmpl
                                 loader: /assets/loader.js
                                 forage: /assets/localforage.js
-                                md5: /assets/md5.js
+                                hash: /assets/md5.js
                                 fake_app: /assets/fake/app.js
                                 fake_manifest: /assets/fake/manifest.json
                             hosting:
@@ -314,7 +314,7 @@ describe "WD.js", ->
                                 appcache_template: /assets/appcache.tmpl
                                 loader: /assets/loader.js
                                 forage: /assets/localforage.js
-                                md5: /assets/md5.js
+                                hash: /assets/md5.js
                                 fake_app: /fake/app.js
                                 fake_manifest: /fake/manifest.json
                             hosting:
@@ -361,7 +361,7 @@ describe "WD.js", ->
                                 appcache_template: /assets/appcache.tmpl
                                 loader: /assets/loader.js
                                 forage: /assets/localforage.js
-                                md5: /assets/md5.js
+                                hash: /assets/md5.js
                                 fake_app: /assets/fake/app.js
                                 fake_manifest: /assets/fake/manifest.json
                             hosting:

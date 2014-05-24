@@ -69,7 +69,7 @@ describe.skip "webdriverjs", ->
                                     index_template: /assets/index.tmpl
                                     appcache_template: /assets/appcache.tmpl
                                     loader: /assets/loader.js
-                                    md5: /assets/md5.js
+                                    hash: /assets/md5.js
                                     fake_app: /assets/fake/app.js
                                     fake_manifest: /assets/fake/manifest.json
                                 hosting:

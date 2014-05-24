@@ -53,7 +53,7 @@ class Loop
             "#{p[i][0]} --[#{p[i][1]}]--> #{p[i+1][0]}" 
             ).join("\n")
             
-make_md5 = (content) -> 
+hash_func = (content) -> 
     return crypto.createHash('md5').update(content).digest('hex')
 
 class Builder
@@ -77,7 +77,7 @@ class Builder
             appcache_template: path.join(__dirname, "assets/appcache.tmpl")
             index_template: path.join(__dirname, "assets/index.tmpl")
             forage: path.join(__dirname, "assets/forage.js")
-            md5: path.join(__dirname, "assets/md5.js")
+            hash: path.join(__dirname, "assets/md5.js")
             loader: path.join(__dirname, "assets/loader.js")
             fake_app: path.join(__dirname, "assets/fake/app.js")
             fake_manifest: path.join(__dirname, "assets/fake/manifest.json")
@@ -175,7 +175,7 @@ class Builder
 
     _analyze: (module) ->
         source = fs.readFileSync(module.path)
-        module.md5 = make_md5(source)
+        module.hash = hash_func(source)
         module.size = source.length
         module.deps_paths = {}
 
@@ -244,7 +244,7 @@ class Builder
         data = for module in @_modules
             id: module.id
             url: module.url
-            md5: module.md5
+            hash: module.hash
             size: module.size
             type: module.type
             deps: module.deps_ids
@@ -258,15 +258,17 @@ class Builder
         assets = {}
         for own name, value of @assets
             assets[name] = fs.readFileSync(value, encoding: "utf8")
-        filepath = path.resolve(@root, @manifest)
-        relative = @_relativate(path.relative(@root, filepath))
-        url = @_host(relative)
-        console.log(filepath, relative, url)
-        unless url?
-            console.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
-            url = "manifest.json"
-        assets["manifest_location"] =  url
 
+        assets["manifest_location"] =  "manifest.json"
+        if @manifest?
+            filepath = path.resolve(@root, @manifest)
+            relative = @_relativate(path.relative(@root, filepath))
+            url = @_host(relative)
+            if url?
+                assets["manifest_location"] = url
+            else
+                console.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
+            
         compiled = ejs.compile(assets["index_template"])
         @_index_content = compiled(assets)
         filepath = path.resolve(@root, @index)
@@ -281,14 +283,14 @@ class Builder
             url = @_host(relative)
             continue unless url?
             content = fs.readFileSync(filepath, encoding: "utf8")
-            assets[url] = make_md5(content)
+            assets[url] = hash_func(content)
         if @index?
             filepath = path.resolve(@root, @index)
             relative = @_relativate(path.relative(@root, filepath))
             url = @_host(relative)
             if url?
                 filename = path.resolve(@root, @index)
-                assets[url] = make_md5(@_index_content)
+                assets[url] = hash_func(@_index_content)
         
         if Object.keys(assets).length == 0
             if @index?

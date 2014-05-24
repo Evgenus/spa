@@ -210,7 +210,7 @@ class Loader
         return
 
     make_key: (module) ->
-        return (LOADER_PREFIX ? "spa") + ":" + module.md5 + ":" + module.url
+        return (LOADER_PREFIX ? "spa") + ":" + module.hash + ":" + module.url
 
     get_content: (key, cb) -> 
         return localforage.getItem(key, cb)
@@ -333,7 +333,7 @@ class Loader
                 return
             @_new_manifest = event.target.response;
             if @_current_manifest?
-                if md5(@_current_manifest) == md5(@_new_manifest)
+                if HASH_FUNC(@_current_manifest) == HASH_FUNC(@_new_manifest)
                     @onUpToDate()
                     return
             @onUpdateFound(event)
@@ -379,7 +379,7 @@ class Loader
         module_request.open("GET", module.url, true)
         module_request.onload = (event) =>
             module_source = event.target.response
-            if md5(module_source) != module.md5
+            if HASH_FUNC(module_source) != module.hash
                 @onModuleDownloadFailed(module, event)
                 return
             @set_content @make_key(module), module_source, =>
