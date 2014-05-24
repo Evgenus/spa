@@ -77,6 +77,7 @@ task "compile-loader", "compile loader coffee source into javascript", ->
         result = coffee.compile(data, bare: true)
         return minify(result)
 
+task "populate-assets", "prepare assets to be used by builder", ->
     transform "/contrib/(*).js", "/lib/assets/$1.js", (input, output, data) ->
         console.log("Minifying %s --> %s", input, output)
         return minify(data)
@@ -105,8 +106,8 @@ task "compile-loader", "compile loader coffee source into javascript", ->
 task "build", "compile all coffeescript files to javascript", ->
     invoke 'compile-builder'
     invoke 'compile-loader'
+    invoke 'populate-assets'
 
 task "sbuild", "build routine for sublime", ->
     invoke 'build'
 
-task "clean", "remove all generated files", ->
