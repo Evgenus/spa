@@ -221,11 +221,9 @@ class Loader
 
     get_contents_keys: (cb) ->
         localforage.length (length) =>
-            console.log("length>>>", length)
             c = 0
             buf = []
             receive = (num, key) ->
-                console.log("key>>>", num, key)
                 c++
                 buf[num] = key
                 return if c < length
