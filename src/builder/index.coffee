@@ -249,21 +249,29 @@ class Builder
             type: module.type
             deps: module.deps_ids
 
-        filename = path.resolve(@root, @manifest)
+        filepath = path.resolve(@root, @manifest)
         content = JSON.stringify(data, null, if @pretty then "  ")
-        console.log("Writing #{filename}")
-        fs.writeFileSync(filename, content)
+        console.log("Writing #{filepath}")
+        fs.writeFileSync(filepath, content)
 
     _write_index: ->
         assets = {}
         for own name, value of @assets
             assets[name] = fs.readFileSync(value, encoding: "utf8")
+        filepath = path.resolve(@root, @manifest)
+        relative = @_relativate(path.relative(@root, filepath))
+        url = @_host(relative)
+        console.log(filepath, relative, url)
+        unless url?
+            console.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
+            url = "manifest.json"
+        assets["manifest_location"] =  url
 
         compiled = ejs.compile(assets["index_template"])
-        filename = path.resolve(@root, @index)
         @_index_content = compiled(assets)
-        console.log("Writing #{filename}")
-        fs.writeFileSync(filename, @_index_content)
+        filepath = path.resolve(@root, @index)
+        console.log("Writing #{filepath}")
+        fs.writeFileSync(filepath, @_index_content)
 
     _write_appcache: ->
         assets = {}
@@ -284,9 +292,9 @@ class Builder
         
         if Object.keys(assets).length == 0
             if @index?
-                console.log("No hosting rule for `#{@index}` file. AppCache manifest `#{@appcache}` appears to be empty")
+                console.warn("No hosting rule for `#{@index}` file. AppCache manifest `#{@appcache}` appears to be empty")
             else
-                console.log("There are no assets to be included into AppCache manifest `#{@appcache}`")
+                console.warn("There are no assets to be included into AppCache manifest `#{@appcache}`")
 
         template = @assets["appcache_template"]
         compiled = ejs.compile(fs.readFileSync(template, encoding: "utf8"))

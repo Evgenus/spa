@@ -325,7 +325,7 @@ class Loader
         return if @_update_started
         @log("Checking for update...")
         manifest_request = XHR()
-        manifest_request.open("GET", "manifest.json", true)
+        manifest_request.open("GET", MANIFEST_LOCATION ? "manifest.json", true)
         manifest_request.overrideMimeType("application/json; charset=utf-8")
         manifest_request.onload = (event) =>
             if event.target.status is 404

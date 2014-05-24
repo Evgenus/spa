@@ -251,6 +251,45 @@ describe "WD.js", ->
         @browser
             .then ->
                 system = yaml.safeLoad("""
+                    fake:
+                        app.js: |
+                            var loader = require("loader");
+
+                            loader.onUpdateCompletted = function(event) 
+                            {
+                                loader.log("onUpdateCompletted", arguments);
+                                document.title = "UpdateCompletted";
+                            };
+
+                            loader.onApplicationReady = function() 
+                            {
+                                loader.log("onApplicationReady", arguments);
+                                document.title = "ApplicationReady";
+                                loader.checkUpdate();
+                            };
+
+                            loader.onUpdateFailed = function(event) 
+                            {
+                                loader.log("onUpdateFailed", arguments);
+                                document.title = "UpdateFailed";
+                            };
+                            
+                            loader.onUpToDate = function() 
+                            {
+                                loader.log("onUpToDate", arguments);
+                                document.title = "UpToDate";
+                            };
+                            
+                            loader.onEvaluationError = function(error) 
+                            {
+                                loader.log("onEvaluationError", arguments);
+                                document.title = "EvaluationError";
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            manifest: "./manifest.json"
+                            hosting: 
+                                "/(*)": "fake://$1"
                     index.html: |
                         <html>
                             <head>
@@ -264,11 +303,59 @@ describe "WD.js", ->
                         a.js: |
                             var loader = require("loader");
                             loader.onApplicationReady = function() {
-                                document.title = "version_1";
+                                document.title = "ClientApplicationReady";
                             };
                         spa.yaml: |
                             root: "./"
                             index: "./index.html"
+                            manifest: "./manifest.json"
+                            assets:
+                                index_template: /assets/index.tmpl
+                                appcache_template: /assets/appcache.tmpl
+                                loader: /assets/loader.js
+                                forage: /assets/localforage.js
+                                md5: /assets/md5.js
+                                fake_app: /fake/app.js
+                                fake_manifest: /fake/manifest.json
+                            hosting:
+                                "/a.js": "/app/a.js"
+                    """)
+                utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/fake/spa.yaml").build()
+                spa.Builder.from_config("/app/spa.yaml").build()
+                fs.unlinkSync("/app/manifest.json")
+            .get('http://127.0.0.1:3332/')
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3*DELAY)
+            .title().should.eventually.become("UpdateFailed")
+            .then -> 
+                done()
+
+    it 'renamed manifest file', (done) ->
+        @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        a.js: |
+                            var loader = require("loader");
+                            loader.onApplicationReady = function() {
+                                document.title = "version_4";
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            manifest: "../spa-loader.json"
                             assets:
                                 index_template: /assets/index.tmpl
                                 appcache_template: /assets/appcache.tmpl
@@ -279,6 +366,7 @@ describe "WD.js", ->
                                 fake_manifest: /assets/fake/manifest.json
                             hosting:
                                 "/a.js": "/app/a.js"
+                                "/../(*.json)": "/$1"
                     """)
                 utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -286,7 +374,8 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/')
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(DELAY)
-            .title().should.eventually.become("version_1")
+            .sleep(3*DELAY)
+            .title().should.eventually.become("version_4")
             .then -> 
                 done()
+
