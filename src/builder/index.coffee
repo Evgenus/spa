@@ -84,7 +84,6 @@ class Builder
             hash_sha512: path.join(__dirname, "assets/hash/sha512.js")
             loader: path.join(__dirname, "assets/loader.js")
             fake_app: path.join(__dirname, "assets/fake/app.js")
-            fake_manifest: path.join(__dirname, "assets/fake/manifest.json")
         for own name, value of options.assets
             @assets[name] = value
         @appcache = options.appcache
@@ -248,7 +247,7 @@ class Builder
             return filepath.replace(rule.pattern, rule.template)
         return
 
-    _write_manifest: ->
+    _create_manifest: ->
         data = for module in @_modules
             id: module.id
             url: module.url
@@ -257,8 +256,10 @@ class Builder
             type: module.type
             deps: module.deps_ids
 
+        return JSON.stringify(data, null, if @pretty then "  ")
+
+    _write_manifest: (content) ->
         filepath = path.resolve(@root, @manifest)
-        content = JSON.stringify(data, null, if @pretty then "  ")
         console.log("Writing #{filepath}")
         fs.writeFileSync(filepath, content)
 
@@ -270,6 +271,13 @@ class Builder
             content = fs.readFileSync(value, encoding: "utf8")
             namespace[name] = content
             assets[name] = content
+
+        fake_builder = new Builder
+            root: path.join(__dirname, "./assets/fake")
+            hosting: 
+                "/(*)": "fake://$1"
+            hash_func: @hash_func
+        namespace["fake_manifest"] = fake_builder.build()
 
         namespace["manifest_location"] =  "manifest.json"
         namespace["hash_name"] = @hash_func
@@ -329,10 +337,11 @@ class Builder
         @_sort()
         for module in @_modules
             module.url = @_host(module.relative)
-        @_write_manifest() if @manifest?
+        content = @_create_manifest()
+        @_write_manifest(content) if @manifest?
         @_write_index() if @index?
         @_write_appcache() if @appcache?
-        return
+        return content
 
 load_json = (filepath) ->
     return unless filepath?

@@ -94,15 +94,6 @@ task "populate-assets", "prepare assets to be used by builder", ->
         console.log("Copying %s --> %s", input, output)
         return data
 
-    console.log("Building fake manifest")
-    Builder = require("./lib").Builder
-    builder = new Builder
-        root: "./lib/assets/fake"
-        manifest: "manifest.json"
-        hosting: 
-            "/(*)": "fake://$1"
-    builder.build()
-
 task "build", "compile all coffeescript files to javascript", ->
     invoke 'compile-builder'
     invoke 'compile-loader'

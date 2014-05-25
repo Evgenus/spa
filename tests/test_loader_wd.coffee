@@ -18,7 +18,7 @@ connect = require("connect")
 spa = require("../lib")
 utils = require("./utils")
 
-xdescribe "WD.js", ->
+describe "WD.js", ->
     @timeout(1000000)
 
     DELAY = 200
@@ -342,3 +342,43 @@ xdescribe "WD.js", ->
             .then -> 
                 done()
 
+    it 'manifest with alternated hash function', (done) ->
+        @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        a.js: |
+                            var loader = require("loader");
+                            loader.onApplicationReady = function() {
+                                document.title = "version_5";
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            manifest: "./manifest.json"
+                            hash_func: sha256
+                            hosting:
+                                "/a.js": "/app/a.js"
+                    """)
+                try
+                    utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                    mock(system)
+                    spa.Builder.from_config("/app/spa.yaml").build()
+                catch error
+                    console.log(error)
+            .get('http://127.0.0.1:3332/')
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3*DELAY)
+            .title().should.eventually.become("version_5")
+            .then -> 
+                done()
