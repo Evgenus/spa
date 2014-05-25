@@ -53,9 +53,6 @@ class Loop
             "#{p[i][0]} --[#{p[i][1]}]--> #{p[i+1][0]}" 
             ).join("\n")
             
-hash_func = (content) -> 
-    return crypto.createHash('md5').update(content).digest('hex')
-
 class Builder
     constructor: (options) ->
         @root = path.resolve(process.cwd(), options.root)
@@ -76,8 +73,15 @@ class Builder
         @assets = 
             appcache_template: path.join(__dirname, "assets/appcache.tmpl")
             index_template: path.join(__dirname, "assets/index.tmpl")
-            forage: path.join(__dirname, "assets/forage.js")
-            hash: path.join(__dirname, "assets/md5.js")
+            forage: path.join(__dirname, "assets/localforage.js")
+            hash_md5: path.join(__dirname, "assets/hash/md5.js")
+            hash_ripemd160: path.join(__dirname, "assets/hash/ripemd160.js")
+            hash_sha1: path.join(__dirname, "assets/hash/sha1.js")
+            hash_sha224: path.join(__dirname, "assets/hash/sha224.js")
+            hash_sha256: path.join(__dirname, "assets/hash/sha256.js")
+            hash_sha3: path.join(__dirname, "assets/hash/sha3.js")
+            hash_sha384: path.join(__dirname, "assets/hash/sha384.js")
+            hash_sha512: path.join(__dirname, "assets/hash/sha512.js")
             loader: path.join(__dirname, "assets/loader.js")
             fake_app: path.join(__dirname, "assets/fake/app.js")
             fake_manifest: path.join(__dirname, "assets/fake/manifest.json")
@@ -85,6 +89,7 @@ class Builder
             @assets[name] = value
         @appcache = options.appcache
         @cached = options.cached
+        @hash_func = options.hash_func ? "md5"
         @_clear()
 
     filter: (filepath) ->
@@ -92,6 +97,9 @@ class Builder
             path.extname(filepath) is ext
         return not _(@excludes).any (pattern) -> 
             pattern.test(filepath)
+
+    calc_hash: (content) -> 
+        return crypto.createHash(@hash_func).update(content).digest('hex')
 
     _clear: ->
         @_modules = []
@@ -175,7 +183,7 @@ class Builder
 
     _analyze: (module) ->
         source = fs.readFileSync(module.path)
-        module.hash = hash_func(source)
+        module.hash = @calc_hash(source)
         module.size = source.length
         module.deps_paths = {}
 
@@ -256,21 +264,26 @@ class Builder
 
     _write_index: ->
         assets = {}
+        namespace =
+            assets: assets
         for own name, value of @assets
-            assets[name] = fs.readFileSync(value, encoding: "utf8")
+            content = fs.readFileSync(value, encoding: "utf8")
+            namespace[name] = content
+            assets[name] = content
 
-        assets["manifest_location"] =  "manifest.json"
+        namespace["manifest_location"] =  "manifest.json"
+        namespace["hash_name"] = @hash_func
         if @manifest?
             filepath = path.resolve(@root, @manifest)
             relative = @_relativate(path.relative(@root, filepath))
             url = @_host(relative)
             if url?
-                assets["manifest_location"] = url
+                namespace["manifest_location"] = url
             else
                 console.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
             
         compiled = ejs.compile(assets["index_template"])
-        @_index_content = compiled(assets)
+        @_index_content = compiled(namespace)
         filepath = path.resolve(@root, @index)
         console.log("Writing #{filepath}")
         fs.writeFileSync(filepath, @_index_content)
@@ -283,14 +296,14 @@ class Builder
             url = @_host(relative)
             continue unless url?
             content = fs.readFileSync(filepath, encoding: "utf8")
-            assets[url] = hash_func(content)
+            assets[url] = @calc_hash(content)
         if @index?
             filepath = path.resolve(@root, @index)
             relative = @_relativate(path.relative(@root, filepath))
             url = @_host(relative)
             if url?
                 filename = path.resolve(@root, @index)
-                assets[url] = hash_func(@_index_content)
+                assets[url] = @calc_hash(@_index_content)
         
         if Object.keys(assets).length == 0
             if @index?

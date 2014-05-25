@@ -6,8 +6,8 @@
     var FAKE_APP = <%- JSON.stringify(fake_app) %>;
     var FAKE_MANIFEST = <%- JSON.stringify(fake_manifest) %>;
     var MANIFEST_LOCATION = "<%- manifest_location %>";
-    <%- hash %>
-    var HASH_FUNC = md5;
+    <%- assets["hash_" + hash_name] %>
+    var HASH_FUNC = "<%- hash_name.toUpperCase() %>";
     <%- forage %>
     <%- loader %>
 })();
@@ -16,6 +16,3 @@
 <body>
 </body>
 </html>
-
-
-

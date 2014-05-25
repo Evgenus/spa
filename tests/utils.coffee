@@ -7,6 +7,7 @@ chai.Assertion.addMethod 'properties', (expectedPropertiesObj) ->
         func.call(new chai.Assertion(this._obj).property(key))
 
 mount = (target, name, dirname) ->
+    dirname ?= name
     result = target[name] ?= {}
     for name in fs.readdirSync(dirname)
         continue if name is "."

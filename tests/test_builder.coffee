@@ -321,20 +321,12 @@ describe 'Building module with appcache and index', ->
                     root: "/testimonial/"
                     index: index.html
                     appcache: main.appcache
-                    assets:
-                        index_template: /assets/index.tmpl
-                        appcache_template: /assets/appcache.tmpl
-                        loader: /assets/loader.js
-                        hash: /assets/md5.js
-                        forage: /assets/localforage.js
-                        fake_app: /assets/fake/app.js
-                        fake_manifest: /assets/fake/manifest.json
                     cached:
                         - a.js
                     hosting:
                         "/(**/*.*)": "http://127.0.0.1:8010/$1"
             """)
-        utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
         mock(system)
 
     it 'should produce appcache and index files', ->
@@ -353,21 +345,13 @@ describe 'Building renamed manifest', ->
                     root: "/testimonial/"
                     index: index.html
                     manifest: "../spa-loader.json"
-                    assets:
-                        index_template: /assets/index.tmpl
-                        appcache_template: /assets/appcache.tmpl
-                        loader: /assets/loader.js
-                        hash: /assets/md5.js
-                        forage: /assets/localforage.js
-                        fake_app: /assets/fake/app.js
-                        fake_manifest: /assets/fake/manifest.json
                     cached:
                         - a.js
                     hosting:
                         "/(**/*.*)": "http://127.0.0.1:8010/$1"
                         "/../(*.json)": "/$1"
             """)
-        utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
         mock(system)
 
     it 'should produce index and manifest files', ->
@@ -376,6 +360,16 @@ describe 'Building renamed manifest', ->
 
         expect(fs.existsSync("/testimonial/index.html")).to.be.true
         expect(fs.existsSync("/spa-loader.json")).to.be.true
+
+        manifest = JSON.parse(fs.readFileSync("/spa-loader.json", encoding: "utf8"))
+
+        expect(manifest).to.be.an("Array").with.length(1)
+        
+        expect(manifest[0]).to.have.properties
+            id: -> @that.equals("a")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+            hash: -> @that.equals("1007f6da5acf8cc2643274276079bc3e")
 
 describe 'Building mixed-formats modules', ->
     beforeEach ->
@@ -392,6 +386,7 @@ describe 'Building mixed-formats modules', ->
                         - .js
                     manifest: "manifest.json"
                     default_loader: junk
+                    hash_func: ripemd160
             """))
 
     it 'should successfully build', ->
@@ -408,6 +403,7 @@ describe 'Building mixed-formats modules', ->
             id: -> @that.equals("a")
             deps: -> @that.deep.equals({})
             type: -> @that.equals("junk")
+            hash: -> @that.equals("9eb50257b88aaf4f2dea2ab99108fb631845ed51")
 
         expect(manifest[1]).to.have.properties
             id: -> @that.equals("b")

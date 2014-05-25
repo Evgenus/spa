@@ -7,7 +7,7 @@ mkdirpSync = require('mkdirp').sync
 
 preg_quote = (str, delimiter) ->
     return (str + '')
-        .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&')
+        .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>:\\' + (delimiter || '') + '-]', 'g'), '\\$&')
 
 globStringToRegex = (str) ->
     return new RegExp(
@@ -70,7 +70,7 @@ task "compile-loader", "compile loader coffee source into javascript", ->
     transform "/src/loader/(**/*).coffee", "/lib/assets/$1.js", (input, output, data) ->
         console.log("Compiling %s --> Minifying --> %s", input, output)
         result = coffee.compile(data, bare: true)
-        return minify(result)
+        return result#minify(result)
 
     transform "/src/fake/(**/*).coffee", "/lib/assets/fake/$1.js", (input, output, data) ->
         console.log("Compiling %s --> Minifying --> %s", input, output)
@@ -78,9 +78,9 @@ task "compile-loader", "compile loader coffee source into javascript", ->
         return minify(result)
 
 task "populate-assets", "prepare assets to be used by builder", ->
-    transform "/contrib/(*).js", "/lib/assets/$1.js", (input, output, data) ->
-        console.log("Minifying %s --> %s", input, output)
-        return minify(data)
+    transform "/bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "/lib/assets/hash/$1.js", (input, output, data) ->
+        console.log("Copying %s --> %s", input, output)
+        return data
 
     transform "/bower_components/localforage/dist/(localforage).min.js", "/lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)

@@ -18,8 +18,8 @@ connect = require("connect")
 spa = require("../lib")
 utils = require("./utils")
 
-describe "WD.js", ->
-    @timeout(10000)
+xdescribe "WD.js", ->
+    @timeout(1000000)
 
     DELAY = 200
 
@@ -79,18 +79,10 @@ describe "WD.js", ->
                             root: "./"
                             manifest: "./manifest.json"
                             index: "./index.html"
-                            assets:
-                                index_template: /assets/index.tmpl
-                                appcache_template: /assets/appcache.tmpl
-                                loader: /assets/loader.js
-                                forage: /assets/localforage.js
-                                hash: /assets/md5.js
-                                fake_app: /assets/fake/app.js
-                                fake_manifest: /assets/fake/manifest.json
                             hosting:
                                 "/a.js": "/app/a.js"
                     """)
-                utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
@@ -143,18 +135,10 @@ describe "WD.js", ->
                             root: "./"
                             manifest: "./manifest.json"
                             index: "./index.html"
-                            assets:
-                                index_template: /assets/index.tmpl
-                                appcache_template: /assets/appcache.tmpl
-                                loader: /assets/loader.js
-                                forage: /assets/localforage.js
-                                hash: /assets/md5.js
-                                fake_app: /assets/fake/app.js
-                                fake_manifest: /assets/fake/manifest.json
                             hosting:
                                 "/a.js": "/app/a.js"
                     """)
-                utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
@@ -209,18 +193,10 @@ describe "WD.js", ->
                             root: "./"
                             manifest: "./manifest.json"
                             index: "./index.html"
-                            assets:
-                                index_template: /assets/index.tmpl
-                                appcache_template: /assets/appcache.tmpl
-                                loader: /assets/loader.js
-                                forage: /assets/localforage.js
-                                hash: /assets/md5.js
-                                fake_app: /assets/fake/app.js
-                                fake_manifest: /assets/fake/manifest.json
                             hosting:
                                 "/(*.js)": "/app/$1"
                     """)
-                utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
@@ -310,17 +286,12 @@ describe "WD.js", ->
                             index: "./index.html"
                             manifest: "./manifest.json"
                             assets:
-                                index_template: /assets/index.tmpl
-                                appcache_template: /assets/appcache.tmpl
-                                loader: /assets/loader.js
-                                forage: /assets/localforage.js
-                                hash: /assets/md5.js
                                 fake_app: /fake/app.js
                                 fake_manifest: /fake/manifest.json
                             hosting:
                                 "/a.js": "/app/a.js"
                     """)
-                utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
                 spa.Builder.from_config("/fake/spa.yaml").build()
                 spa.Builder.from_config("/app/spa.yaml").build()
@@ -356,19 +327,11 @@ describe "WD.js", ->
                             root: "./"
                             index: "./index.html"
                             manifest: "../spa-loader.json"
-                            assets:
-                                index_template: /assets/index.tmpl
-                                appcache_template: /assets/appcache.tmpl
-                                loader: /assets/loader.js
-                                forage: /assets/localforage.js
-                                hash: /assets/md5.js
-                                fake_app: /assets/fake/app.js
-                                fake_manifest: /assets/fake/manifest.json
                             hosting:
                                 "/a.js": "/app/a.js"
                                 "/../(*.json)": "/$1"
                     """)
-                utils.mount(system, "assets", path.resolve(__dirname, "../lib/assets"))
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')

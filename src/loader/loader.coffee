@@ -275,6 +275,9 @@ class Loader
         module = manifest[0]
         @set_content(@make_key(module), FAKE_APP, cb)
 
+    calc_hash: (data) ->
+        return CryptoJS[HASH_FUNC](data).toString()
+
     evaluate: (queue) ->
         if queue.length is 0
             @onApplicationReady()
@@ -333,7 +336,7 @@ class Loader
                 return
             @_new_manifest = event.target.response;
             if @_current_manifest?
-                if HASH_FUNC(@_current_manifest) == HASH_FUNC(@_new_manifest)
+                if @calc_hash(@_current_manifest) == @calc_hash(@_new_manifest)
                     @onUpToDate()
                     return
             @onUpdateFound(event)
@@ -379,7 +382,7 @@ class Loader
         module_request.open("GET", module.url, true)
         module_request.onload = (event) =>
             module_source = event.target.response
-            if HASH_FUNC(module_source) != module.hash
+            if @calc_hash(module_source) != module.hash
                 @onModuleDownloadFailed(module, event)
                 return
             @set_content @make_key(module), module_source, =>
