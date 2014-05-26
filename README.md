@@ -123,6 +123,12 @@ Other modules you should definitelly look at:
 
 Report new [issues](https://github.com/Evgenus/spa/issues). I'm open for collaboration.
 
+### Installing from GitHub
+
+```
+npm install git://github.com/Evgenus/spa.git#stable
+```
+
 ### Project structure
 
 ```

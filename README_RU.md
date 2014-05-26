@@ -115,6 +115,12 @@ hosting:
 
 Пишите [задачи](https://github.com/Evgenus/spa/issues). Я открыт для сотрудничества.
 
+### Установка из GitHub
+
+```
+npm install git://github.com/Evgenus/spa.git#stable
+```
+
 ### Структура проекта
 
 ```
