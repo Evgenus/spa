@@ -52,7 +52,7 @@ describe "WD.js", ->
         process.chdir(@old_cwd)
 
     it 'should update single file only after manifest regenerated', (done) ->
-        @browser
+        return @browser
             .then ->
                 system = yaml.safeLoad("""
                     index.html: |
@@ -109,11 +109,10 @@ describe "WD.js", ->
             .refresh()
             .sleep(2 * DELAY)
             .title().should.eventually.become("version_2")
-            .then -> 
-                done()
+            .nodeify(done)
 
     it 'should not remove not owning keys from localstorage', (done) ->
-        @browser
+        return @browser
             .then ->
                 system = yaml.safeLoad("""
                     index.html: |
@@ -148,11 +147,10 @@ describe "WD.js", ->
             .sleep(DELAY)
             .title().should.eventually.become("version_1")
             .getLocalStorageKey("test_item").should.become("should_not be removed")
-            .then -> 
-                done()
+            .nodeify(done)
 
     it 'multiple files loading and updating', (done) ->
-        @browser
+        return @browser
             .then ->
                 system = yaml.safeLoad("""
                     index.html: |
@@ -220,11 +218,10 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3 * DELAY)
             .title().should.eventually.become("version_3")
-            .then -> 
-                done()
+            .nodeify(done)
 
     it 'no manifest file', (done) ->
-        @browser
+        return @browser
             .then ->
                 system = yaml.safeLoad("""
                     fake:
@@ -287,13 +284,11 @@ describe "WD.js", ->
                             manifest: "./manifest.json"
                             assets:
                                 fake_app: /fake/app.js
-                                fake_manifest: /fake/manifest.json
                             hosting:
                                 "/a.js": "/app/a.js"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
-                spa.Builder.from_config("/fake/spa.yaml").build()
                 spa.Builder.from_config("/app/spa.yaml").build()
                 fs.unlinkSync("/app/manifest.json")
             .get('http://127.0.0.1:3332/')
@@ -301,11 +296,10 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title().should.eventually.become("UpdateFailed")
-            .then -> 
-                done()
+            .nodeify(done)
 
     it 'renamed manifest file', (done) ->
-        @browser
+        return @browser
             .then ->
                 system = yaml.safeLoad("""
                     index.html: |
@@ -339,11 +333,10 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title().should.eventually.become("version_4")
-            .then -> 
-                done()
+            .nodeify(done)
 
     it 'manifest with alternated hash function', (done) ->
-        @browser
+        return @browser
             .then ->
                 system = yaml.safeLoad("""
                     index.html: |
@@ -369,16 +362,70 @@ describe "WD.js", ->
                             hosting:
                                 "/a.js": "/app/a.js"
                     """)
-                try
-                    utils.mount(system, path.resolve(__dirname, "../lib/assets"))
-                    mock(system)
-                    spa.Builder.from_config("/app/spa.yaml").build()
-                catch error
-                    console.log(error)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title().should.eventually.become("version_5")
-            .then -> 
-                done()
+            .nodeify(done)
+
+    it 'building files with BOM', (done) ->
+        return @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    fake:
+                        app.js: |
+                            var loader = require("loader");
+
+                            loader.onUpdateCompletted = function(event) 
+                            {
+                                loader.log("onUpdateCompletted", arguments);
+                                document.title = "UpdateCompletted";
+                            };
+
+                            loader.onApplicationReady = function() 
+                            {
+                                loader.log("onApplicationReady", arguments);
+                                document.title = "ApplicationReady";
+                                loader.checkUpdate();
+                            };
+                            
+                            loader.onModuleDownloadFailed = function(module, event) 
+                            {
+                                loader.log("onModuleDownloadFailed", arguments);
+                                document.title = "ModuleDownloadFailed";
+                            };
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            manifest: "./manifest.json"
+                            hash_func: sha256
+                            assets:
+                                fake_app: /fake/app.js
+                            hosting:
+                                "/a.js": "/app/a.js"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                content = new Buffer("""\xEF\xBB\xBF// empty""", "ascii")
+                fs.writeFileSync("/app/a.js", content)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(5*DELAY)
+            .title().should.eventually.become("UpdateCompletted")
+            .nodeify(done)
