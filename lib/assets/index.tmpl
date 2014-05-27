@@ -7,7 +7,10 @@
     var FAKE_MANIFEST = <%- JSON.stringify(fake_manifest) %>;
     var MANIFEST_LOCATION = "<%- manifest_location %>";
     <%- assets["hash_" + hash_name] %>
-    var HASH_FUNC = "<%- hash_name.toUpperCase() %>";
+    var HASH_FUNC = function(data) {
+        var hash = CryptoJS["<%- hash_name.toUpperCase() %>"](data);
+        return hash.toString(CryptoJS.enc.Hex);
+    };
     <%- forage %>
     <%- loader %>
 })();

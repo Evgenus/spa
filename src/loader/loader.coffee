@@ -275,8 +275,7 @@ class Loader
         module = manifest[0]
         @set_content(@make_key(module), FAKE_APP, cb)
 
-    calc_hash: (data) ->
-        return CryptoJS[HASH_FUNC](data).toString()
+    calc_hash: (data) -> return HASH_FUNC(data);
 
     evaluate: (queue) ->
         if queue.length is 0

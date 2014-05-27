@@ -70,7 +70,7 @@ task "compile-loader", "compile loader coffee source into javascript", ->
     transform "/src/loader/(**/*).coffee", "/lib/assets/$1.js", (input, output, data) ->
         console.log("Compiling %s --> Minifying --> %s", input, output)
         result = coffee.compile(data, bare: true)
-        return result#minify(result)
+        return minify(result)
 
     transform "/src/fake/(**/*).coffee", "/lib/assets/fake/$1.js", (input, output, data) ->
         console.log("Compiling %s --> Minifying --> %s", input, output)

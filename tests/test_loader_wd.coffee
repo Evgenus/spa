@@ -19,7 +19,7 @@ spa = require("../lib")
 utils = require("./utils")
 
 describe "WD.js", ->
-    @timeout(1000000)
+    @timeout(10000)
 
     DELAY = 200
 
