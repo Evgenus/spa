@@ -94,11 +94,12 @@ assets:
     index_template: /assets/index.tmpl
     appcache_template: /assets/appcache.tmpl
     loader: /assets/loader.js
-    md5: /assets/md5.js
+    hash_sha256: /assets/sha256.js
     fake_app: /assets/fake/app.js
     fake_manifest: /assets/fake/manifest.json
+hash_func: sha256
 cached:
-    ─ /a.js
+    - /a.js
 hosting:
     "/(**/*.*)": "http://127.0.0.1:8010/$1"
 ```
