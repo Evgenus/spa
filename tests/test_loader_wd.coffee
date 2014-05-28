@@ -462,7 +462,6 @@ describe "WD.js", ->
                             root: "./"
                             index: "./index.html"
                             manifest: "./manifest.json"
-                            hash_func: sha256
                             assets:
                                 fake_app: /fake/app.js
                             hosting:
@@ -478,4 +477,46 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(5*DELAY)
             .title().should.eventually.become("UpdateCompletted")
+            .nodeify(done)
+
+    it.only 'should be same manifest version and loader version', (done) ->
+        return @browser
+            .then =>
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        a.js: |
+                            var loader = require("loader");
+                            loader.onApplicationReady = function() {
+                                document.title = "VERSION-" + loader.version;
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            manifest: "./manifest.json"
+                            hosting:
+                                "/a.js": "/app/a.js"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
+                manifest_content = fs.readFileSync("/app/manifest.json", encoding: "utf8")
+                @manifest = JSON.parse(manifest_content)
+                expect(@manifest).to.have.property("version")
+                expect(@manifest.version).to.be.a("String")
+            .get('http://127.0.0.1:3332/')
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3*DELAY)
+            .title()
+            .then (error, title) =>
+                expect(title).to.equal("VERSION-" + @manifest.version)
             .nodeify(done)
