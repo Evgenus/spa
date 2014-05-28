@@ -11,6 +11,11 @@ _  = require('underscore')
 _.string =  require('underscore.string')
 _.mixin(_.string.exports())
 
+packagejson = ( ->
+    packagepath = path.resolve(__dirname, '../package.json')
+    return JSON.parse(fs.readFileSync(packagepath, 'utf8'))
+    )()
+
 preg_quote = (str, delimiter) ->
     return (str + '')
         .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&')
@@ -248,7 +253,7 @@ class Builder
         return
 
     _create_manifest: ->
-        data = for module in @_modules
+        modules = for module in @_modules
             id: module.id
             url: module.url
             hash: module.hash
@@ -256,7 +261,11 @@ class Builder
             type: module.type
             deps: module.deps_ids
 
-        return JSON.stringify(data, null, if @pretty then "  ")
+        manifest = 
+            version: packagejson.version
+            modules: modules
+
+        return JSON.stringify(manifest, null, if @pretty then "  ")
 
     _write_manifest: (content) ->
         filepath = path.resolve(@root, @manifest)

@@ -1,24 +1,25 @@
 fs = require("fs")
 path = require("path")
 chai = require("chai")
-_ = require("underscore")
 
-chai.Assertion.addMethod 'properties', (expectedPropertiesObj) ->
-    for own key, func of expectedPropertiesObj
-        func.call(new chai.Assertion(this._obj).property(key))
+chai.use (chai, util) ->
+    chai.Assertion.addMethod 'properties', (expectedPropertiesObj) ->
+        for own key, func of expectedPropertiesObj
+            func.call(new chai.Assertion(this._obj).property(key))
 
-chai.Assertion.addMethod "consist", (b) ->
-    this.assert(_.isArray(this._obj), "Should be array")
-    this.assert(this._obj.length == b.length, "Should be same size")
-    ourB = b.concat()
-    return this._obj.every (item) =>
-        index = ourB.indexOf(item)
-        if index < 0
-            this.assert(false, "#{item} was not found in #{b}")
-            return false
-        else
-            ourB.splice(index, 1)
-            return true
+    chai.Assertion.addMethod "consist", (b) ->
+        obj = util.flag(this, 'object');
+        new chai.Assertion(obj).to.be.an("Array");
+        new chai.Assertion(obj).to.have.length(b.length);
+        ourB = b.concat()
+        return obj.every (item) =>
+            index = ourB.indexOf(item)
+            if index < 0
+                this.assert(false, "#{item} was not found in #{b}")
+                return false
+            else
+                ourB.splice(index, 1)
+                return true
 
 mount = (target, name, dirname) ->
     dirname ?= name

@@ -272,7 +272,7 @@ class Loader
     write_fake: (cb) ->
         manifest = JSON.parse(FAKE_MANIFEST)
         @set_manifest(FAKE_MANIFEST)
-        module = manifest[0]
+        module = manifest.modules[0]
         @set_content(@make_key(module), FAKE_APP, cb)
 
     calc_hash: (data) -> return HASH_FUNC(data);
@@ -319,7 +319,7 @@ class Loader
 
         @_cleanUp()
 
-        @_modules_running = JSON.parse(@_current_manifest)
+        @_modules_running = JSON.parse(@_current_manifest).modules
         @evaluate(@_modules_running)
         return
 
@@ -348,7 +348,7 @@ class Loader
     startUpdate: ->
         @log("Starting update...")
         @_update_started = true
-        @_modules_in_update = JSON.parse(@_new_manifest)
+        @_modules_in_update = JSON.parse(@_new_manifest).modules
         @_total_size = 0
         for module in @_modules_in_update
             @_total_size += module.size
@@ -423,7 +423,7 @@ class Loader
 
     _cleanUp: ->
         prefix = (LOADER_PREFIX ? "spa")
-        modules = JSON.parse(@_current_manifest)
+        modules = JSON.parse(@_current_manifest).modules
         useful = (@make_key(module) for module in modules)
         useful.push(@manifest_key)
         @get_contents_keys (key) =>

@@ -213,26 +213,28 @@ describe 'Building module with paths rewired', ->
 
             manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
 
-            expect(manifest).to.be.an("Array").with.length(4)
+            expect(manifest)
+                .to.have.property('modules')
+                .to.be.an("Array").with.length(4)
             
-            expect(manifest[0]).to.have.properties
+            expect(manifest.modules[0]).to.have.properties
                 id: -> @that.equals("c")
                 deps: -> @that.deep.equals({})
                 type: -> @that.equals(type)
             
-            expect(manifest[1]).to.have.properties
+            expect(manifest.modules[1]).to.have.properties
                 id: -> @that.equals("b")
                 deps: -> @that.deep.equals
                     "./a/c": "c"
                 type: -> @that.equals(type)
             
-            expect(manifest[2]).to.have.properties
+            expect(manifest.modules[2]).to.have.properties
                 id: -> @that.equals("d")
                 deps: -> @that.deep.equals
                     "a1/c": "c"
                 type: -> @that.equals(type)
             
-            expect(manifest[3]).to.have.properties
+            expect(manifest.modules[3]).to.have.properties
                 id: -> @that.equals("e")
                 deps: -> @that.deep.equals
                     "a1/../b": "b"
@@ -363,9 +365,11 @@ describe 'Building renamed manifest', ->
 
         manifest = JSON.parse(fs.readFileSync("/spa-loader.json", encoding: "utf8"))
 
-        expect(manifest).to.be.an("Array").with.length(1)
-        
-        expect(manifest[0]).to.have.properties
+        expect(manifest)
+            .to.have.property('modules')
+            .to.be.an("Array").with.length(1)
+            
+        expect(manifest.modules[0]).to.have.properties
             id: -> @that.equals("a")
             deps: -> @that.deep.equals({})
             type: -> @that.equals("cjs")
@@ -397,21 +401,23 @@ describe 'Building mixed-formats modules', ->
 
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
 
-        expect(manifest).to.be.an("Array").with.length(3)
+        expect(manifest)
+            .to.have.property('modules')
+            .to.be.an("Array").with.length(3)
         
-        expect(manifest[0]).to.have.properties
+        expect(manifest.modules[0]).to.have.properties
             id: -> @that.equals("a")
             deps: -> @that.deep.equals({})
             type: -> @that.equals("junk")
             hash: -> @that.equals("9eb50257b88aaf4f2dea2ab99108fb631845ed51")
 
-        expect(manifest[1]).to.have.properties
+        expect(manifest.modules[1]).to.have.properties
             id: -> @that.equals("b")
             deps: -> @that.deep.equals
                 "/a": "a"
             type: -> @that.equals("cjs")
         
-        expect(manifest[2]).to.have.properties
+        expect(manifest.modules[2]).to.have.properties
             id: -> @that.equals("c")
             deps: -> @that.deep.equals
                 "/b": "b"
