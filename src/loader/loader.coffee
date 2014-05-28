@@ -38,6 +38,45 @@ class AMDReturnsNothingError extends Error
         @name = "AMDReturnsNothingError"
         @message = ""
 
+hasBOM = (data) ->
+    return false if data.length < 3
+    return false unless data[0] is 0xef
+    return false unless data[1] is 0xbb
+    return false unless data[2] is 0xbf
+    return true
+
+decodeUtf8 = (arrayBuffer) ->
+    result = ""
+    i = 0
+    c = 0
+    c1 = 0
+    c2 = 0
+
+    data = new Uint8Array(arrayBuffer)
+
+    i = 3 if hasBOM(data)
+
+    while i < data.length
+        c = data[i]
+
+        if c < 128
+            result += String.fromCharCode(c)
+            i++
+        else if 191 < c < 224
+            if i + 1 >= data.length
+                throw "UTF-8 Decode failed. Two byte character was truncated."
+            c2 = data[i + 1]
+            result += String.fromCharCode( ((c & 31) << 6) | (c2 & 63) )
+            i += 2
+        else
+            if i + 2 >= data.length
+                throw "UTF-8 Decode failed. Multi byte character was truncated."
+            c2 = data[i + 1]
+            c3 = data[i + 2]
+            result += String.fromCharCode( ((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63) )
+            i += 3
+    return result
+
 XHR = ->
     try return new XMLHttpRequest()
     catch
@@ -63,7 +102,8 @@ class BasicEvaluator
         @errors = []
     render: ->  throw new AbstractMethodError()
     run: ->
-        func = new Function(@render())
+        code = @render()
+        func = new Function(code)
         result = func.call(this)
         @_check(result)
         return null if @errors.length > 0
@@ -289,7 +329,10 @@ class Loader
                 @onEvaluationError(new NoSourceError(module.url))
                 return
 
-            module.source = module_source
+            if module_source instanceof ArrayBuffer
+                module.source = decodeUtf8(module_source)
+            else
+                module.source = module_source
 
             deps = {}
             for alias, dep of module.deps
@@ -334,7 +377,7 @@ class Loader
                 @onUpdateFailed(event)
                 return
             @_new_manifest = event.target.response
-            console.log("New manifest", @_new_manifest)
+            @log("New manifest", @_new_manifest)
             if @_current_manifest?
                 if @calc_hash(@_current_manifest) == @calc_hash(@_new_manifest)
                     @onUpToDate()
@@ -381,6 +424,7 @@ class Loader
         @onModuleBeginDownload(module)
         module_request = XHR()
         module_request.open("GET", module.url, true)
+        module_request.responseType = "arraybuffer"
         module_request.onload = (event) =>
             module_source = event.target.response
             if @calc_hash(module_source) != module.hash

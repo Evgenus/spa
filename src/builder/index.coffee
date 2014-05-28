@@ -289,6 +289,7 @@ class Builder
         namespace["fake_manifest"] = fake_builder.build()
 
         namespace["manifest_location"] =  "manifest.json"
+        namespace["version"] = packagejson.version
         namespace["hash_name"] = @hash_func
         if @manifest?
             filepath = path.resolve(@root, @manifest)

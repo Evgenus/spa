@@ -3,13 +3,26 @@
 <head>
 <script type="text/javascript">
 (function() {
+    var VERSION = "<%- version %>";
     var FAKE_APP = <%- JSON.stringify(fake_app) %>;
     var FAKE_MANIFEST = <%- JSON.stringify(fake_manifest) %>;
     var MANIFEST_LOCATION = "<%- manifest_location %>";
     <%- assets["hash_" + hash_name] %>
     var HASH_FUNC = function(data) {
-        var hash = CryptoJS["<%- hash_name.toUpperCase() %>"](data);
-        return hash.toString(CryptoJS.enc.Hex);
+        var hash = CryptoJS.algo["<%- hash_name.toUpperCase() %>"].create();
+        if(data instanceof ArrayBuffer)
+        {
+            var words = [];
+            var u8arr = new Uint8Array(data);
+            var len = u8arr.length;
+
+            for (var i = 0; i < len; i++) {
+                words[i >>> 2] |= (u8arr[i] & 0xff) << (24 - (i % 4) * 8);
+            }
+            data = CryptoJS.lib.WordArray.create(words, len);
+        }
+        hash.update(data);
+        return hash.finalize().toString(CryptoJS.enc.Hex);
     };
     <%- forage %>
     <%- loader %>

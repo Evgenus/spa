@@ -365,9 +365,9 @@ describe 'Building renamed manifest', ->
 
         manifest = JSON.parse(fs.readFileSync("/spa-loader.json", encoding: "utf8"))
 
-        expect(manifest)
-            .to.have.property('modules')
-            .to.be.an("Array").with.length(1)
+        expect(manifest).to.have.properties
+            version: -> @to.be.a("String")
+            modules: -> @to.be.an("Array").with.length(1)
             
         expect(manifest.modules[0]).to.have.properties
             id: -> @that.equals("a")
