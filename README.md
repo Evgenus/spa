@@ -1,5 +1,9 @@
 #SPA
 
+[![Dependency Status](https://david-dm.org/Evgenus/spa.svg)](https://david-dm.org/Evgenus/spa)
+[![devDependency Status](https://david-dm.org/Evgenus/spa/dev-status.svg)](https://david-dm.org/Evgenus/spa#info=devDependencies)
+[![GitHub version](https://badge.fury.io/gh/Evgenus%2Fspa.svg)](http://badge.fury.io/gh/Evgenus%2Fspa)
+
 **S** ingle **P** age **A** pplications builder with continuous integration, granular updates and loader.
 
 The general idea is to calculate dependencies offline and then eagerly cache/load modules in predefined order.
@@ -162,8 +166,17 @@ cake build
 
 ### Testing 
 
-Tests require devDependencies to be installed! Tests require Selenium Standalone Server.
+Tests require devDependencies to be installed! Tests require `Selenium Standalone Server`.
 
 ```
 npm test
 ```
+
+## Copyright and license
+
+Code and documentation copyright 2014 Eugene Chernyshov. Code released under [the MIT license](LICENSE).
+
+[![Total views](https://sourcegraph.com/api/repos/github.com/Evgenus/spa/counters/views.png)](https://sourcegraph.com/github.com/Evgenus/spa)
+[![Views in the last 24 hours](https://sourcegraph.com/api/repos/github.com/Evgenus/spa/counters/views-24h.png)](https://sourcegraph.com/github.com/Evgenus/spa)
+[![library users](https://sourcegraph.com/api/repos/github.com/Evgenus/spa/badges/library-users.png)](https://sourcegraph.com/github.com/Evgenus/spa)
+[![xrefs](https://sourcegraph.com/api/repos/github.com/Evgenus/spa/badges/xrefs.png)](https://sourcegraph.com/github.com/Evgenus/spa)
