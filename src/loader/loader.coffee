@@ -239,6 +239,7 @@ class Loader
             junk: PollutionEvaluator
             raw: RawEvaluator
 
+        @version = VERSION;
         @manifest_key = (LOADER_PREFIX ? "spa") + "::manifest"
         localforage.config()
     

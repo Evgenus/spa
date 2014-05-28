@@ -517,6 +517,6 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title()
-            .then (error, title) =>
+            .then (title) =>
                 expect(title).to.equal("VERSION-" + @manifest.version)
             .nodeify(done)
