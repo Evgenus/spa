@@ -333,7 +333,8 @@ class Loader
             if event.target.status is 404
                 @onUpdateFailed(event)
                 return
-            @_new_manifest = event.target.response;
+            @_new_manifest = event.target.response
+            console.log("New manifest", @_new_manifest)
             if @_current_manifest?
                 if @calc_hash(@_current_manifest) == @calc_hash(@_new_manifest)
                     @onUpToDate()
@@ -357,7 +358,8 @@ class Loader
         return
 
     _updateModule: (module) ->
-        @get_content @make_key(module), =>
+        key = @make_key(module)
+        @get_content key, (module_source) =>
             if module_source?
                 module.source = module_source
                 @onTotalDownloadProgress

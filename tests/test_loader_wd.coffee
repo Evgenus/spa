@@ -18,22 +18,46 @@ connect = require("connect")
 spa = require("../lib")
 utils = require("./utils")
 
+class UrlsLog
+    constructor: ->
+        @_items = []
+    add: (item) ->
+        @_items.push(item)
+        return
+    clear: ->
+        @_items = []
+        return
+    get: ->
+        return @_items.slice()
+
 describe "WD.js", ->
     @timeout(10000)
 
     DELAY = 200
 
     before ->
+        @urls_log = urls_log = new UrlsLog()
+
         @server = selenium()
 
         @app = connect()
             .use connect.logger()
+            .use (req, res, next) ->
+                if req.url == "/favicon.ico"
+                    res.statusCode = 404
+                    res.end()
+                else
+                    next()
+            .use (req, res, next) ->
+                urls_log.add(req.url)
+                next()
             .use connect.static("/", redirect: true)
         connect.createServer(@app).listen(3332)
 
         @browser = wd.promiseChainRemote()
             .init
-                browserName:'firefox'
+                #browserName: 'firefox'
+                browserName: 'chrome'
 
     after (done) ->
         @browser
@@ -166,26 +190,31 @@ describe "WD.js", ->
                         d.js: |
                             module.exports = function() 
                             {
-                                document.title = "version_3";
+                                return "d";
                             };
                         c.js: |
                             var d = require("./d.js");
                             module.exports = function() 
                             {
-                                d();
+                                return "c" + d();
                             };
                         b.js: |
                             var c = require("./c.js");
                             module.exports = function() 
                             {
-                                c();
+                                return "b" + c();
                             };
                         a.js: |
                             var loader = require("loader");
                             var b = require("./b.js");
                             loader.onApplicationReady = function() 
                             {
-                                b();
+                                document.title = "a" + b();
+                                loader.checkUpdate();
+                            };
+                            loader.onUpdateCompletted = function(event) {
+                                setTimeout(location.reload.bind(location), 0)
+                                return true
                             };
                         spa.yaml: |
                             root: "./"
@@ -199,15 +228,28 @@ describe "WD.js", ->
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
             .clearLocalStorage()
+            .then => @urls_log.clear()
             .get('http://127.0.0.1:3332/app/')
             .sleep(3 * DELAY)
-            .title().should.eventually.become("version_3")
+            .title().should.eventually.become("abcd")
+            .then =>
+                urls = @urls_log.get()
+                expect(urls[0]).to.equal("/app/")
+                expect(urls[1]).to.equal("/app/manifest.json")
+                expect(urls.slice(2, 6)).to.consist([
+                    "/app/a.js",
+                    "/app/b.js",
+                    "/app/c.js",
+                    "/app/d.js",
+                    ])
+                expect(urls[6]).to.equal("/app/")
+                expect(urls[7]).to.equal("/app/manifest.json")
             .then ->
                 content = """
                     var d = require("./d.js");
                     module.exports = function() 
                     {
-                        d();
+                        return "B" + d();
                     };
                     """
                 fs.writeFileSync("/app/b.js", content)
@@ -215,9 +257,17 @@ describe "WD.js", ->
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
             .sleep(DELAY)
+            .then => @urls_log.clear()
             .get('http://127.0.0.1:3332/app/')
             .sleep(3 * DELAY)
-            .title().should.eventually.become("version_3")
+            .title().should.eventually.become("aBd")
+            .then =>
+                urls = @urls_log.get()
+                expect(urls[0]).to.equal("/app/")
+                expect(urls[1]).to.equal("/app/manifest.json")
+                expect(urls[2]).to.equal("/app/b.js")
+                expect(urls[3]).to.equal("/app/")
+                expect(urls[4]).to.equal("/app/manifest.json")
             .nodeify(done)
 
     it 'no manifest file', (done) ->
