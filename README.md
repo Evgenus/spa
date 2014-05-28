@@ -162,6 +162,8 @@ cake build
 
 ### Testing 
 
+Tests require devDependencies to be installed! Tests require Selenium Standalone Server.
+
 ```
 npm test
 ```

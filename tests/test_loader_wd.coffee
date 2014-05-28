@@ -479,7 +479,7 @@ describe "WD.js", ->
             .title().should.eventually.become("UpdateCompletted")
             .nodeify(done)
 
-    it.only 'should be same manifest version and loader version', (done) ->
+    it 'should be same manifest version and loader version', (done) ->
         return @browser
             .then =>
                 system = yaml.safeLoad("""
