@@ -31,7 +31,7 @@ class UrlsLog
         return @_items.slice()
 
 describe "WD.js", ->
-    @timeout(10000)
+    @timeout(15000)
 
     DELAY = 200
 
@@ -110,6 +110,7 @@ describe "WD.js", ->
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(DELAY)
@@ -165,6 +166,7 @@ describe "WD.js", ->
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .setLocalStorageKey("test_item", "should_not be removed")
             .get('http://127.0.0.1:3332/app/')
@@ -227,6 +229,7 @@ describe "WD.js", ->
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .then => @urls_log.clear()
             .get('http://127.0.0.1:3332/app/')
@@ -342,6 +345,7 @@ describe "WD.js", ->
                 spa.Builder.from_config("/app/spa.yaml").build()
                 fs.unlinkSync("/app/manifest.json")
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
@@ -379,6 +383,7 @@ describe "WD.js", ->
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
@@ -416,6 +421,7 @@ describe "WD.js", ->
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
@@ -473,6 +479,7 @@ describe "WD.js", ->
                 fs.writeFileSync("/app/a.js", content)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(5*DELAY)
@@ -513,6 +520,7 @@ describe "WD.js", ->
                 expect(@manifest).to.have.property("version")
                 expect(@manifest.version).to.be.a("String")
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
@@ -568,6 +576,7 @@ describe "WD.js", ->
                         """)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(20*DELAY)
@@ -607,7 +616,6 @@ describe "WD.js", ->
                 for i in [1..13]
                     q = "(#{q} + #{q})"
 
-                console.log(q.length)
                 NUM = 10
 
                 for i in [1..10]
@@ -631,9 +639,10 @@ describe "WD.js", ->
                         """)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(20*DELAY)
+            .sleep(30*DELAY)
             .title()
             .then (title) =>
                 expect(title).to.equal("15730830")
