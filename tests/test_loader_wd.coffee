@@ -95,7 +95,7 @@ describe "WD.js", ->
                                 document.title = "version_1";
                                 loader.checkUpdate();
                             };
-                            loader.onUpdateCompletted = function(event) {
+                            loader.onUpdateCompleted = function(event) {
                                 setTimeout(location.reload.bind(location), 0)
                                 return true
                             };
@@ -212,7 +212,7 @@ describe "WD.js", ->
                                 document.title = "a" + b();
                                 loader.checkUpdate();
                             };
-                            loader.onUpdateCompletted = function(event) {
+                            loader.onUpdateCompleted = function(event) {
                                 setTimeout(location.reload.bind(location), 0)
                                 return true
                             };
@@ -278,10 +278,10 @@ describe "WD.js", ->
                         app.js: |
                             var loader = require("loader");
 
-                            loader.onUpdateCompletted = function(event) 
+                            loader.onUpdateCompleted = function(event) 
                             {
-                                loader.log("onUpdateCompletted", arguments);
-                                document.title = "UpdateCompletted";
+                                loader.log("onUpdateCompleted", arguments);
+                                document.title = "UpdateCompleted";
                             };
 
                             loader.onApplicationReady = function() 
@@ -430,10 +430,10 @@ describe "WD.js", ->
                         app.js: |
                             var loader = require("loader");
 
-                            loader.onUpdateCompletted = function(event) 
+                            loader.onUpdateCompleted = function(event) 
                             {
-                                loader.log("onUpdateCompletted", arguments);
-                                document.title = "UpdateCompletted";
+                                loader.log("onUpdateCompleted", arguments);
+                                document.title = "UpdateCompleted";
                             };
 
                             loader.onApplicationReady = function() 
@@ -476,7 +476,7 @@ describe "WD.js", ->
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(5*DELAY)
-            .title().should.eventually.become("UpdateCompletted")
+            .title().should.eventually.become("UpdateCompleted")
             .nodeify(done)
 
     it 'should be same manifest version and loader version', (done) ->
@@ -519,4 +519,59 @@ describe "WD.js", ->
             .title()
             .then (title) =>
                 expect(title).to.equal("VERSION-" + @manifest.version)
+            .nodeify(done)
+
+    it 'should load and update a lot of files', (done) ->
+        return @browser
+            .then =>
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            manifest: "./manifest.json"
+                            hosting:
+                                "/(*.js)": "/app/$1"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+
+                NUM = 100
+
+                for i in [1..100]
+                    fs.writeFileSync("/app/module_#{i}.js", """
+                        var next = require("./module_#{i+1}");
+                        module.exports = function() {
+                            return next() + #{i};
+                        };
+                        """)
+                fs.writeFileSync("/app/module_#{NUM}.js", """
+                        module.exports = function() {
+                            return #{NUM};
+                        };
+                        """)
+                fs.writeFileSync("/app/module_0.js", """
+                        var loader = require("loader");
+                        var next = require("./module_1");
+                        loader.onApplicationReady = function() {
+                            document.title = next();
+                        };
+                        """)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(20*DELAY)
+            .title()
+            .then (title) =>
+                expect(title).to.equal("5050")
             .nodeify(done)

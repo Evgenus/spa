@@ -263,6 +263,7 @@ class Builder
 
         manifest = 
             version: packagejson.version
+            hash_func: @hash_func
             modules: modules
 
         return JSON.stringify(manifest, null, if @pretty then "  ")

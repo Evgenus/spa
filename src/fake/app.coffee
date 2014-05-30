@@ -1,6 +1,6 @@
 loader = require("loader")
 
-loader.onUpdateCompletted = (event) -> 
-    @log("onUpdateCompletted", arguments)
+loader.onUpdateCompleted = (event) -> 
+    @log("onUpdateCompleted", arguments)
     setTimeout(location.reload.bind(location), 0)
     return true
