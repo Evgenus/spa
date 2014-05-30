@@ -56,8 +56,8 @@ describe "WD.js", ->
 
         @browser = wd.promiseChainRemote()
             .init
-                #browserName: 'firefox'
-                browserName: 'chrome'
+                browserName: 'firefox'
+                #browserName: 'chrome'
 
     after (done) ->
         @browser
@@ -521,7 +521,7 @@ describe "WD.js", ->
                 expect(title).to.equal("VERSION-" + @manifest.version)
             .nodeify(done)
 
-    it 'should load and update a lot of files', (done) ->
+    it 'should load a lot of files', (done) ->
         return @browser
             .then =>
                 system = yaml.safeLoad("""
@@ -574,4 +574,67 @@ describe "WD.js", ->
             .title()
             .then (title) =>
                 expect(title).to.equal("5050")
+            .nodeify(done)
+
+    it 'should load big files', (done) ->
+        return @browser
+            .then =>
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            manifest: "./manifest.json"
+                            hosting:
+                                "/(*.js)": "/app/$1"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+
+                c = "7"
+                for i in [1..5]
+                    c = "(#{c} + #{c})"
+                q = c
+                for i in [1..13]
+                    q = "(#{q} + #{q})"
+
+                console.log(q.length)
+                NUM = 10
+
+                for i in [1..10]
+                    fs.writeFileSync("/app/module_#{i}.js", """
+                        var next = require("./module_#{i+1}");
+                        module.exports = function() {
+                            return next() + #{c} + "#{q}".length;
+                        };
+                        """)
+                fs.writeFileSync("/app/module_#{NUM}.js", """
+                        module.exports = function() {
+                            return #{c} + "#{q}".length;
+                        };
+                        """)
+                fs.writeFileSync("/app/module_0.js", """
+                        var loader = require("loader");
+                        var next = require("./module_1");
+                        loader.onApplicationReady = function() {
+                            document.title = next();
+                        };
+                        """)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(20*DELAY)
+            .title()
+            .then (title) =>
+                expect(title).to.equal("15730830")
             .nodeify(done)
