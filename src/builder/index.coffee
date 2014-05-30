@@ -352,7 +352,18 @@ class Builder
         @_write_manifest(content) if @manifest?
         @_write_index() if @index?
         @_write_appcache() if @appcache?
+        @_print_stats()
         return content
+
+    _print_stats: ->
+        total = 0
+        for num, module of @_modules
+            total += module.size
+            message = _.sprintf "%(num)3s %(module.relative)-20s %(module.size)7s %(module.type)4s %(module.hash)s",
+                num: parseInt(num) + 1
+                module: module
+            console.log(message)
+        console.log("Total #{total} bytes in #{@_modules.length} files")
 
 load_json = (filepath) ->
     return unless filepath?
