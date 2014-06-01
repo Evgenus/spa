@@ -460,7 +460,7 @@ class Loader
     _downloadModule: (module) ->
         @onModuleBeginDownload(module)
         module_request = XHR()
-        module_request.open("GET", module.url, true)
+        module_request.open("GET", module.url + "&rnd=" + Math.random(), true)
         module_request.responseType = "arraybuffer"
         module_request.onload = (event) =>
             module_source = event.target.response
