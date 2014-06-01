@@ -82,20 +82,7 @@ decodeUtf8 = (arrayBuffer) ->
             i += 3
     return result
 
-XHR = ->
-    try return new XMLHttpRequest()
-    catch
-    try return new ActiveXObject("Msxml3.XMLHTTP")
-    catch
-    try return new ActiveXObject("Msxml2.XMLHTTP.6.0")
-    catch
-    try return new ActiveXObject("Msxml2.XMLHTTP.3.0")
-    catch
-    try return new ActiveXObject("Msxml2.XMLHTTP")
-    catch
-    try return new ActiveXObject("Microsoft.XMLHTTP")
-    catch
-    return null
+XHR = -> new XMLHttpRequest()
 
 class BasicEvaluator
     constructor: (options) ->
