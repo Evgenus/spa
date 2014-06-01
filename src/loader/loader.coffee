@@ -21,27 +21,22 @@ class NoSourceError extends Error
 class ExportsViolationError extends Error
     constructor: (@self_name) ->
         @name = "ExportsViolationError"
-        @message = ""
+        @message = "Modules `#{@self_name}` overrides own exports by replacing. `exports` != `module.exports`"
 
 class ReturnPollutionError extends Error 
     constructor: (@self_name, @props) ->
         @name = "ReturnPollutionError"
-        @message = ""
+        @message = "Code of `#{@self_name}` contains `return` statement in module scope."
 
 class ThisPollutionError extends Error 
     constructor: (@self_name, @props) ->
         @name = "ThisPollutionError"
-        @message = ""
+        @message = "Code of `#{@self_name}` trying to modify host object."
 
 class AMDReturnsNothingError extends Error 
     constructor: (@self_name) ->
         @name = "AMDReturnsNothingError"
-        @message = ""
-
-class ManifestError extends Error
-    constructor: () ->
-        @name = "ManifestError"
-        @message = ""
+        @message = "AMD module `#{@self_name}` returns nothing. Should return empty object!"
 
 hasBOM = (data) ->
     return false if data.length < 3
