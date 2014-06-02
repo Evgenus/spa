@@ -38,6 +38,22 @@ class AMDReturnsNothingError extends Error
         @name = "AMDReturnsNothingError"
         @message = "AMD module `#{@self_name}` returns nothing. Should return empty object!"
 
+waitAll = (array, reduce, map) ->
+    items = array.concat()
+    results = []
+    received = []
+    counter = 0
+    items.forEach (item, index) ->
+        map item, (result) ->
+            counter++
+            results[index] = result
+            received[index] = true
+            for i in [0..items.length-1]
+                return if !received[i]
+            return reduce(results)
+        return
+    return
+
 hasBOM = (data) ->
     return false if data.length < 3
     return false unless data[0] is 0xef
@@ -282,43 +298,43 @@ class Loader
     log: (args...) -> 
         console.log(args...)
 
-    onUpdateFound: (event) -> 
-        @log("onUpdateFound", arguments)
+    onUpdateFound: (event, manifest) -> 
+        @log("onUpdateFound", event, manifest)
         @startUpdate()
-    onUpToDate: -> 
-        @log("onUpToDate", arguments)
-    onUpdateFailed: (event)-> 
-        @log("onUpdateFailed", arguments)
-    onUpdateCompleted: (event) -> 
-        @log("onUpdateCompleted", arguments)
+    onUpToDate: (event) -> 
+        @log("onUpToDate", event)
+    onUpdateFailed: (event, error)-> 
+        @log("onUpdateFailed", event, error)
+    onUpdateCompleted: (manifest) -> 
+        @log("onUpdateCompleted", manifest)
         return true
 
     onModuleBeginDownload: (module) -> 
-        @log("onModuleBeginDownload", arguments) 
-    onModuleDownloaded: -> 
-        @log("onModuleDownloaded", arguments) 
-    onModuleDownloadFailed: -> 
-        @log("onModuleDownloadFailed", arguments) 
-    onModuleDownloadProgress: -> 
-        @log("onModuleDownloadProgress", arguments) 
-    onTotalDownloadProgress: -> 
-        @log("onTotalDownloadProgress", arguments) 
+        @log("onModuleBeginDownload", module) 
+    onModuleDownloaded: (event, module) -> 
+        @log("onModuleDownloaded", event, module)
+    onModuleDownloadFailed: (event, module) -> 
+        @log("onModuleDownloadFailed", event, module) 
+    onModuleDownloadProgress: (event, module) -> 
+        @log("onModuleDownloadProgress", event, module) 
+    onTotalDownloadProgress: (progress)-> 
+        @log("onTotalDownloadProgress", progress) 
 
     onEvaluationError: (error) -> 
-        @log("onEvaluationError", arguments)
-    onApplicationReady: -> 
-        @log("onApplicationReady", arguments)
+        @log("onEvaluationError", error)
+    onApplicationReady: (manifest) -> 
+        @log("onApplicationReady", manifest)
         @checkUpdate()
 
     write_fake: (cb) ->
         @set_manifest(FAKE_MANIFEST)
-        module = FAKE_MANIFEST.modules[0]
-        @set_content(@make_key(module), FAKE_APP, cb)
+        waitAll FAKE_MANIFEST.modules, cb, (module, cb) =>
+            @set_content(@make_key(module), FAKE_APP[module.url], cb)
 
     evaluate: (queue) ->
         queue = queue.concat()
         if queue.length is 0
-            @onApplicationReady()
+            @onApplicationReady(@_current_manifest)
             return
 
         module = queue.shift()
@@ -377,25 +393,25 @@ class Loader
         manifest_request.overrideMimeType("application/json; charset=utf-8")
         manifest_request.onload = (event) =>
             if event.target.status is 404
-                @onUpdateFailed(event)
+                @onUpdateFailed(event, null)
                 return
             try 
                 @_new_manifest = new Manifest(event.target.response)
             catch error
-                @onUpdateFailed(error)
+                @onUpdateFailed(event, error)
                 return
 
             @log("New manifest", @_new_manifest.content)
             if @_current_manifest.hash == @_new_manifest.hash
-                @onUpToDate()
+                @onUpToDate(event)
                 return
 
-            @onUpdateFound(event)
+            @onUpdateFound(event, @_new_manifest)
 
         manifest_request.onerror = (event) =>
-            @onUpdateFailed(event)
+            @onUpdateFailed(event, null)
         manifest_request.onabort = (event) =>
-            @onUpdateFailed(event)
+            @onUpdateFailed(event, null)
 
         manifest_request.send()
         return
@@ -447,24 +463,22 @@ class Loader
         module_request.onload = (event) =>
             module_source = event.target.response
             if HASH_FUNC(module_source) != module.hash
-                @onModuleDownloadFailed(module, event)
+                @onModuleDownloadFailed(event, module)
                 return
             @set_content @make_key(module), module_source, =>
                 module.source = module_source
                 module.loaded = module.size
-                @onModuleDownloaded(event)
+                @onModuleDownloaded(event, module)
                 @_reportTotalProgress()
                 @_checkAllUpdated()
         module_request.onprogress = (event) =>
             module.loaded = event.loaded
-            @onModuleDownloadProgress
-                loaded: event.loaded
-                total: module.size
+            @onModuleDownloadProgress event, module
             @_reportTotalProgress()
         module_request.onerror = (event) =>
-            @onModuleDownloadFailed(module, event)
+            @onModuleDownloadFailed(event, module)
         module_request.onabort = (event) =>
-            @onModuleDownloadFailed(module, event)
+            @onModuleDownloadFailed(event, module)
         module_request.send()
         return
 
@@ -477,7 +491,7 @@ class Loader
         for module in @_new_manifest.modules
             return unless module.source?
 
-        if @onUpdateCompleted()
+        if @onUpdateCompleted(@_new_manifest)
             @set_manifest(@_new_manifest)
             @_current_manifest = @_new_manifest
             @_new_manifest = null

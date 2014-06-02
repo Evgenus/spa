@@ -89,6 +89,7 @@ class Builder
             hash_sha512: path.join(__dirname, "assets/hash/sha512.js")
             loader: path.join(__dirname, "assets/loader.js")
             fake_app: path.join(__dirname, "assets/fake/app.js")
+            fake_ui: path.join(__dirname, "assets/fake/ui.js")
         for own name, value of options.assets
             @assets[name] = value
         @appcache = options.appcache
