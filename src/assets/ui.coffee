@@ -29,7 +29,7 @@ class UI
             this.className = classList.join(" ")
 
     text: (text) ->
-        if test?
+        if text?
             return this.each ->
                 this.textContent = '' + text
         else
@@ -49,5 +49,5 @@ class UI
             this.each ->
                 this.style.cssText += ';' + property + ":" + value
 
-module.exports = (selector) ->
+module?.exports = (selector) ->
     return new UI(selector)

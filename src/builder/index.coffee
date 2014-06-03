@@ -78,18 +78,6 @@ class Builder
         @assets = 
             appcache_template: path.join(__dirname, "assets/appcache.tmpl")
             index_template: path.join(__dirname, "assets/index.tmpl")
-            forage: path.join(__dirname, "assets/localforage.js")
-            hash_md5: path.join(__dirname, "assets/hash/md5.js")
-            hash_ripemd160: path.join(__dirname, "assets/hash/ripemd160.js")
-            hash_sha1: path.join(__dirname, "assets/hash/sha1.js")
-            hash_sha224: path.join(__dirname, "assets/hash/sha224.js")
-            hash_sha256: path.join(__dirname, "assets/hash/sha256.js")
-            hash_sha3: path.join(__dirname, "assets/hash/sha3.js")
-            hash_sha384: path.join(__dirname, "assets/hash/sha384.js")
-            hash_sha512: path.join(__dirname, "assets/hash/sha512.js")
-            loader: path.join(__dirname, "assets/loader.js")
-            fake_app: path.join(__dirname, "assets/fake/app.js")
-            fake_ui: path.join(__dirname, "assets/fake/ui.js")
         for own name, value of options.assets
             @assets[name] = value
         @appcache = options.appcache
@@ -274,6 +262,10 @@ class Builder
         console.log("Writing #{filepath}")
         fs.writeFileSync(filepath, content)
 
+    _inject_inline: (relative) ->
+        filepath = path.join(__dirname, "assets", relative)
+        return fs.readFileSync(filepath, encoding: "utf8")
+
     _write_index: ->
         assets = {}
         namespace =
@@ -283,14 +275,8 @@ class Builder
             namespace[name] = content
             assets[name] = content
 
-        fake_builder = new Builder
-            root: path.join(__dirname, "./assets/fake")
-            hosting: 
-                "/(*)": "fake://$1"
-            hash_func: @hash_func
-        namespace["fake_manifest"] = fake_builder.build()
-
         namespace["manifest_location"] =  "manifest.json"
+        namespace["inline"] = (relative) => @_inject_inline(relative)
         namespace["version"] = packagejson.version
         namespace["hash_name"] = @hash_func
         if @manifest?

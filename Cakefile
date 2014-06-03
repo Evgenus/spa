@@ -20,6 +20,7 @@ globStringToRegex = (str) ->
 minify = (source) -> 
     ast = uglify.parse(source)
     ast.figure_out_scope()
+
     compressor = uglify.Compressor
         sequences     : true
         properties    : true
@@ -38,13 +39,33 @@ minify = (source) ->
         join_vars     : true
         cascade       : true
         side_effects  : true
-        warnings      : true
+        warnings      : false
+        negate_iife   : false
         global_defs   : {}   
 
     compressed = ast.transform(compressor)
     minified = compressed.print_to_string()
 
     return minified
+
+minify_more = (source) ->
+    ast = uglify.parse(source)
+    ast.figure_out_scope()
+    ast.compute_char_frequency()
+    ast.mangle_names()
+    
+    compressor = uglify.Compressor
+        warnings      : false
+        negate_iife   : false
+        global_defs: {}
+
+    compressed = ast.transform(compressor)
+    minified = compressed.print_to_string
+        bracketize    : true
+        comments      : /License/
+
+    return minified
+
 
 transform = (source, destination, func) -> 
     source = globStringToRegex(source)
@@ -54,7 +75,7 @@ transform = (source, destination, func) ->
         return unless source.test(input)
         output = input.replace(source, destination)
         result = fs.readFileSync(filepath, encoding: "utf8")
-        result = func(input, output, result)
+        result = func(input, output, result, input.match(source))
         outpath = path.join(".", output)
         mkdirpSync(path.dirname(outpath))
         fs.writeFileSync(outpath, result)
@@ -78,9 +99,21 @@ task "compile-loader", "compile loader coffee source into javascript", ->
         return minify(result)
 
 task "populate-assets", "prepare assets to be used by builder", ->
-    transform "/bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "/lib/assets/hash/$1.js", (input, output, data) ->
-        console.log("Copying %s --> %s", input, output)
-        return data
+
+    transform "/src/cryptojs/encoder.coffee", null, (input, _, data) ->
+        encoder = coffee.compile(data, bare: true)
+        console.log("Compiling %s", input)
+
+        transform "/bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "/lib/assets/hash/$1.js", (input, output, data, match) ->
+
+            console.log("    Combining %s --> %s", input, output)
+            hash_name = match[1]
+            return minify_more("""
+                (function() {
+                    #{data};
+                    var ALGO = "#{hash_name.toUpperCase()}";
+                    return #{encoder};
+                })();""")
 
     transform "/bower_components/localforage/dist/(localforage).min.js", "/lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)

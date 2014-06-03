@@ -299,32 +299,16 @@ class Loader
         console.log(args...)
 
     onUpdateFound: (event, manifest) -> 
-        @log("onUpdateFound", event, manifest)
-        @startUpdate()
     onUpToDate: (event) -> 
-        @log("onUpToDate", event)
     onUpdateFailed: (event, error)-> 
-        @log("onUpdateFailed", event, error)
     onUpdateCompleted: (manifest) -> 
-        @log("onUpdateCompleted", manifest)
-        return true
-
     onModuleBeginDownload: (module) -> 
-        @log("onModuleBeginDownload", module) 
     onModuleDownloaded: (event, module) -> 
-        @log("onModuleDownloaded", event, module)
     onModuleDownloadFailed: (event, module) -> 
-        @log("onModuleDownloadFailed", event, module) 
     onModuleDownloadProgress: (event, module) -> 
-        @log("onModuleDownloadProgress", event, module) 
     onTotalDownloadProgress: (progress)-> 
-        @log("onTotalDownloadProgress", progress) 
-
     onEvaluationError: (error) -> 
-        @log("onEvaluationError", error)
     onApplicationReady: (manifest) -> 
-        @log("onApplicationReady", manifest)
-        @checkUpdate()
 
     write_fake: (cb) ->
         @set_manifest(FAKE_MANIFEST)
@@ -510,8 +494,3 @@ class Loader
             @del_content(key)
             return
         return
-
-window.onload = ->
-    loader =  new Loader()
-    loader.start()
-    return true

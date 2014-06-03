@@ -2,47 +2,17 @@
 <html>
 <head>
 
-<script id="fake_app" type="text-data"><![CDATA[<%- fake_app %>]]></script>
-
-<script id="fake_ui" type="text-data"><![CDATA[<%- fake_ui %>]]></script>
-
-<script id="fake_manifest" type="text-data"><![CDATA[<%- fake_manifest %>]]></script>
-
-<style>
-    .hide 
-    {
-        display: none;
-    }
-</style>
-
 <script type="text/javascript">
 (function() {
-    function read_data(id) { return document.getElementById(id).text.match(/<\!\[CDATA\[([\s\S]*)\]\]>/)[1]; }
-    var FAKE_APP = {
-        "fake://ui.js": read_data("fake_ui"),
-        "fake://app.js": read_data("fake_app")
-    };
-    var FAKE_MANIFEST = read_data("fake_manifest");
-    var MANIFEST_LOCATION = "<%- manifest_location %>";
-    <%- assets["hash_" + hash_name] %>
-    var HASH_FUNC = function(data) {
-        var hash = CryptoJS.algo["<%- hash_name.toUpperCase() %>"].create();
-        if(data instanceof ArrayBuffer)
-        {
-            var words = [];
-            var u8arr = new Uint8Array(data);
-            var len = u8arr.length;
+    var hash_func = <%- inline("/hash/" + hash_name + ".js") %>
+    <%- inline("/localforage.js") %>
+    <%- inline("/loader.js") %>
 
-            for (var i = 0; i < len; i++) {
-                words[i >>> 2] |= (u8arr[i] & 0xff) << (24 - (i % 4) * 8);
-            }
-            data = CryptoJS.lib.WordArray.create(words, len);
-        }
-        hash.update(data);
-        return hash.finalize().toString(CryptoJS.enc.Hex);
-    };
-    <%- forage %>
-    <%- loader %>
+    loader = new Loader({
+
+    });
+
+    loader.start()
 })();
 </script>
 
@@ -50,5 +20,6 @@
 <body>
 <h1 id="title-loading">Loading</h1>
 <h1 id="title-done" class="hide">Done</h1>
+<p id="total-progress"></p>
 </body>
 </html>
