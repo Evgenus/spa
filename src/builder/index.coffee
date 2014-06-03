@@ -83,6 +83,7 @@ class Builder
         @appcache = options.appcache
         @cached = options.cached
         @hash_func = options.hash_func ? "md5"
+        @randomize_urls = options.randomize_urls ? true
         @_clear()
 
     filter: (filepath) ->
@@ -275,7 +276,8 @@ class Builder
             namespace[name] = content
             assets[name] = content
 
-        namespace["manifest_location"] =  "manifest.json"
+        namespace["manifest_location"] = "manifest.json"
+        namespace["randomize_urls"] = @randomize_urls
         namespace["inline"] = (relative) => @_inject_inline(relative)
         namespace["version"] = packagejson.version
         namespace["hash_name"] = @hash_func

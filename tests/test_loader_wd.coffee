@@ -222,6 +222,7 @@ describe "WD.js", ->
                             root: "./"
                             manifest: "./manifest.json"
                             index: "./index.html"
+                            randomize_urls: false
                             hosting:
                                 "/(*.js)": "/app/$1"
                     """)
@@ -237,6 +238,7 @@ describe "WD.js", ->
             .title().should.eventually.become("abcd")
             .then =>
                 urls = @urls_log.get()
+                expect(urls).to.be.an("Array").with.length(8)
                 expect(urls[0]).to.equal("/app/")
                 expect(urls[1]).to.equal("/app/manifest.json")
                 expect(urls.slice(2, 6)).to.consist([

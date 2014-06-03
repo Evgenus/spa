@@ -218,6 +218,8 @@ class RawEvaluator extends BasicEvaluator
     get_window: -> return window
     _make: -> return {}
 
+SAFE_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
 class Loader
     constructor: (options) ->
         @_all_modules = {}
@@ -240,10 +242,18 @@ class Loader
         @prefix = options.prefix
         @hash_name = options.hash_name
         @hash_func = options.hash_func
+        @randomize_urls = options.randomize_urls
         @manifest_location = options.manifest_location ? "manifest.json"
 
         @manifest_key = @prefix + "::manifest"
         localforage.config()
+
+    _randomize_url: (url) ->
+        return url unless @randomize_urls
+        result = ''
+        for i in [0..16]
+            result += SAFE_CHARS[Math.round(Math.random() * (SAFE_CHARS.length - 1))]
+        return url + '?' + result
     
     _parse_manifest: (content) ->
         throw ReferenceError("Manifest was not defined") unless content?
@@ -405,7 +415,7 @@ class Loader
         return if @_update_started
         @log("Checking for update...")
         manifest_request = XHR()
-        manifest_request.open("GET", @manifest_location, true)
+        manifest_request.open("GET", @_randomize_url(@manifest_location), true)
         manifest_request.overrideMimeType("application/json; charset=utf-8")
         manifest_request.onload = (event) =>
             if event.target.status is 404
@@ -475,7 +485,7 @@ class Loader
     _downloadModule: (module) ->
         @onModuleBeginDownload(module)
         module_request = XHR()
-        module_request.open("GET", module.url, true)
+        module_request.open("GET", @_randomize_url(module.url), true)
         module_request.responseType = "arraybuffer"
         module_request.onload = (event) =>
             module_source = event.target.response
