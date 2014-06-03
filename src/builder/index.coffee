@@ -263,7 +263,7 @@ class Builder
         fs.writeFileSync(filepath, content)
 
     _inject_inline: (relative) ->
-        filepath = path.join(__dirname, "assets", relative)
+        filepath = path.resolve(__dirname, "assets", relative)
         return fs.readFileSync(filepath, encoding: "utf8")
 
     _write_index: ->

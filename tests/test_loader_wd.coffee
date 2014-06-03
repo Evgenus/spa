@@ -277,45 +277,68 @@ describe "WD.js", ->
         return @browser
             .then ->
                 system = yaml.safeLoad("""
-                    fake:
-                        app.js: |
-                            var loader = require("loader");
+                    index.tmpl: |
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
 
-                            loader.onUpdateCompleted = function(event) 
+                        <script type="text/javascript">
+                        (function() {
+                            var hash_func = <%- inline("/hash/" + hash_name + ".js") %>
+                            <%- inline("/localforage.js") %>
+                            <%- inline("/loader.js") %>
+
+                            var loader = new Loader({
+                                "version": "<%- version %>",
+                                "manifest_location": "<%- manifest_location %>",
+                                "prefix": "spa",
+                                "hash_name": "<%- hash_name %>",
+                                "hash_func": hash_func,
+                            });
+
+                            loader.onUpdateCompleted = function() 
                             {
-                                loader.log("onUpdateCompleted", arguments);
                                 document.title = "UpdateCompleted";
+                            };
+
+                            loader.onNoManifest = function() 
+                            {
+                                document.title = "NoManifest";
+                                loader.checkUpdate();
                             };
 
                             loader.onApplicationReady = function() 
                             {
-                                loader.log("onApplicationReady", arguments);
                                 document.title = "ApplicationReady";
-                                loader.checkUpdate();
                             };
 
-                            loader.onUpdateFailed = function(event) 
+                            loader.onUpdateFailed = function() 
                             {
-                                loader.log("onUpdateFailed", arguments);
                                 document.title = "UpdateFailed";
                             };
                             
                             loader.onUpToDate = function() 
                             {
-                                loader.log("onUpToDate", arguments);
                                 document.title = "UpToDate";
                             };
                             
-                            loader.onEvaluationError = function(error) 
+                            loader.onEvaluationError = function() 
                             {
-                                loader.log("onEvaluationError", arguments);
                                 document.title = "EvaluationError";
                             };
-                        spa.yaml: |
-                            root: "./"
-                            manifest: "./manifest.json"
-                            hosting: 
-                                "/(*)": "fake://$1"
+
+                            window.onload = function() 
+                            {
+                                loader.load();
+                            }
+                        })();
+                        </script>
+
+                        </head>
+                        <body>
+                        </body>
+                        </html>
+
                     index.html: |
                         <html>
                             <head>
@@ -336,7 +359,7 @@ describe "WD.js", ->
                             index: "./index.html"
                             manifest: "./manifest.json"
                             assets:
-                                fake_app: /fake/app.js
+                                index_template: /index.tmpl
                             hosting:
                                 "/a.js": "/app/a.js"
                     """)
@@ -432,28 +455,72 @@ describe "WD.js", ->
         return @browser
             .then ->
                 system = yaml.safeLoad("""
-                    fake:
-                        app.js: |
-                            var loader = require("loader");
+                    index.tmpl: |
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
 
-                            loader.onUpdateCompleted = function(event) 
+                        <script type="text/javascript">
+                        (function() {
+                            var hash_func = <%- inline("/hash/" + hash_name + ".js") %>
+                            <%- inline("/localforage.js") %>
+                            <%- inline("/loader.js") %>
+
+                            var loader = new Loader({
+                                "version": "<%- version %>",
+                                "manifest_location": "<%- manifest_location %>",
+                                "prefix": "spa",
+                                "hash_name": "<%- hash_name %>",
+                                "hash_func": hash_func,
+                            });
+
+                            loader.onUpdateCompleted = function() 
                             {
-                                loader.log("onUpdateCompleted", arguments);
                                 document.title = "UpdateCompleted";
+                            };
+
+                            loader.onNoManifest = function() 
+                            {
+                                document.title = "NoManifest";
+                                loader.checkUpdate();
                             };
 
                             loader.onApplicationReady = function() 
                             {
-                                loader.log("onApplicationReady", arguments);
                                 document.title = "ApplicationReady";
-                                loader.checkUpdate();
+                            };
+
+                            loader.onUpdateFailed = function() 
+                            {
+                                document.title = "UpdateFailed";
+                            };
+                            
+                            loader.onUpToDate = function() 
+                            {
+                                document.title = "UpToDate";
+                            };
+                            
+                            loader.onEvaluationError = function() 
+                            {
+                                document.title = "EvaluationError";
                             };
                             
                             loader.onModuleDownloadFailed = function(module, event) 
                             {
-                                loader.log("onModuleDownloadFailed", arguments);
                                 document.title = "ModuleDownloadFailed";
                             };
+
+                            window.onload = function() 
+                            {
+                                loader.load();
+                            }
+                        })();
+                        </script>
+
+                        </head>
+                        <body>
+                        </body>
+                        </html>
                     index.html: |
                         <html>
                             <head>
@@ -469,7 +536,7 @@ describe "WD.js", ->
                             index: "./index.html"
                             manifest: "./manifest.json"
                             assets:
-                                fake_app: /fake/app.js
+                                index_template: /index.tmpl
                             hosting:
                                 "/a.js": "/app/a.js"
                     """)
