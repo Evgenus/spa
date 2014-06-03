@@ -89,10 +89,6 @@ Keys - rules as in `excludes`, values - format types. Available formats:
 
 - appcache_template - template to generate `appcache`. Can include `cached` list.
 - index_template - template to generate `index`. You can use `assets` to include them, except the `index_template` itself :)
-- md5 - hash checker library to use
-- loader - path to compiled loader JS
-- fake_app - path to fake app which is shown before first update is loaded
-- fake_manifest - path to manifest of fake app
 
 ## Example
 
@@ -105,10 +101,6 @@ paths:
 assets:
     index_template: /assets/index.tmpl
     appcache_template: /assets/appcache.tmpl
-    loader: /assets/loader.js
-    hash_sha256: /assets/sha256.js
-    fake_app: /assets/fake/app.js
-    fake_manifest: /assets/fake/manifest.json
 hash_func: sha256
 cached:
     - /a.js
