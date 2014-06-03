@@ -30,7 +30,7 @@ class UrlsLog
     get: ->
         return @_items.slice()
 
-xdescribe "WD.js", ->
+describe "WD.js", ->
     @timeout(15000)
 
     DELAY = 200

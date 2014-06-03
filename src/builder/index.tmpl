@@ -8,11 +8,21 @@
     <%- inline("/localforage.js") %>
     <%- inline("/loader.js") %>
 
-    loader = new Loader({
-
+    var loader = new Loader({
+        "version": "<%- version %>",
+        "manifest_location": "<%- manifest_location %>",
+        "prefix": "spa",
+        "hash_name": "<%- hash_name %>",
+        "hash_func": hash_func,
     });
+    window.loader = loader;
 
-    loader.start()
+    <%- inline("/bootstrap.js") %>
+
+    window.onload = function() 
+    {
+        loader.load();
+    }
 })();
 </script>
 

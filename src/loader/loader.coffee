@@ -218,25 +218,6 @@ class RawEvaluator extends BasicEvaluator
     get_window: -> return window
     _make: -> return {}
 
-class Manifest
-    constructor: (@content) ->
-        throw ReferenceError("Manifest was not defined") unless @content?
-        raw = JSON.parse(@content)
-        throw TypeError("Invalid manifest format") unless raw instanceof Object
-        throw TypeError("Invalid manifest format") unless raw.modules?
-        if VERSION?
-            throw TypeError("Invalid manifest version. Got: #{raw.version}. Expected: #{VERSION}") unless raw.version is VERSION
-        if HASH_FUNC_NAME?
-            throw TypeError("Invalid manifest hash function. Got: #{raw.hash_func}. Expected: #{HASH_FUNC_NAME}") unless raw.hash_func is HASH_FUNC_NAME
-        @modules = raw.modules
-        @version = raw.version
-        @hash_func = raw.hash_func
-        @hash = HASH_FUNC(@content)
-
-FAKE_MANIFEST = new Manifest(FAKE_MANIFEST)
-VERSION = FAKE_MANIFEST.version
-HASH_FUNC_NAME = FAKE_MANIFEST.hash_func
-
 class Loader
     constructor: (options) ->
         @_all_modules = {}
@@ -255,19 +236,41 @@ class Loader
             junk: PollutionEvaluator
             raw: RawEvaluator
 
-        @manifest_key = (LOADER_PREFIX ? "spa") + "::manifest"
-        @version = VERSION
+        @version = options.version
+        @prefix = options.prefix
+        @hash_name = options.hash_name
+        @hash_func = options.hash_func
+        @manifest_location = options.manifest_location ? "manifest.json"
+
+        @manifest_key = @prefix + "::manifest"
         localforage.config()
     
+    _parse_manifest: (content) ->
+        throw ReferenceError("Manifest was not defined") unless content?
+        raw = JSON.parse(content)
+        throw TypeError("Invalid manifest format") unless raw instanceof Object
+        throw TypeError("Invalid manifest format") unless raw.modules?
+        throw TypeError("Invalid manifest version. Got: #{raw.version}. Expected: #{@version}") unless raw.version is @version
+        throw TypeError("Invalid manifest hash function. Got: #{raw.hash_func}. Expected: #{@hash_name}") unless raw.hash_func is @hash_name
+
+        manifest = 
+            content: content
+            modules: raw.modules
+            version: raw.version
+            hash_func: raw.hash_func
+            hash: @hash_func(content)
+
+        return manifest
+
     get_manifest: ->
-        return new Manifest(window.localStorage.getItem(@manifest_key))
+        return @_parse_manifest(window.localStorage.getItem(@manifest_key))
 
     set_manifest: (manifest) ->
         window.localStorage.setItem(@manifest_key, manifest.content)
         return
 
     make_key: (module) ->
-        return (LOADER_PREFIX ? "spa") + ":" + module.hash + ":" + module.url
+        return @prefix + ":" + module.hash + ":" + module.url
 
     get_content: (key, cb) -> 
         return localforage.getItem(key, cb)
@@ -296,24 +299,65 @@ class Loader
         return localforage.removeItem(key, cb)
 
     log: (args...) -> 
-        console.log(args...)
+        console.log("LOADER:#{@prefix}", args...)
+
+    onNoManifest: -> 
+        @log("onNoManifest")
+
+    onUpToDate: (event) -> 
+        @log("onUpToDate", event)
 
     onUpdateFound: (event, manifest) -> 
-    onUpToDate: (event) -> 
-    onUpdateFailed: (event, error)-> 
-    onUpdateCompleted: (manifest) -> 
-    onModuleBeginDownload: (module) -> 
-    onModuleDownloaded: (event, module) -> 
-    onModuleDownloadFailed: (event, module) -> 
-    onModuleDownloadProgress: (event, module) -> 
-    onTotalDownloadProgress: (progress)-> 
-    onEvaluationError: (error) -> 
-    onApplicationReady: (manifest) -> 
+        @log("onUpdateFound", event, manifest)
+        @startUpdate()
 
-    write_fake: (cb) ->
-        @set_manifest(FAKE_MANIFEST)
-        waitAll FAKE_MANIFEST.modules, cb, (module, cb) =>
-            @set_content(@make_key(module), FAKE_APP[module.url], cb)
+    onUpdateFailed: (event, error)-> 
+        @log("onUpdateFailed", event, error)
+
+    onUpdateCompleted: (manifest) -> 
+        @log("onUpdateCompleted", manifest)
+        return true
+
+    onModuleBeginDownload: (module) -> 
+        @log("onModuleBeginDownload", module)
+
+    onModuleDownloadFailed: (event, module) -> 
+        @log("onModuleDownloadFailed", event, module)
+
+    onModuleDownloadProgress: (event, module) -> 
+        @log("onModuleDownloadProgress", event, module)
+
+    onTotalDownloadProgress: (progress)-> 
+        @log("onTotalDownloadProgress", progress)
+
+    onModuleDownloaded: (event, module) -> 
+        @log("onModuleDownloaded", event, module)
+
+    onEvaluationStarted: (manifest) -> 
+        @log("onEvaluationStarted", manifest)
+
+    onEvaluationError: (error) -> 
+        @log("onEvaluationError", error)
+
+    onModuleEvaluated: (module) -> 
+        @log("onModuleEvaluated", module)
+
+    onApplicationReady: (manifest) -> 
+        @log("onApplicationReady", manifest)
+        @checkUpdate()
+
+    load: ->
+        try
+            @_current_manifest = @get_manifest()
+        catch error
+            @onNoManifest()
+            return
+
+        @onEvaluationStarted(@_current_manifest)
+        @log("Current manifest", @_current_manifest.content)
+        @evaluate(@_current_manifest.modules)
+        @_cleanUp()
+        return
 
     evaluate: (queue) ->
         queue = queue.concat()
@@ -353,42 +397,31 @@ class Loader
                 @onEvaluationError(error)
                 return
 
+            @onModuleEvaluated(module)
+
             @evaluate(queue)
-
-    start: ->
-        try
-            @_current_manifest = @get_manifest()
-        catch error
-            @log(error)
-            @log("Writing fake application")
-            @write_fake( => @start())
-            return
-
-        @log("Current manifest", @_current_manifest.content)
-        @evaluate(@_current_manifest.modules)
-        @_cleanUp()
-        return
 
     checkUpdate: () ->
         return if @_update_started
         @log("Checking for update...")
         manifest_request = XHR()
-        manifest_request.open("GET", MANIFEST_LOCATION ? "manifest.json", true)
+        manifest_request.open("GET", @manifest_location, true)
         manifest_request.overrideMimeType("application/json; charset=utf-8")
         manifest_request.onload = (event) =>
             if event.target.status is 404
                 @onUpdateFailed(event, null)
                 return
             try 
-                @_new_manifest = new Manifest(event.target.response)
+                @_new_manifest = @_parse_manifest(event.target.response)
             catch error
                 @onUpdateFailed(event, error)
                 return
 
             @log("New manifest", @_new_manifest.content)
-            if @_current_manifest.hash == @_new_manifest.hash
-                @onUpToDate(event)
-                return
+            if @_current_manifest?
+                if @_current_manifest.hash == @_new_manifest.hash
+                    @onUpToDate(event)
+                    return
 
             @onUpdateFound(event, @_new_manifest)
 
@@ -446,7 +479,7 @@ class Loader
         module_request.responseType = "arraybuffer"
         module_request.onload = (event) =>
             module_source = event.target.response
-            if HASH_FUNC(module_source) != module.hash
+            if @hash_func(module_source) != module.hash
                 @onModuleDownloadFailed(event, module)
                 return
             @set_content @make_key(module), module_source, =>
@@ -484,12 +517,11 @@ class Loader
         return
 
     _cleanUp: ->
-        prefix = (LOADER_PREFIX ? "spa")
         useful = (@make_key(module) for module in @_current_manifest.modules)
         useful.push(@manifest_key)
         @get_contents_keys (key) =>
             return unless key? # wierd error
-            return unless key.indexOf(prefix) is 0
+            return unless key.indexOf(@prefix) is 0
             return if key in useful
             @del_content(key)
             return

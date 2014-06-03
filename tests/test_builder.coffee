@@ -363,8 +363,6 @@ describe 'Building renamed manifest', ->
         expect(fs.existsSync("/testimonial/index.html")).to.be.true
         expect(fs.existsSync("/spa-loader.json")).to.be.true
 
-        console.log(fs.readFileSync("/testimonial/index.html", encoding: "utf8"))
-
         manifest = JSON.parse(fs.readFileSync("/spa-loader.json", encoding: "utf8"))
 
         expect(manifest).to.have.properties

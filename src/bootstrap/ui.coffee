@@ -49,5 +49,5 @@ class UI
             this.each ->
                 this.style.cssText += ';' + property + ":" + value
 
-module?.exports = (selector) ->
+$ = (selector) ->
     return new UI(selector)

@@ -66,6 +66,10 @@ minify_more = (source) ->
 
     return minified
 
+write_file = (relative, data) ->
+    outpath = path.join(".", relative) 
+    mkdirpSync(path.dirname(outpath))
+    fs.writeFileSync(outpath, data)
 
 transform = (source, destination, func) -> 
     source = globStringToRegex(source)
@@ -74,11 +78,10 @@ transform = (source, destination, func) ->
         input = '/' + path.relative(".", filepath).split(path.sep).join('/')
         return unless source.test(input)
         output = input.replace(source, destination)
-        result = fs.readFileSync(filepath, encoding: "utf8")
-        result = func(input, output, result, input.match(source))
-        outpath = path.join(".", output)
-        mkdirpSync(path.dirname(outpath))
-        fs.writeFileSync(outpath, result)
+        data = fs.readFileSync(filepath, encoding: "utf8")
+        result = func(input, output, data, input.match(source))
+        if destination? and result?
+            write_file(output, result)
 
 task "compile-builder", "compile builder coffee source into javascript", ->
     console.log("Compiling builder")
@@ -93,16 +96,30 @@ task "compile-loader", "compile loader coffee source into javascript", ->
         result = coffee.compile(data, bare: true)
         return minify(result)
 
-    transform "/src/fake/(**/*).coffee", "/lib/assets/fake/$1.js", (input, output, data) ->
-        console.log("Compiling %s --> Minifying --> %s", input, output)
-        result = coffee.compile(data, bare: true)
-        return minify(result)
+    parts = [
+        "/src/bootstrap/ui.coffee",
+        "/src/bootstrap/app.coffee",
+    ]
+    out = []
+
+    for part in parts
+        transform part, null, (input, _, data) ->
+            console.log("Compiling %s -->", input)
+            result = coffee.compile(data, bare: true)
+            out.push(result)
+            return
+
+    bootstrap_path = "/lib/assets/bootstrap.js"
+    bootstrap_data = out.join("")
+
+    console.log("    --> Combining %s", bootstrap_path)
+    write_file(bootstrap_path, bootstrap_data)
 
 task "populate-assets", "prepare assets to be used by builder", ->
 
     transform "/src/cryptojs/encoder.coffee", null, (input, _, data) ->
         encoder = coffee.compile(data, bare: true)
-        console.log("Compiling %s", input)
+        console.log("Compiling %s -->", input)
 
         transform "/bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "/lib/assets/hash/$1.js", (input, output, data, match) ->
 
@@ -114,6 +131,8 @@ task "populate-assets", "prepare assets to be used by builder", ->
                     var ALGO = "#{hash_name.toUpperCase()}";
                     return #{encoder};
                 })();""")
+
+    transform "/src/cryptojs/encoder.coffee", null, (input, _, data) ->
 
     transform "/bower_components/localforage/dist/(localforage).min.js", "/lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
