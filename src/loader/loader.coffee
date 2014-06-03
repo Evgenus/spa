@@ -512,7 +512,6 @@ class Loader
             @set_manifest(@_new_manifest)
             @_current_manifest = @_new_manifest
             @_new_manifest = null
-            @_cleanUp()
         @_update_started = false
         return
 

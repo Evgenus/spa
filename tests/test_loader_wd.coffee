@@ -284,9 +284,9 @@ describe "WD.js", ->
 
                         <script type="text/javascript">
                         (function() {
-                            var hash_func = <%- inline("/hash/" + hash_name + ".js") %>
-                            <%- inline("/localforage.js") %>
-                            <%- inline("/loader.js") %>
+                            var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
+                            <%- inline("./localforage.js") %>
+                            <%- inline("./loader.js") %>
 
                             var loader = new Loader({
                                 "version": "<%- version %>",
@@ -462,9 +462,9 @@ describe "WD.js", ->
 
                         <script type="text/javascript">
                         (function() {
-                            var hash_func = <%- inline("/hash/" + hash_name + ".js") %>
-                            <%- inline("/localforage.js") %>
-                            <%- inline("/loader.js") %>
+                            var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
+                            <%- inline("./localforage.js") %>
+                            <%- inline("./loader.js") %>
 
                             var loader = new Loader({
                                 "version": "<%- version %>",
