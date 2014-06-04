@@ -134,11 +134,11 @@ spa
 ├───bower_components                loader dependencies; installs with `bower`
 ├───lib                             compiled builder files
 │   └───assets                      builder assets (templates, compiled loader, loader assets)
-│       └───fake                    compiled startup application (version 0)
+│       └───hash                    wrapped and prepared hash-functions code
 ├───node_modules                    builder dependencies; installs with `npm`
 ├───src                             coffee-script source code
 │   ├───builder                     source code of builder
-│   ├───fake                        source code of startup application
+│   ├───bootstrap                   source code of bootstrap code with default callbacks and UI visualization
 │   └───loader                      source code of loader
 └───tests                           tests for builder and loader
 ```
