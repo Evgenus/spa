@@ -379,7 +379,7 @@ class Loader
         key = @make_key(module)
         @get_content key, (module_source) =>
             unless module_source?
-                @onEvaluationError(new NoSourceError(module.url))
+                @onEvaluationError(module, new NoSourceError(module.url))
                 return
 
             try
@@ -388,7 +388,7 @@ class Loader
                 else
                     module.source = module_source
             catch error
-                @onEvaluationError(error)
+                @onEvaluationError(module, error)
                 return
 
             deps = {}
@@ -402,10 +402,13 @@ class Loader
                 dependencies: deps
 
             try
-                @_all_modules[module.id] = evaluator.run()
+                namespace = evaluator.run()
             catch error
-                @onEvaluationError(error)
+                @onEvaluationError(module, error)
                 return
+
+            @_all_modules[module.id] = namespace
+            module.namespace = namespace
 
             @onModuleEvaluated(module)
 
@@ -430,7 +433,7 @@ class Loader
             @log("New manifest", @_new_manifest.content)
             if @_current_manifest?
                 if @_current_manifest.hash == @_new_manifest.hash
-                    @onUpToDate(event)
+                    @onUpToDate(@_current_manifest)
                     return
 
             @onUpdateFound(event, @_new_manifest)
@@ -495,7 +498,7 @@ class Loader
             @set_content @make_key(module), module_source, =>
                 module.source = module_source
                 module.loaded = module.size
-                @onModuleDownloaded(event, module)
+                @onModuleDownloaded(module)
                 @_reportTotalProgress()
                 @_checkAllUpdated()
         module_request.onprogress = (event) =>
