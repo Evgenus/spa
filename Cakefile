@@ -2,7 +2,6 @@ fs = require("fs")
 path = require("path")
 coffee = require("coffee-script")
 uglify = require("uglify-js")
-walk = require('fs-walk')
 mkdirpSync = require('mkdirp').sync
 
 preg_quote = (str, delimiter) ->
@@ -16,6 +15,31 @@ globStringToRegex = (str) ->
             .replace(/\\\*/g, '[^/]*')
             .replace(/\\\?/g, '[^/]')
         , 'm')
+
+blacklist = [
+    globStringToRegex("/node_modules/**"),
+    globStringToRegex("/.git/**")
+]
+
+validDir = (dir, stat) ->
+    relative = '/' + path.relative(".", dir).split(path.sep).join('/')
+    for rule in blacklist
+        return false if rule.test(relative)
+    return true
+
+filesSync = (dir, iterator) ->
+    dirs = [dir]
+    while dirs.length
+        dir = dirs.shift()
+        files = fs.readdirSync(dir)
+        files.forEach (file) ->
+            f = path.join(dir, file)
+            stat = fs.statSync(f)
+            return unless stat
+            if stat.isDirectory() and validDir(f, stat)
+                dirs.push(f)
+            if stat.isFile()
+                iterator(dir, file, stat);
 
 minify = (source) -> 
     ast = uglify.parse(source)
@@ -73,7 +97,7 @@ write_file = (relative, data) ->
 
 transform = (source, destination, func) -> 
     source = globStringToRegex(source)
-    walk.filesSync ".", (basedir, filename, stat) =>
+    filesSync ".", (basedir, filename, stat) =>
         filepath = path.join(basedir, filename)
         input = '/' + path.relative(".", filepath).split(path.sep).join('/')
         return unless source.test(input)
@@ -96,7 +120,7 @@ task "compile-loader", "compile loader coffee source into javascript", ->
         result = coffee.compile(data, bare: true)
         return minify(result)
 
-    parts = [
+    parts = [ # order of this files is important
         "/src/bootstrap/ui.coffee",
         "/src/bootstrap/app.coffee",
     ]
@@ -131,8 +155,6 @@ task "populate-assets", "prepare assets to be used by builder", ->
                     var ALGO = "#{hash_name.toUpperCase()}";
                     return #{encoder};
                 })();""")
-
-    transform "/src/cryptojs/encoder.coffee", null, (input, _, data) ->
 
     transform "/bower_components/localforage/dist/(localforage).min.js", "/lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)

@@ -112,7 +112,7 @@ hosting:
 
 ## Alternatives
 
-Other modules you should definitelly look at:
+Other modules you should definitely look at:
 
  * [gluejs](http://mixu.net/gluejs/)
  * [browserbuild](https://github.com/learnboost/browserbuild/)
