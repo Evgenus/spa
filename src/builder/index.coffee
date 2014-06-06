@@ -260,7 +260,7 @@ class Builder
 
     _write_manifest: (content) ->
         filepath = path.resolve(@root, @manifest)
-        console.log("Writing #{filepath}")
+        console.log("Writing #{filepath}. #{content.length} bytes.")
         fs.writeFileSync(filepath, content)
 
     _inject_inline: (relative) ->
@@ -293,7 +293,7 @@ class Builder
         compiled = ejs.compile(assets["index_template"])
         @_index_content = compiled(namespace)
         filepath = path.resolve(@root, @index)
-        console.log("Writing #{filepath}")
+        console.log("Writing #{filepath}. #{@_index_content.length} bytes.")
         fs.writeFileSync(filepath, @_index_content)
 
     _write_appcache: ->
@@ -324,7 +324,7 @@ class Builder
         filename = path.resolve(@root, @appcache)
         content = compiled
             assets: assets
-        console.log("Writing #{filename}")
+        console.log("Writing #{filename}. #{content.length} bytes.")
         fs.writeFileSync(filename, content)
 
     build: ->

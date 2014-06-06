@@ -1,8 +1,7 @@
 emptyArray = []
 
 class UI
-    constructor: (selector, element) ->
-        @items = (element ? document).querySelectorAll(selector)
+    constructor: (@items) ->
 
     each: (callback) ->
         emptyArray.every.call @items, (el, idx) ->
@@ -37,17 +36,46 @@ class UI
 
     css: (property, value) -> 
         if (arguments.length < 2)
-            element = this[0]
+            element = @items[0]
             return unless element?
             computedStyle = getComputedStyle(element, '')
             return computedStyle.getPropertyValue(property)  
 
         if !value and value isnt 0
-            this.each -> 
-                this.style.removeProperty(property)
+            this.each -> this.style.removeProperty(property)
         else
-            this.each ->
-                this.style.cssText += ';' + property + ":" + value
+            this.each -> this.style.cssText += ';' + property + ":" + value
 
-$ = (selector) ->
-    return new UI(selector)
+    attr: (name, value) ->
+        if (arguments.length < 2)
+            element = @items[0]
+            return unless element?
+            return element.getAttribute(name)
+
+        if value?
+            this.each -> this.setAttribute(name, value)
+        else
+            this.each -> this.removeAttribute(name)
+
+    clone: ->
+        return new UI(emptyArray.map.call(@items, (el) -> el.cloneNode(true)))
+
+    append: (elements) ->
+        return this.each -> 
+            parent = this
+            elements.each -> parent.appendChild(@cloneNode(true))
+            return
+
+    find: (selector) ->
+        result = []
+        this.each ->
+            nodes = this.querySelectorAll(selector)
+            emptyArray.every.call nodes, (el, idx) -> 
+                result.push(el)
+        return new UI(result)
+
+$ = (param) ->
+    if typeof param is "string"
+        return new UI([document]).find(param)
+    else
+        return new UI(param)

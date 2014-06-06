@@ -340,14 +340,14 @@ class Loader
     onTotalDownloadProgress: (progress)-> 
         @log("onTotalDownloadProgress", progress)
 
-    onModuleDownloaded: (event, module) -> 
-        @log("onModuleDownloaded", event, module)
+    onModuleDownloaded: (module) -> 
+        @log("onModuleDownloaded", module)
 
     onEvaluationStarted: (manifest) -> 
         @log("onEvaluationStarted", manifest)
 
-    onEvaluationError: (error) -> 
-        @log("onEvaluationError", error)
+    onEvaluationError: (module, error) -> 
+        @log("onEvaluationError", module, error)
 
     onModuleEvaluated: (module) -> 
         @log("onModuleEvaluated", module)
@@ -477,7 +477,7 @@ class Loader
             total_size += module.size
             loaded_size += module.loaded
             total_count++
-            if module.content?
+            if module.source?
                 loaded_count++
         @onTotalDownloadProgress
             loaded_count: loaded_count

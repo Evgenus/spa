@@ -3,6 +3,7 @@ path = require("path")
 coffee = require("coffee-script")
 uglify = require("uglify-js")
 mkdirpSync = require('mkdirp').sync
+sass = require('node-sass')
 
 preg_quote = (str, delimiter) ->
     return (str + '')
@@ -167,6 +168,14 @@ task "populate-assets", "prepare assets to be used by builder", ->
     transform "/src/builder/appcache.tmpl", "lib/assets/appcache.tmpl", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
         return data
+
+    transform "/src/bootstrap/style.scss", "lib/assets/bootstrap.css", (input, output, data) ->
+        console.log("Copying %s --> %s", input, output)
+        sass.renderFile
+            file: path.join('.', input)
+            outputStyle: 'compressed'
+            outFile: output
+        return
 
 task "build", "compile all coffeescript files to javascript", ->
     invoke 'compile-builder'

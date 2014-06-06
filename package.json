@@ -1,64 +1,63 @@
 {
-  "name": "spa",
-  "version": "0.0.8",
-  "homepage": "http://github.com/Evgenus/spa",
-  "author": "Eugene Chernyshov <chernyshov.eugene@gmail.com>",
-  "description": "Single-page applications builder with continuous integration, granular updates and loader.",
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "http://www.opensource.org/licenses/mit-license.php"
-    }
-  ],
-  "keywords": [
-    "single-page",
-    "browser",
-    "builder",
-    "loader"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/Evgenus/spa"
-  },
-  "bugs": {
-    "url": "http://github.com/Evgenus/spa/issues",
-    "email": "chernyshov.eugene@gmail.com"
-  },
-  "bin": {
-    "spa": "./bin/spa"
-  },
-  "main": "./lib/index.js",
-  "scripts": {
-    "test": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_*.coffee --reporter spec"
-  },
-  "directories": {
-    "test": "tests"
-  },
-  "engines": {
-    "node": "0.10.x"
-  },
-  "dependencies": {
-    "optimist": ">=0.6.1",
-    "js-yaml": ">=3.0.0",
-    "fs-walk": "*",
-    "detective": "^3.1.0",
-    "underscore": "~1.6.0",
-    "underscore.string": "~2.3.3",
-    "ejs": "^1.0.0",
-    "detective-amd": "2.x.x",
-    "module-definition": ">=1.1.0"
-  },
-  "devDependencies": {
-    "mock-fs": ">=2.2.0",
-    "mocha": "1.x",
-    "coffee-script": "^1.7.1",
-    "connect": "2.x.x",
-    "uglify-js": "2.x.x",
-    "mkdirp": "*",
-    "selenium-standalone": ">=2.40.0",
-    "webdriverjs": ">=1.7.0",
-    "wd": ">=0.2.21",
-    "chai-as-promised": ">=4.x.x"
-  },
-  "license": "MIT"
+    "name": "spa",
+    "version": "0.0.8",
+    "homepage": "http://github.com/Evgenus/spa",
+    "author": "Eugene Chernyshov <chernyshov.eugene@gmail.com>",
+    "description": "Single-page applications builder with continuous integration, granular updates and loader.",
+    "licenses": [{
+        "type": "MIT",
+        "url": "http://www.opensource.org/licenses/mit-license.php"
+    }],
+    "keywords": [
+        "single-page",
+        "browser",
+        "builder",
+        "loader"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/Evgenus/spa"
+    },
+    "bugs": {
+        "url": "http://github.com/Evgenus/spa/issues",
+        "email": "chernyshov.eugene@gmail.com"
+    },
+    "bin": {
+        "spa": "./bin/spa"
+    },
+    "main": "./lib/index.js",
+    "scripts": {
+        "test": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_*.coffee --reporter spec"
+    },
+    "directories": {
+        "test": "tests"
+    },
+    "engines": {
+        "node": "0.10.x"
+    },
+    "dependencies": {
+        "optimist": ">=0.6.1",
+        "js-yaml": ">=3.0.0",
+        "fs-walk": "*",
+        "detective": "^3.1.0",
+        "underscore": "~1.6.0",
+        "underscore.string": "~2.3.3",
+        "ejs": "^1.0.0",
+        "detective-amd": "2.x.x",
+        "module-definition": ">=1.1.0"
+    },
+    "devDependencies": {
+        "node-sass": ">=0.8.0",
+        "mock-fs": ">=2.2.0",
+        "mocha": "1.x",
+        "coffee-script": "^1.7.1",
+        "connect": "2.x.x",
+        "uglify-js": "2.x.x",
+        "mkdirp": "*",
+        "selenium-standalone": ">=2.40.0",
+        "webdriverjs": ">=1.7.0",
+        "wd": ">=0.2.21",
+        "chai-as-promised": ">=4.x.x"
+    },
+    "license": "MIT"
 }

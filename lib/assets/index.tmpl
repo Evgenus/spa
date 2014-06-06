@@ -2,6 +2,8 @@
 <html>
 <head>
 
+<style type="text/css"><%- inline("./bootstrap.css") %></style>
+
 <script type="text/javascript">
 (function() {
     var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
@@ -27,9 +29,58 @@
 </script>
 
 </head>
+
 <body>
-<h1 id="title-loading">Loading</h1>
-<h1 id="title-done" class="hide">Done</h1>
-<p id="total-progress"></p>
+
+<div class="hide">
+    <div id="evaluate-item-template" class="evaluate-item">
+        <span class="name"></span>
+        <span class="state pending">...</span>
+        <span class="state success hide">SUCCESS</span>
+        <span class="state error hide">ERROR</span>
+    </div>
+    <div id="download-item-template" class="download-item">
+        <span class="name"></span>
+        <span class="state pending">WAITING</span>
+        <span class="state progress hide">
+            <span class="bytes-loaded"></span>
+            <span class="bytes-total"></span>
+        </span>
+        <span class="state success hide">SUCCESS</span>
+        <span class="state error hide">ERROR</span>
+    </div>
+</div>
+
+<div id="loader">
+    <div id="page-init" class="page">
+        <h1>Initializing</h1>
+    </div>
+
+    <div id="page-load" class="page hide">
+        <h1>Running...</h1> 
+        <div class="total-progress">
+            <span class="modules-loaded"></span>
+            <span class="modules-total"></span>
+        </div>
+        <div class="items"></div>
+    </div>
+
+    <div id="page-update" class="page hide">
+        <h1>Downloading...</h1>    
+        <div class="total-progress">
+            <span class="modules-loaded"></span>
+            <span class="modules-total"></span>
+            <span class="bytes-loaded"></span>
+            <span class="bytes-total"></span>
+        </div>
+        <div class="items"></div>
+    </div>
+
+    <div id="page-fail" class="page hide">
+        <h1>Malfunction!</h1>
+        <div class="error"></div>
+    </div>
+</div>
+
 </body>
 </html>
