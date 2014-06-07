@@ -1,5 +1,4 @@
-log = (args...) ->
-    loader.log("bootstrap", args...)
+log = (args...) -> #loader.log("bootstrap", args...)
 
 loader.onNoManifest = ->
     log("onNoManifest")
