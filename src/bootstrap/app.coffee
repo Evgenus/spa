@@ -1,11 +1,5 @@
 log = (args...) -> #loader.log("bootstrap", args...)
 
-preg_quote = (str) ->
-    return (str + '').replace(new RegExp('[#.\\\\+*?\\[\\^\\]$(){}=!<>|\\\']', 'g'), '\\$&');
-
-get_id = (module) ->
-    return preg_quote("module-" + module.id)
-
 loader.onNoManifest = ->
     log("onNoManifest")
 
@@ -34,7 +28,7 @@ loader.onNoManifest = ->
     loader.onModuleBeginDownload = (module) -> 
         log("onModuleBeginDownload", module)
 
-        el = $("#" + get_id(module))
+        el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".progress").removeClass("hide")
         el.find(".bytes-loaded").text(0)
@@ -43,20 +37,20 @@ loader.onNoManifest = ->
     loader.onModuleDownloadFailed = (event, module) -> 
         log("onModuleDownloadFailed", event, module)
 
-        el = $("#" + get_id(module))
+        el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".error").text(event.target.statusText).removeClass("hide")
 
     loader.onModuleDownloadProgress = (event, module) -> 
         log("onModuleDownloadProgress", event, module)
 
-        el = $("#" + get_id(module))
+        el = $("#module-" + module.id)
         el.find(".bytes-loaded").text(event.loaded)
 
     loader.onModuleDownloaded = (module) -> 
         log("onModuleDownloaded", module)
 
-        el = $("#" + get_id(module))
+        el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".success").removeClass("hide")
 
@@ -92,14 +86,14 @@ loader.onEvaluationStarted = (manifest) ->
     loader.onEvaluationError = (module, error) -> 
         log("onEvaluationError", module, error)
 
-        el = $("#" + get_id(module))
+        el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".error").text(error).removeClass("hide")
 
     loader.onModuleEvaluated = (module) -> 
         log("onModuleEvaluated", module)
 
-        el = $("#" + get_id(module))
+        el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".success").removeClass("hide")
 

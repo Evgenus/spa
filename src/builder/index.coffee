@@ -129,8 +129,15 @@ class Builder
                 root = path.dirname(root)
 
             while id of @_by_id
-                id = path.basename(root) + "|" + id
-                root = path.dirname(root)
+                id = path.basename(root) + "/" + id
+                newroot = path.dirname(root)
+                break if newroot is root
+                root = newroot 
+
+            id = id.split(/[^a-zA-Z0-9]/g).join("_")
+
+            while id of @_by_id
+                id = "_" + id
 
             @_by_id[id] = module
             module.id = id

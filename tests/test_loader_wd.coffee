@@ -716,3 +716,40 @@ describe "WD.js", ->
             .then (title) =>
                 expect(title).to.equal("15730830")
             .nodeify(done)
+
+    it 'building files with wierd names', (done) ->
+        @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        "[^](). '{}'+!=#$.js": |
+                            var loader = require("loader");
+                            loader.onApplicationReady = function() {
+                                document.title = "version_6";
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            manifest: "./manifest.json"
+                            index: "./index.html"
+                            hosting:
+                                "/(*.js)": "/app/$1"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(DELAY)
+            .title().should.eventually.become("version_6")
+            .nodeify(done)
