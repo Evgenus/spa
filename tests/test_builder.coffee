@@ -314,6 +314,21 @@ describe 'Building module without manifest', ->
 
         expect(fs.existsSync("/testimonial/manifest.json")).not.to.be.true
 
+describe 'Building module with wierd name', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial: 
+                "[^]$().'{}'+!=#$.js": // empty
+                spa.yaml: |
+                    root: "/testimonial/"
+                    extensions: 
+                        - .js
+            """))
+
+    it 'should not produce manifest.json', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+
 describe 'Building module with appcache and index', ->
     beforeEach ->
         system = yaml.safeLoad("""

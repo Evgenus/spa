@@ -248,12 +248,12 @@ class Loader
         @manifest_key = @prefix + "::manifest"
         localforage.config()
 
-    _randomize_url: (url) ->
-        return url unless @randomize_urls
+    _prepare_url: (url) ->
+        return escape(url) unless @randomize_urls
         result = ''
         for i in [0..16]
             result += SAFE_CHARS[Math.round(Math.random() * (SAFE_CHARS.length - 1))]
-        return url + '?' + result
+        return escape(url) + '?' + result
     
     _parse_manifest: (content) ->
         throw ReferenceError("Manifest was not defined") unless content?
@@ -418,7 +418,7 @@ class Loader
         return if @_update_started
         @log("Checking for update...")
         manifest_request = XHR()
-        manifest_request.open("GET", @_randomize_url(@manifest_location), true)
+        manifest_request.open("GET", @_prepare_url(@manifest_location), true)
         manifest_request.overrideMimeType("application/json; charset=utf-8")
         manifest_request.onload = (event) =>
             if event.target.status is 404
@@ -488,7 +488,7 @@ class Loader
     _downloadModule: (module) ->
         @onModuleBeginDownload(module)
         module_request = XHR()
-        module_request.open("GET", @_randomize_url(module.url), true)
+        module_request.open("GET", @_prepare_url(module.url), true)
         module_request.responseType = "arraybuffer"
         module_request.onload = (event) =>
             module_source = event.target.response
