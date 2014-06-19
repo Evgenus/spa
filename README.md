@@ -1,4 +1,4 @@
-#SPA
+#SPA [![Build Status](https://drone.io/github.com/Evgenus/spa/status.png)](https://drone.io/github.com/Evgenus/spa/latest)
 
 [![Dependency Status](https://david-dm.org/Evgenus/spa.svg)](https://david-dm.org/Evgenus/spa)
 [![devDependency Status](https://david-dm.org/Evgenus/spa/dev-status.svg)](https://david-dm.org/Evgenus/spa#info=devDependencies)
