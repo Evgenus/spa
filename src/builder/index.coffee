@@ -361,6 +361,13 @@ class Builder
             console.log(message)
         console.log("Total #{total} bytes in #{@_modules.length} files")
 
+hasBOM = (data) ->
+    return false if data.length < 3
+    return false unless data[0] is 0xef
+    return false unless data[1] is 0xbb
+    return false unless data[2] is 0xbf
+    return true
+
 load_json = (filepath) ->
     return unless filepath?
     source = fs.readFileSync(filepath)
@@ -368,7 +375,8 @@ load_json = (filepath) ->
 
 load_yaml = (filepath) ->
     return unless filepath?
-    source = fs.readFileSync(filepath, encoding: "utf8")
+    data = fs.readFileSync(filepath)
+    source = data.toString("utf8", if hasBOM(data) then 3 else 0)
     return yaml.safeLoad(source)
     
 get_config_content = (filepath) ->

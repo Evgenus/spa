@@ -314,6 +314,35 @@ describe 'Building module without manifest', ->
 
         expect(fs.existsSync("/testimonial/manifest.json")).not.to.be.true
 
+describe 'Building config with BOM', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial: 
+                "a.js": // empty
+            """))
+        content = new Buffer("""\xEF\xBB\xBF\nroot: "/testimonial/"\nmanifest: "manifest.json"\n""", "ascii")
+        fs.writeFileSync("/testimonial/spa.yaml", content)
+
+    it 'should not produce manifest.json', ->
+        content = fs.readFileSync("/testimonial/spa.yaml")
+        expect(content[0]).to.equals(0xEF)
+        expect(content[1]).to.equals(0xBB)
+        expect(content[2]).to.equals(0xBF)
+
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+        expect(manifest)
+            .to.have.property('modules')
+            .to.be.an("Array").with.length(1)
+        
+        expect(manifest.modules[0]).to.have.properties
+            id: -> @that.equals("a")
+
 describe 'Building module with wierd name', ->
     beforeEach ->
         mock(yaml.safeLoad("""
@@ -321,8 +350,7 @@ describe 'Building module with wierd name', ->
                 "[^]$().'{}'+!=#$.js": // empty
                 spa.yaml: |
                     root: "/testimonial/"
-                    extensions: 
-                        - .js
+                    manifest: "manifest.json"
             """))
 
     it 'should not produce manifest.json', ->
