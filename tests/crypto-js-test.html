@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/aes.js"></script>
+    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/sha256.js"></script>
+    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/components/enc-base64-min.js"></script>
+    <script>
+        var Formatter = {
+            stringify: function (cipherParams) {
+                return cipherParams.ciphertext.toString(CryptoJS.enc.Latin1);
+            },
+            parse: function (str) {
+                return CryptoJS.lib.CipherParams.create({
+                    ciphertext: CryptoJS.enc.Latin1.parse(str)
+                });
+            }
+        };
+
+        var encrypted = CryptoJS.AES.encrypt("MessageсйцусйцуMessage", "Secret Passphrase", { format: Formatter });
+        console.log(encrypted);
+        var decrypted = CryptoJS.AES.decrypt(encrypted, "Secret Passphrase", { format: Formatter });
+        console.log(decrypted.toString(CryptoJS.enc.Utf8));
+    </script>
+</head>
+
+<body>
+</body>
+</html>
