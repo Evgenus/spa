@@ -479,6 +479,7 @@ describe "WD.js", ->
                             loader.onUpdateCompleted = function() 
                             {
                                 document.title = "UpdateCompleted";
+                                return true;
                             };
 
                             loader.onNoManifest = function() 
@@ -553,6 +554,9 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(5*DELAY)
             .title().should.eventually.become("UpdateCompleted")
+            .refresh()
+            .sleep(DELAY)
+            .title().should.eventually.become("ApplicationReady")
             .nodeify(done)
 
     it 'should be same manifest version and loader version', (done) ->
@@ -718,7 +722,7 @@ describe "WD.js", ->
             .nodeify(done)
 
     it 'building files with wierd names', (done) ->
-        @browser
+        return @browser
             .then ->
                 system = yaml.safeLoad("""
                     index.html: |
@@ -752,4 +756,124 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(DELAY)
             .title().should.eventually.become("version_6")
+            .nodeify(done)
+
+    it 'could not break loader', (done) ->
+        return @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.tmpl: |
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+
+                        <script type="text/javascript">
+                        (function() {
+                            var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
+                            <%- inline("./localforage.js") %>
+                            <%- inline("./loader.js") %>
+
+                            var loader = new Loader({
+                                "version": "<%- version %>",
+                                "manifest_location": "<%- manifest_location %>",
+                                "prefix": "spa",
+                                "hash_name": "<%- hash_name %>",
+                                "hash_func": hash_func,
+                            });
+
+                            loader.onNoManifest = function() 
+                            {
+                                loader.checkUpdate();
+                            };
+
+                            loader.onUpdateCompleted = function() 
+                            {
+                                setTimeout(location.reload.bind(location), 0)
+                                return true;
+                            }
+                            
+                            loader.onModuleBeginDownload = function() 
+                            {
+                                throw Error("HAHA1!");
+                            };
+
+                            loader.onModuleDownloadProgress = function() 
+                            {
+                                throw Error("HAHA2!");
+                            };
+                            
+                            loader.onTotalDownloadProgress = function() 
+                            {
+                                throw Error("HAHA3!");
+                            };
+
+                            loader.onTotalDownloadProgress = function() 
+                            {
+                                throw Error("HAHA4!");
+                            };
+
+                            loader.onModuleDownloaded = function() 
+                            {
+                                throw Error("HAHA5!");
+                            };
+
+                            loader.onEvaluationStarted = function() 
+                            {
+                                throw Error("HAHA6!");
+                            };
+
+                            loader.onModuleEvaluated = function() 
+                            {
+                                throw Error("HAHA7!");
+                            };
+
+                            window.onload = function() 
+                            {
+                                loader.load();
+                            }
+                        })();
+                        </script>
+
+                        </head>
+                        <body>
+                        </body>
+                        </html>
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        c.js: | 
+                            module.exports = 1
+                        b.js: | 
+                            module.exports = require("./c");
+                        a.js: |
+                            var b = require("./b");
+                            var loader = require("loader");
+                            loader.onApplicationReady = function() {
+                                document.title = "version_7";
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            manifest: "./manifest.json"
+                            assets:
+                                index_template: /index.tmpl
+                            hosting:
+                                "/(*.js)": "/app/$1"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(DELAY)
+            .title().should.eventually.become("version_7")
             .nodeify(done)

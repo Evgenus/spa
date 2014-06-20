@@ -77,7 +77,7 @@ Keys - rules as in `excludes`, values - format types. Available formats:
 
 **hash_func** ─ has function to be used in `manifest` and `appcache` generation process. Value may be `md5`, `ripemd160`, `sha1`, `sha224`, `sha256`, `sha3`, `sha384`, `sha512`. Default value is `md5`.
 
-**randomize_urls** ─ this parameter to be transletad into loader thru `index_template`. If `true` loader will add some random characters to URLs for manifest and application files suppressing caching.
+**randomize_urls** ─ this parameter to be transletad into loader thru `index_template`. If `true` loader will add some random characters to URLs for manifest and application files to suppress caching.
 
 **pretty** - pretty-print manifest json
 
