@@ -5,9 +5,9 @@ uglify = require("uglify-js")
 mkdirpSync = require('mkdirp').sync
 sass = require('node-sass')
 
-preg_quote = (str, delimiter) ->
+preg_quote = (str) ->
     return (str + '')
-        .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>:\\' + (delimiter || '') + '-]', 'g'), '\\$&')
+        .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>:\\-]', 'g'), '\\$&')
 
 globStringToRegex = (str) ->
     return new RegExp(
@@ -175,6 +175,8 @@ task "populate-assets", "prepare assets to be used by builder", ->
             file: path.join('.', input)
             outputStyle: 'compressed'
             outFile: output
+            success: console.log.bind(console)
+            error: console.log.bind(console)
         return
 
 task "build", "compile all coffeescript files to javascript", ->

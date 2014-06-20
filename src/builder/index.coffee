@@ -16,9 +16,9 @@ packagejson = ( ->
     return JSON.parse(fs.readFileSync(packagepath, 'utf8'))
     )()
 
-preg_quote = (str, delimiter) ->
+preg_quote = (str) ->
     return (str + '')
-        .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>|:\\' + (delimiter || '') + '-]', 'g'), '\\$&')
+        .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>|:\\-]', 'g'), '\\$&')
 
 globStringToRegex = (str) ->
     return new RegExp(
