@@ -4,43 +4,7 @@ coffee = require("coffee-script")
 uglify = require("uglify-js")
 mkdirpSync = require('mkdirp').sync
 sass = require('node-sass')
-
-preg_quote = (str) ->
-    return (str + '')
-        .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>:\\-]', 'g'), '\\$&')
-
-globStringToRegex = (str) ->
-    return new RegExp(
-        preg_quote(str)
-            .replace(/\\\*\\\*\//g, '(?:[^/]+/)*')
-            .replace(/\\\*/g, '[^/]*')
-            .replace(/\\\?/g, '[^/]')
-        , 'm')
-
-blacklist = [
-    globStringToRegex("/node_modules/**"),
-    globStringToRegex("/.git/**")
-]
-
-validDir = (dir, stat) ->
-    relative = '/' + path.relative(".", dir).split(path.sep).join('/')
-    for rule in blacklist
-        return false if rule.test(relative)
-    return true
-
-filesSync = (dir, iterator) ->
-    dirs = [dir]
-    while dirs.length
-        dir = dirs.shift()
-        files = fs.readdirSync(dir)
-        files.forEach (file) ->
-            f = path.join(dir, file)
-            stat = fs.statSync(f)
-            return unless stat
-            if stat.isDirectory() and validDir(f, stat)
-                dirs.push(f)
-            if stat.isFile()
-                iterator(dir, file, stat);
+walker = require('fs-walk-glob-rules')
 
 minify = (source) -> 
     ast = uglify.parse(source)
@@ -97,33 +61,40 @@ write_file = (relative, data) ->
     fs.writeFileSync(outpath, data)
 
 transform = (source, destination, func) -> 
-    source = globStringToRegex(source)
-    filesSync ".", (basedir, filename, stat) =>
-        filepath = path.join(basedir, filename)
-        input = '/' + path.relative(".", filepath).split(path.sep).join('/')
-        return unless source.test(input)
-        output = input.replace(source, destination)
-        data = fs.readFileSync(filepath, encoding: "utf8")
-        result = func(input, output, data, input.match(source))
+    rules = {}
+    rules[source] = destination
+    walked = walker.walkSync
+        root: "."
+        rules: rules
+        excludes: [
+            "./node_modules/**",
+            "./bower_components/**"
+            "./.git/**"
+        ]
+    #console.log(source, destination, walked)
+
+    for data in walked
+        content = fs.readFileSync(data.source, encoding: "utf8")
+        result = func(data.source, data.result, content, data.match)
         if destination? and result?
-            write_file(output, result)
+            write_file(data.result, result)
 
 task "compile-builder", "compile builder coffee source into javascript", ->
     console.log("Compiling builder")
-    transform "/src/builder/(**/*).coffee", "/lib/$1.js", (input, output, data) ->
+    transform "./src/builder/(**/*).coffee", "./lib/$1.js", (input, output, data) ->
         console.log("Compiling %s --> %s", input, output)
         return coffee.compile(data, bare: true)
 
 task "compile-loader", "compile loader coffee source into javascript", ->
     console.log("Compiling loader")
-    transform "/src/loader/(**/*).coffee", "/lib/assets/$1.js", (input, output, data) ->
+    transform "./src/loader/(**/*).coffee", "./lib/assets/$1.js", (input, output, data) ->
         console.log("Compiling %s --> Minifying --> %s", input, output)
         result = coffee.compile(data, bare: true)
         return minify(result)
 
     parts = [ # order of this files is important
-        "/src/bootstrap/ui.coffee",
-        "/src/bootstrap/app.coffee",
+        "./src/bootstrap/ui.coffee",
+        "./src/bootstrap/app.coffee",
     ]
     out = []
 
@@ -134,7 +105,7 @@ task "compile-loader", "compile loader coffee source into javascript", ->
             out.push(result)
             return
 
-    bootstrap_path = "/lib/assets/bootstrap.js"
+    bootstrap_path = "./lib/assets/bootstrap.js"
     bootstrap_data = out.join("")
 
     console.log("    --> Combining %s", bootstrap_path)
@@ -142,40 +113,40 @@ task "compile-loader", "compile loader coffee source into javascript", ->
 
 task "populate-assets", "prepare assets to be used by builder", ->
 
-    transform "/src/cryptojs/encoder.coffee", null, (input, _, data) ->
-        encoder = coffee.compile(data, bare: true)
-        console.log("Compiling %s -->", input)
+    # transform "./src/cryptojs/encoder.coffee", null, (input, _, data) ->
+    #     encoder = coffee.compile(data, bare: true)
+    #     console.log("Compiling %s -->", input)
 
-        transform "/bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "/lib/assets/hash/$1.js", (input, output, data, match) ->
+    #     transform "./bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
 
-            console.log("    Combining %s --> %s", input, output)
-            hash_name = match[1]
-            return minify_more("""
-                (function() {
-                    #{data};
-                    var ALGO = "#{hash_name.toUpperCase()}";
-                    return #{encoder};
-                })();""")
+    #         console.log("    Combining %s --> %s", input, output)
+    #         hash_name = match[1]
+    #         return minify_more("""
+    #             (function() {
+    #                 #{data};
+    #                 var ALGO = "#{hash_name.toUpperCase()}";
+    #                 return #{encoder};
+    #             })();""")
 
-    transform "/bower_components/localforage/dist/(localforage).min.js", "/lib/assets/$1.js", (input, output, data) ->
+    transform "./bower_components/localforage/dist/(localforage).min.js", "./lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
         return data
 
-    transform "/src/builder/index.tmpl", "lib/assets/index.tmpl", (input, output, data) ->
+    transform "./src/builder/index.tmpl", "lib/assets/index.tmpl", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
         return data
 
-    transform "/src/builder/appcache.tmpl", "lib/assets/appcache.tmpl", (input, output, data) ->
+    transform "./src/builder/appcache.tmpl", "lib/assets/appcache.tmpl", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
         return data
 
-    transform "/src/bootstrap/style.scss", "lib/assets/bootstrap.css", (input, output, data) ->
-        console.log("Copying %s --> %s", input, output)
+    transform "./src/bootstrap/style.scss", "lib/assets/bootstrap.css", (input, output, data) ->
+        console.log("Compiling %s --> %s", input, output)
         sass.renderFile
             file: path.join('.', input)
             outputStyle: 'compressed'
             outFile: output
-            success: console.log.bind(console)
+            success: (x) -> console.log("Success", x)
             error: console.log.bind(console)
         return
 

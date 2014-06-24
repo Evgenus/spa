@@ -45,7 +45,8 @@
         "underscore.string": "~2.3.3",
         "ejs": "^1.0.0",
         "detective-amd": "^2.1.0",
-        "module-definition": ">=1.1.0"
+        "module-definition": ">=1.1.0",
+        "fs-walk-glob-rules": "0.0.1"
     },
     "devDependencies": {
         "node-sass": "^0.9.3",
