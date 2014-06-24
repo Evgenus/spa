@@ -60,7 +60,7 @@ write_file = (relative, data) ->
     mkdirpSync(path.dirname(outpath))
     fs.writeFileSync(outpath, data)
 
-transform = (source, destination, func) -> 
+transform = (source, destination, func, excludes) -> 
     rules = {}
     rules[source] = destination
     walked = walker.walkSync
@@ -68,10 +68,8 @@ transform = (source, destination, func) ->
         rules: rules
         excludes: [
             "./node_modules/**",
-            "./bower_components/**"
             "./.git/**"
         ]
-    #console.log(source, destination, walked)
 
     for data in walked
         content = fs.readFileSync(data.source, encoding: "utf8")
@@ -113,20 +111,20 @@ task "compile-loader", "compile loader coffee source into javascript", ->
 
 task "populate-assets", "prepare assets to be used by builder", ->
 
-    # transform "./src/cryptojs/encoder.coffee", null, (input, _, data) ->
-    #     encoder = coffee.compile(data, bare: true)
-    #     console.log("Compiling %s -->", input)
+    transform "./src/cryptojs/encoder.coffee", null, (input, _, data) ->
+        encoder = coffee.compile(data, bare: true)
+        console.log("Compiling %s -->", input)
 
-    #     transform "./bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
+        transform "./bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
 
-    #         console.log("    Combining %s --> %s", input, output)
-    #         hash_name = match[1]
-    #         return minify_more("""
-    #             (function() {
-    #                 #{data};
-    #                 var ALGO = "#{hash_name.toUpperCase()}";
-    #                 return #{encoder};
-    #             })();""")
+            console.log("    Combining %s --> %s", input, output)
+            hash_name = match[1]
+            return minify_more("""
+                (function() {
+                    #{data};
+                    var ALGO = "#{hash_name.toUpperCase()}";
+                    return #{encoder};
+                })();""")
 
     transform "./bower_components/localforage/dist/(localforage).min.js", "./lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
