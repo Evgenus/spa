@@ -2,6 +2,7 @@ fs = require('fs')
 walker = require('fs-walk-glob-rules')
 globrules = require('glob-rules')
 path = require('path')
+clc = require('cli-color')
 detectiveCJS = require('detective')
 detectiveAMD = require('detective-amd')
 definition = require('module-definition').sync
@@ -46,6 +47,16 @@ class Loop
         return (for i in [0..@_parts.length-1] 
             "#{p[i][0]} --[#{p[i][1]}]--> #{p[i+1][0]}" 
             ).join("\n")
+
+Logger = 
+    info: (args...) ->
+        console.info(args.join(" "))
+
+    warn: (args...) ->
+        console.warn(clc.bgYellow.bold("SPA"), clc.yellow(args.join(" ")))
+
+    error: (args...) ->
+        console.error(clc.bgRed.bold("SPA"), clc.red.bold(args.join(" ")))
             
 class Builder
     constructor: (options) ->
@@ -255,7 +266,7 @@ class Builder
 
     _write_manifest: (content) ->
         filepath = path.resolve(@root, @manifest)
-        console.log("Writing #{filepath}. #{content.length} bytes.")
+        Logger.info("Writing #{filepath}. #{content.length} bytes.")
         fs.writeFileSync(filepath, content)
 
     _inject_inline: (relative) ->
@@ -283,12 +294,12 @@ class Builder
             if url?
                 namespace["manifest_location"] = url
             else
-                console.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
+                Logger.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
             
         compiled = ejs.compile(assets["index_template"])
         @_index_content = compiled(namespace)
         filepath = path.resolve(@root, @index)
-        console.log("Writing #{filepath}. #{@_index_content.length} bytes.")
+        Logger.info("Writing #{filepath}. #{@_index_content.length} bytes.")
         fs.writeFileSync(filepath, @_index_content)
 
     _write_appcache: ->
@@ -310,16 +321,16 @@ class Builder
         
         if Object.keys(assets).length == 0
             if @index?
-                console.warn("No hosting rule for `#{@index}` file. AppCache manifest `#{@appcache}` appears to be empty")
+                Logger.warn("No hosting rule for `#{@index}` file. AppCache manifest `#{@appcache}` appears to be empty")
             else
-                console.warn("There are no assets to be included into AppCache manifest `#{@appcache}`")
+                Logger.warn("There are no assets to be included into AppCache manifest `#{@appcache}`")
 
         template = @assets["appcache_template"]
         compiled = ejs.compile(fs.readFileSync(template, encoding: "utf8"))
         filename = path.resolve(@root, @appcache)
         content = compiled
             assets: assets
-        console.log("Writing #{filename}. #{content.length} bytes.")
+        Logger.info("Writing #{filename}. #{content.length} bytes.")
         fs.writeFileSync(filename, content)
 
     build: ->
@@ -332,6 +343,8 @@ class Builder
         @_sort()
         for module in @_modules
             module.url = @_host(module.relative)
+            unless module.url?
+                Logger.error("No hosting rules for `#{module.relative}`")
         content = @_create_manifest()
         @_write_manifest(content) if @manifest?
         @_write_index() if @index?
@@ -346,8 +359,8 @@ class Builder
             message = _.sprintf "%(num)3s %(module.relative)-20s %(module.size)7s %(module.type)4s %(module.hash)s",
                 num: parseInt(num) + 1
                 module: module
-            console.log(message)
-        console.log("Total #{total} bytes in #{@_modules.length} files")
+            Logger.info(message)
+        Logger.info("Total #{total} bytes in #{@_modules.length} files")
 
 hasBOM = (data) ->
     return false if data.length < 3
@@ -375,7 +388,7 @@ get_config_content = (filepath) ->
             return load_json(filepath)
 
 Builder.from_config = (config_path) ->
-    console.log("Reading config from #{config_path}")
+    Logger.info("Reading config from #{config_path}")
     basedir = path.dirname(config_path)
     config = get_config_content(config_path)
     config.root ?= "."

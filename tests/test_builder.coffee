@@ -221,24 +221,28 @@ describe 'Building module with paths rewired', ->
                 id: -> @that.equals("c")
                 deps: -> @that.deep.equals({})
                 type: -> @that.equals(type)
+                url: -> @that.equals("http://127.0.0.1:8010/module1/a/c.js")
             
             expect(manifest.modules[1]).to.have.properties
                 id: -> @that.equals("b")
                 deps: -> @that.deep.equals
                     "./a/c": "c"
                 type: -> @that.equals(type)
+                url: -> @that.equals("http://127.0.0.1:8010/module1/b.js")
             
             expect(manifest.modules[2]).to.have.properties
                 id: -> @that.equals("d")
                 deps: -> @that.deep.equals
                     "a1/c": "c"
                 type: -> @that.equals(type)
+                url: -> @that.equals("http://127.0.0.1:8010/module2/d.js")
             
             expect(manifest.modules[3]).to.have.properties
                 id: -> @that.equals("e")
                 deps: -> @that.deep.equals
                     "a1/../b": "b"
                 type: -> @that.equals(type)
+                url: -> @that.equals("http://127.0.0.1:8010/module2/e.js")
 
     describe 'in CommonJS format', ->
         base("cjs")
@@ -264,7 +268,7 @@ describe 'Building module with paths rewired', ->
                         paths:
                             a1: "/module1/a"
                         hosting:
-                            "/(**/*.js)": "http://127.0.0.1:8010/$1"
+                            "./(**/*.js)": "http://127.0.0.1:8010/$1"
                         manifest: "manifest.json"
                         default_loader: raw
                 """))
@@ -292,7 +296,7 @@ describe 'Building module with paths rewired', ->
                         paths:
                             a1: "/module1/a"
                         hosting:
-                            "/(**/*.js)": "http://127.0.0.1:8010/$1"
+                            "./(**/*.js)": "http://127.0.0.1:8010/$1"
                         manifest: "manifest.json"
                         default_loader: raw
                 """))
@@ -342,6 +346,7 @@ describe 'Building config with BOM', ->
         
         expect(manifest.modules[0]).to.have.properties
             id: -> @that.equals("a")
+        expect(manifest.modules[0]).not.to.have.property("url")
 
 describe 'Building module with wierd name', ->
     beforeEach ->
@@ -369,7 +374,7 @@ describe 'Building module with appcache and index', ->
                     cached:
                         - a.js
                     hosting:
-                        "/(**/*.*)": "http://127.0.0.1:8010/$1"
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
             """)
         utils.mount(system, path.resolve(__dirname, "../lib/assets"))
         mock(system)
@@ -393,8 +398,8 @@ describe 'Building renamed manifest', ->
                     cached:
                         - a.js
                     hosting:
-                        "/(**/*.*)": "http://127.0.0.1:8010/$1"
-                        "/../(*.json)": "/$1"
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                        "./../(*.json)": "/$1"
             """)
         utils.mount(system, path.resolve(__dirname, "../lib/assets"))
         mock(system)
@@ -417,6 +422,7 @@ describe 'Building renamed manifest', ->
             deps: -> @that.deep.equals({})
             type: -> @that.equals("cjs")
             hash: -> @that.equals("1007f6da5acf8cc2643274276079bc3e")
+            url: -> @that.equals("http://127.0.0.1:8010/a.js")
 
 describe 'Building mixed-formats modules', ->
     beforeEach ->
@@ -465,3 +471,7 @@ describe 'Building mixed-formats modules', ->
             deps: -> @that.deep.equals
                 "/b": "b"
             type: -> @that.equals("amd")
+
+        expect(manifest.modules[0]).not.to.have.property("url")
+        expect(manifest.modules[1]).not.to.have.property("url")
+        expect(manifest.modules[2]).not.to.have.property("url")
