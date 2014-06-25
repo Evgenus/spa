@@ -5,7 +5,7 @@
     }],
     "build_systems": [{
         "name": "Cake",
-        "cmd": ["cake", "build"],
+        "cmd": ["cake", "sbuild"],
         "shell": true,
         "working_dir": "${project_path}"
     }]
