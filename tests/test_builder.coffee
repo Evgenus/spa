@@ -22,7 +22,7 @@ describe 'Building module with unknown dependency', ->
             
             expect(builder.build.bind(builder))
                 .to.throw(spa.UnresolvedDependencyError)
-                .that.deep.equals(new spa.UnresolvedDependencyError("/a.js", "/b"))
+                .that.deep.equals(new spa.UnresolvedDependencyError("./a.js", "/b"))
 
     describe 'in CommonJS format', ->
         base()
@@ -57,7 +57,7 @@ describe 'Building module with external dependency', ->
                 .to.throw(spa.ExternalDependencyError)
                 .has.properties
                     alias: -> @equals("/b")
-                    path: -> @equals("/a.js")
+                    path: -> @equals("./a.js")
 
     describe 'in CommonJS format', ->
         base()
@@ -71,7 +71,7 @@ describe 'Building module with external dependency', ->
                     spa.yaml: |
                         root: "./"
                         excludes:
-                            - /b.js
+                            - ./b.js
                 """))
 
     describe 'in AMD format', ->
@@ -86,7 +86,7 @@ describe 'Building module with external dependency', ->
                     spa.yaml: |
                         root: "./"
                         excludes:
-                            - /b.js
+                            - ./b.js
                 """))
 
 describe 'Building module with cyclic dependencies', ->
@@ -96,10 +96,10 @@ describe 'Building module with cyclic dependencies', ->
             builder = spa.Builder.from_config("/testimonial/spa.yaml")
             
             _loop = new spa.Loop()
-                .prepend("/d.js", "/a")
-                .prepend("/c.js", "/d")
-                .prepend("/b.js", "/c")
-                .prepend("/a.js", "/b")
+                .prepend("./d.js", "/a")
+                .prepend("./c.js", "/d")
+                .prepend("./b.js", "/c")
+                .prepend("./a.js", "/b")
 
             expect(builder.build.bind(builder))
                 .to.throw(spa.CyclicDependenciesError)
@@ -147,9 +147,9 @@ describe 'Building module with cyclic dependencies and something else', ->
             builder = spa.Builder.from_config("/testimonial/spa.yaml")
             
             _loop = new spa.Loop()
-                .prepend("/e.js", "/c")
-                .prepend("/d.js", "/e")
-                .prepend("/c.js", "/d")
+                .prepend("./e.js", "/c")
+                .prepend("./d.js", "/e")
+                .prepend("./c.js", "/d")
 
             expect(builder.build.bind(builder))
                 .to.throw(spa.CyclicDependenciesError)

@@ -1,5 +1,6 @@
 fs = require('fs')
-walk = require('fs-walk')
+walker = require('fs-walk-glob-rules')
+globrules = require('glob-rules')
 path = require('path')
 detectiveCJS = require('detective')
 detectiveAMD = require('detective-amd')
@@ -15,18 +16,6 @@ packagejson = ( ->
     packagepath = path.resolve(__dirname, '../package.json')
     return JSON.parse(fs.readFileSync(packagepath, 'utf8'))
     )()
-
-preg_quote = (str) ->
-    return (str + '')
-        .replace(new RegExp('[.\\\\+*?\\[\\^\\]${}=!<>|:\\-]', 'g'), '\\$&')
-
-globStringToRegex = (str) ->
-    return new RegExp(
-        preg_quote(str)
-            .replace(/\\\*\\\*\//g, '(?:[^/]+/)*')
-            .replace(/\\\*/g, '[^/]*')
-            .replace(/\\\?/g, '[^/]')
-        , 'm')
 
 class CyclicDependenciesError extends Error
     constructor: (@loop) ->
@@ -60,16 +49,16 @@ class Loop
             
 class Builder
     constructor: (options) ->
-        @root = path.resolve(process.cwd(), options.root)
+        @root = path.resolve(process.cwd(), options.root) + "/"
         @extensions = options.extensions ? [".js"]
-        @excludes = _(options.excludes ? []).map(globStringToRegex)
+        @excludes = options.excludes ? []
         @paths = options.paths ? {}
         @hosting = for pattern, template of options.hosting ? {}
-            pattern: globStringToRegex(pattern)
-            template: template
+            test: globrules.tester(pattern)
+            transform: globrules.transformer(pattern, template)
         @default_loader = options.default_loader ? "cjs"
         @loaders = for pattern, type of options.loaders ? {}
-            pattern: globStringToRegex(pattern)
+            test: globrules.tester(pattern)
             type: type            
         @manifest = options.manifest
         @index = options.index
@@ -87,10 +76,9 @@ class Builder
         @_clear()
 
     filter: (filepath) ->
-        return false unless _(@extensions).any (ext) -> 
-            path.extname(filepath) is ext
-        return not _(@excludes).any (pattern) -> 
-            pattern.test(filepath)
+        expected = path.extname(filepath)
+        return false unless _(@extensions).any (ext) -> expected is ext
+        return true
 
     calc_hash: (content) -> 
         return crypto.createHash(@hash_func).update(content).digest('hex')
@@ -101,20 +89,20 @@ class Builder
         @_by_id = {}
 
     _relativate: (filepath) -> 
-        return '/' + filepath.split(path.sep).join('/')
+        return './' + filepath.split(path.sep).join('/')
 
     _enlist: (root) ->
-        walk.filesSync root, (basedir, filename, stat) =>
-            filepath = path.resolve(basedir, filename)
-            relative = @_relativate(path.relative(root, filepath))
+        walked = walker.walkSync 
+            root: root
+            excludes: @excludes
 
-            return unless @filter(relative)
-
+        for data in walked
+            continue unless @filter(data.relative)
             module =
-                path: filepath
-                relative: relative
+                path: data.path
+                relative: data.relative
 
-            @_by_path[filepath] = module
+            @_by_path[data.path] = module
             @_modules.push(module)
         return
 
@@ -159,7 +147,7 @@ class Builder
 
     _get_type: (module) ->
         for rule in @loaders
-            continue unless rule.pattern.test(module.relative)
+            continue unless rule.test(module.relative)
             return rule.type
         switch definition(module.path)
             when "commonjs" then return "cjs"
@@ -245,8 +233,8 @@ class Builder
 
     _host: (filepath) ->
         for rule in @hosting
-            continue unless rule.pattern.test(filepath)
-            return filepath.replace(rule.pattern, rule.template)
+            continue unless rule.test(filepath)
+            return rule.transform(filepath)
         return
 
     _create_manifest: ->

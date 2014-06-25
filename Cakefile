@@ -64,7 +64,7 @@ write_file = (relative, data) ->
 transform = (source, destination, func, excludes) -> 
     rules = {}
     rules[source] = destination
-    walked = walker.walkSync
+    walked = walker.transformSync
         root: "."
         rules: rules
         excludes: [
@@ -73,8 +73,8 @@ transform = (source, destination, func, excludes) ->
         ]
 
     for data in walked
-        content = fs.readFileSync(data.source, encoding: "utf8")
-        result = func(data.source, data.result, content, data.match)
+        content = fs.readFileSync(data.path, encoding: "utf8")
+        result = func(data.relative, data.result, content, data.match)
         if destination? and result?
             write_file(data.result, result)
 
@@ -150,7 +150,7 @@ task "populate-assets", "prepare assets to be used by builder", ->
         return
 
 task "test", "run unittests", ->
-    cmd = ["npm", "run", "test:unit"].join(" ")
+    cmd = ["npm", "run", "test:unit:short"].join(" ")
     console.log(cmd)
     exec cmd, (err, stdout, stderr) ->
         throw err if err

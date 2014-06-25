@@ -104,7 +104,7 @@ describe "WD.js", ->
                             manifest: "./manifest.json"
                             index: "./index.html"
                             hosting:
-                                "/a.js": "/app/a.js"
+                                "./a.js": "/app/a.js"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -160,7 +160,7 @@ describe "WD.js", ->
                             manifest: "./manifest.json"
                             index: "./index.html"
                             hosting:
-                                "/a.js": "/app/a.js"
+                                "./a.js": "/app/a.js"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -224,7 +224,7 @@ describe "WD.js", ->
                             index: "./index.html"
                             randomize_urls: false
                             hosting:
-                                "/(*.js)": "/app/$1"
+                                "./(*.js)": "/app/$1"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -363,7 +363,7 @@ describe "WD.js", ->
                             assets:
                                 index_template: /index.tmpl
                             hosting:
-                                "/a.js": "/app/a.js"
+                                "./a.js": "/app/a.js"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -401,8 +401,8 @@ describe "WD.js", ->
                             index: "./index.html"
                             manifest: "../spa-loader.json"
                             hosting:
-                                "/a.js": "/app/a.js"
-                                "/../(*.json)": "/$1"
+                                "./a.js": "/app/a.js"
+                                "./../(*.json)": "/$1"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -440,7 +440,7 @@ describe "WD.js", ->
                             manifest: "./manifest.json"
                             hash_func: sha256
                             hosting:
-                                "/a.js": "/app/a.js"
+                                "./a.js": "/app/a.js"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -541,7 +541,7 @@ describe "WD.js", ->
                             assets:
                                 index_template: /index.tmpl
                             hosting:
-                                "/a.js": "/app/a.js"
+                                "./a.js": "/app/a.js"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -583,7 +583,7 @@ describe "WD.js", ->
                             index: "./index.html"
                             manifest: "./manifest.json"
                             hosting:
-                                "/a.js": "/app/a.js"
+                                "./a.js": "/app/a.js"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -621,7 +621,7 @@ describe "WD.js", ->
                             index: "./index.html"
                             manifest: "./manifest.json"
                             hosting:
-                                "/(*.js)": "/app/$1"
+                                "./(*.js)": "/app/$1"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -677,7 +677,7 @@ describe "WD.js", ->
                             index: "./index.html"
                             manifest: "./manifest.json"
                             hosting:
-                                "/(*.js)": "/app/$1"
+                                "./(*.js)": "/app/$1"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -745,7 +745,7 @@ describe "WD.js", ->
                             manifest: "./manifest.json"
                             index: "./index.html"
                             hosting:
-                                "/(*.js)": "/app/$1"
+                                "./(*.js)": "/app/$1"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -865,7 +865,7 @@ describe "WD.js", ->
                             assets:
                                 index_template: /index.tmpl
                             hosting:
-                                "/(*.js)": "/app/$1"
+                                "./(*.js)": "/app/$1"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
