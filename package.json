@@ -1,6 +1,6 @@
 {
   "name": "spa",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "homepage": "http://github.com/Evgenus/spa",
   "author": "Eugene Chernyshov <chernyshov.eugene@gmail.com>",
   "description": "Single-page applications builder with continuous integration, granular updates and loader.",
@@ -42,14 +42,13 @@
   "dependencies": {
     "optimist": ">=0.6.1",
     "js-yaml": ">=3.0.0",
-    "fs-walk": "*",
     "detective": "^3.1.0",
     "underscore": "~1.6.0",
     "underscore.string": "~2.3.3",
     "ejs": "^1.0.0",
     "detective-amd": "^2.1.0",
     "module-definition": ">=1.1.0",
-    "fs-walk-glob-rules": "0.0.3",
+    "fs-walk-glob-rules": "0.0.4",
     "glob-rules": "0.0.5"
   },
   "devDependencies": {
