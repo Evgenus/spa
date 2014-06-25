@@ -5,6 +5,7 @@ uglify = require("uglify-js")
 mkdirpSync = require('mkdirp').sync
 sass = require('node-sass')
 walker = require('fs-walk-glob-rules')
+{exec} = require 'child_process'
 
 minify = (source) -> 
     ast = uglify.parse(source)
@@ -148,6 +149,13 @@ task "populate-assets", "prepare assets to be used by builder", ->
             error: console.log.bind(console)
         return
 
+task "test", "run unittests", ->
+    cmd = ["npm", "run", "test:unit"].join(" ")
+    console.log(cmd)
+    exec cmd, (err, stdout, stderr) ->
+        throw err if err
+        console.log stdout + stderr
+
 task "build", "compile all coffeescript files to javascript", ->
     invoke 'compile-builder'
     invoke 'compile-loader'
@@ -155,4 +163,5 @@ task "build", "compile all coffeescript files to javascript", ->
 
 task "sbuild", "build routine for sublime", ->
     invoke 'build'
+    invoke 'test'
 
