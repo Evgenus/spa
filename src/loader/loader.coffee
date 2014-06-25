@@ -1,7 +1,7 @@
 class AbstractMethodError extends Error
-    constructor: ->
+    constructor: (name) ->
         @name = "AbstractMethodError"
-        @message = "Calling abstract method detected."
+        @message = "Calling abstract method `#{name}` detected."
 
 class UndeclaredRequireError extends Error
     constructor: (@self_name, @require_name) ->
@@ -103,7 +103,7 @@ class BasicEvaluator
         @this = {}
         @window = @get_window()
         @errors = []
-    render: ->  throw new AbstractMethodError()
+    render: ->  throw new AbstractMethodError("render")
     run: ->
         code = @render()
         func = new Function(code)
@@ -112,12 +112,12 @@ class BasicEvaluator
         return null if @errors.length > 0
         return @_make()
     get_window: -> return __proto__: window
-    get_require: -> throw new AbstractMethodError()
+    get_require: -> throw new AbstractMethodError("get_require")
     _fail: (reason) ->
         @errors.push(reason)
         throw reason
-    _check: (result) -> throw new AbstractMethodError()
-    _make: -> throw new AbstractMethodError()
+    _check: (result) -> throw new AbstractMethodError("_check")
+    _make: -> throw new AbstractMethodError("_make")
 
 class CJSEvaluator extends BasicEvaluator
     constructor: (options) ->
