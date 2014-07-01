@@ -4,10 +4,11 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/aes.js"></script>
+    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/tripledes.js"></script>
     <script>
         var Formatter = {
             stringify: function (cipherParams) {
-                return cipherParams.ciphertext.toString(CryptoJS.enc.Latin1);
+                return CryptoJS.enc.Latin1.stringify(cipherParams.ciphertext);
             },
             parse: function (str) {
                 return CryptoJS.lib.CipherParams.create({
@@ -16,9 +17,15 @@
             }
         };
 
-        var encrypted = CryptoJS.AES.encrypt("MessageсйцусйцуMessage", "Secret Passphrase", { format: Formatter });
-        console.log(encrypted);
-        var decrypted = CryptoJS.AES.decrypt(encrypted, "Secret Passphrase", { format: Formatter });
+        var encrypted = CryptoJS.AES.encrypt(
+            "MessageсйцусйцуMessage", 
+            "Secret Passphrase", 
+            { format: Formatter });
+        console.log(encrypted.toString());
+        var decrypted = CryptoJS.AES.decrypt(
+            encrypted, 
+            "Secret Passphrase", 
+            { format: Formatter });
         console.log(decrypted.toString(CryptoJS.enc.Utf8));
     </script>
 </head>

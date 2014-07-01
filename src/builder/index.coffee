@@ -6,7 +6,7 @@ clc = require('cli-color')
 detectiveCJS = require('detective')
 detectiveAMD = require('detective-amd')
 definition = require('module-definition').sync
-crypto = require('crypto')
+CryptoJS = require("crypto-js")
 yaml = require('js-yaml')
 ejs = require("ejs")
 _  = require('underscore')
@@ -35,6 +35,18 @@ class ExternalDependencyError extends Error
         @message = "Module at path `#{dep}` is required from `#{path}` " +
                    "as `#{alias}`, but it cant be found inside building scope."
 
+class NoCopyingRuleError extends Error
+    constructor: (@path) ->
+        @name = @constructor.name
+        @message = "No copying rule for module to be crypter at path `#{@path}`"
+
+class ParameterError extends Error
+
+class PasswordParameterError extends ParameterError
+    constructor: () ->
+        @name = @constructor.name
+        @message = "`password` expected for encrypted files"
+
 class Loop
     constructor: () ->
         @_parts = []
@@ -57,7 +69,95 @@ Logger =
 
     error: (args...) ->
         console.error(clc.bgRed.bold("SPA"), clc.red.bold(args.join(" ")))
-            
+
+encode_data = (data) ->
+    if data instanceof Buffer
+        words = []
+        len = data.length
+        i = 0
+        while i < len
+            words[i >>> 2] |= (data[i] & 0xff) << (24 - (i % 4) * 8)
+            i++
+        return CryptoJS.lib.WordArray.create(words, len)
+    
+    if data instanceof String or typeof data is "string"
+        return CryptoJS.enc.Utf8.parse(data)
+
+hash_algos = 
+    md5: (data) -> 
+        encoded_data = encode_data(data)
+        hash = CryptoJS.MD5(encoded_data)
+        return hash.toString(CryptoJS.enc.Hex)
+    ripemd160: (data) -> 
+        encoded_data = encode_data(data)
+        hash = CryptoJS.RIPEMD160(encoded_data)
+        return hash.toString(CryptoJS.enc.Hex)
+    sha1: (data) -> 
+        encoded_data = encode_data(data)
+        hash = CryptoJS.SHA1(encoded_data)
+        return hash.toString(CryptoJS.enc.Hex)
+    sha224: (data) -> 
+        encoded_data = encode_data(data)
+        hash = CryptoJS.SHA224(encoded_data)
+        return hash.toString(CryptoJS.enc.Hex)
+    sha256: (data) -> 
+        encoded_data = encode_data(data)
+        hash = CryptoJS.SHA256(encoded_data)
+        return hash.toString(CryptoJS.enc.Hex)
+    sha384: (data) -> 
+        encoded_data = encode_data(data)
+        hash = CryptoJS.SHA384(encoded_data)
+        return hash.toString(CryptoJS.enc.Hex)
+    sha512: (data) -> 
+        encoded_data = encode_data(data)
+        hash = CryptoJS.SHA512(encoded_data)
+        return hash.toString(CryptoJS.enc.Hex)
+    sha3: (data) -> 
+        encoded_data = encode_data(data)
+        hash = CryptoJS.SHA3(encoded_data)
+        return hash.toString(CryptoJS.enc.Hex)
+
+CypherFormatter =
+    stringify: (cipherParams) ->
+        return CryptoJS.enc.Latin1.stringify(cipherParams.ciphertext)
+    parse: (str) ->
+        return CryptoJS.lib.CipherParams.create
+            ciphertext: CryptoJS.enc.Latin1.parse(str)
+
+cypher_algos = 
+    identity: (data, password) ->
+        return data
+    aes: (data, password) ->
+        encoded_data = encode_data(data)
+        encoded_password = encode_data(password)
+        encrypted = CryptoJS.AES.encrypt(encoded_data, password, format: CypherFormatter)
+        return encrypted.toString()
+    des: (data, password) ->
+        encoded_data = encode_data(data)
+        encoded_password = encode_data(password)
+        encrypted = CryptoJS.DES.encrypt(encoded_data, encoded_password, format: CypherFormatter)
+        return encrypted.toString()
+    tripledes: (data, password) ->
+        encoded_data = encode_data(data)
+        encoded_password = encode_data(password)
+        encrypted = CryptoJS.TripleDES.encrypt(encoded_data, encoded_password, format: CypherFormatter)
+        return encrypted.toString()
+    rabbit: (data, password) ->
+        encoded_data = encode_data(data)
+        encoded_password = encode_data(password)
+        encrypted = CryptoJS.Rabbit.encrypt(encoded_data, encoded_password, format: CypherFormatter)
+        return encrypted.toString()
+    rc4: (data, password) ->
+        encoded_data = encode_data(data)
+        encoded_password = encode_data(password)
+        encrypted = CryptoJS.RC4.encrypt(encoded_data, encoded_password, format: CypherFormatter)
+        return encrypted.toString()
+    rc4drop: (data, password) ->
+        encoded_data = encode_data(data)
+        encoded_password = encode_data(password)
+        encrypted = CryptoJS.RC4Drop.encrypt(encoded_data, encoded_password, format: CypherFormatter)
+        return encrypted.toString()
+
 class Builder
     constructor: (options) ->
         @root = path.resolve(process.cwd(), options.root) + "/"
@@ -65,6 +165,9 @@ class Builder
         @excludes = options.excludes ? []
         @paths = options.paths ? {}
         @hosting = for pattern, template of options.hosting ? {}
+            test: globrules.tester(pattern)
+            transform: globrules.transformer(pattern, template)
+        @copying = for pattern, template of options.copying ? {}
             test: globrules.tester(pattern)
             transform: globrules.transformer(pattern, template)
         @default_loader = options.default_loader ? "cjs"
@@ -84,6 +187,10 @@ class Builder
         @cached = options.cached
         @hash_func = options.hash_func ? "md5"
         @randomize_urls = options.randomize_urls ? true
+        @cypher_func = options.cypher_func ? "identity"
+        unless @cypher_func is "identity" or options.password?
+            throw new PasswordParameterError()
+        @password = options.password
         @_clear()
 
     filter: (filepath) ->
@@ -92,7 +199,10 @@ class Builder
         return true
 
     calc_hash: (content) -> 
-        return crypto.createHash(@hash_func).update(content).digest('hex')
+        return hash_algos[@hash_func](content)
+
+    calc_cypher: (content) ->
+        return cypher_algos[@cypher_func](content, @password)
 
     _clear: ->
         @_modules = []
@@ -183,8 +293,6 @@ class Builder
 
     _analyze: (module) ->
         source = fs.readFileSync(module.path)
-        module.hash = @calc_hash(source)
-        module.size = source.length
         module.deps_paths = {}
 
         deps = switch module.type
@@ -248,6 +356,12 @@ class Builder
             return rule.transform(filepath)
         return
 
+    _get_copying: (filepath) ->
+        for rule in @copying
+            continue unless rule.test(filepath)
+            return rule.transform(filepath)
+        return
+
     _create_manifest: ->
         modules = for module in @_modules
             id: module.id
@@ -264,8 +378,8 @@ class Builder
 
         return JSON.stringify(manifest, null, if @pretty then "  ")
 
-    _write_manifest: (content) ->
-        filepath = path.resolve(@root, @manifest)
+    _write_file: (destination, content) ->
+        filepath = path.resolve(@root, destination)
         Logger.info("Writing #{filepath}. #{content.length} bytes.")
         fs.writeFileSync(filepath, content)
 
@@ -287,6 +401,8 @@ class Builder
         namespace["inline"] = (relative) => @_inject_inline(relative)
         namespace["version"] = packagejson.version
         namespace["hash_name"] = @hash_func
+        namespace["decode_name"] = @cypher_func
+        namespace["ask_password"] = @password?
         if @manifest?
             filepath = path.resolve(@root, @manifest)
             relative = @_relativate(path.relative(@root, filepath))
@@ -298,9 +414,7 @@ class Builder
             
         compiled = ejs.compile(assets["index_template"])
         @_index_content = compiled(namespace)
-        filepath = path.resolve(@root, @index)
-        Logger.info("Writing #{filepath}. #{@_index_content.length} bytes.")
-        fs.writeFileSync(filepath, @_index_content)
+        @_write_file(@index, @_index_content)
 
     _write_appcache: ->
         assets = {}
@@ -327,11 +441,9 @@ class Builder
 
         template = @assets["appcache_template"]
         compiled = ejs.compile(fs.readFileSync(template, encoding: "utf8"))
-        filename = path.resolve(@root, @appcache)
         content = compiled
             assets: assets
-        Logger.info("Writing #{filename}. #{content.length} bytes.")
-        fs.writeFileSync(filename, content)
+        @_write_file(@appcache, content)
 
     build: ->
         @_enlist(@root)
@@ -345,12 +457,25 @@ class Builder
             module.url = @_host(module.relative)
             unless module.url?
                 Logger.error("No hosting rules for `#{module.relative}`")
-        content = @_create_manifest()
-        @_write_manifest(content) if @manifest?
+        for module in @_modules
+            source = fs.readFileSync(module.path)
+            destination = @_get_copying(module.relative)
+            unless destination? or @cypher_func is "identity"
+                throw new NoCopyingRuleError(module.relative)
+
+            output = @calc_cypher(source)
+            if destination?
+                @_write_file(destination, output)
+                Logger.info("Writing #{destination}.")
+            module.hash = @calc_hash(output)
+            module.size = output.length
+
+        manifest_content = @_create_manifest()
+        @_write_file(@manifest, manifest_content) if @manifest?
         @_write_index() if @index?
         @_write_appcache() if @appcache?
         @_print_stats()
-        return content
+        return manifest_content
 
     _print_stats: ->
         total = 0
