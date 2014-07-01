@@ -203,7 +203,7 @@ class Loader
         @prefix = options.prefix
         @hash_name = options.hash_name
         @hash_func = options.hash_func
-        @decode_func = options.decode_func
+        @decoder_func = options.decoder_func
         @randomize_urls = options.randomize_urls
         @ask_password = options.ask_password ? false
         @manifest_location = options.manifest_location ? "manifest.json"
@@ -326,7 +326,7 @@ class Loader
                 return
 
             try
-                module.source = @decode_func(module_source)
+                module.source = @decoder_func(module_source, module, this)
             catch error
                 @emit("EvaluationError", module, error)
                 return
