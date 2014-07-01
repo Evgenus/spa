@@ -7,7 +7,7 @@
 <script type="text/javascript">
 (function() {
     var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
-    var decode_func = <%- inline("./cypher/" + decode_name + ".js") %>
+    var decoder_func = <%- inline("./encoding/" + decoder_name + ".js") %>
     <%- inline("./localforage.js") %>
     <%- inline("./loader.js") %>
 
@@ -16,10 +16,9 @@
         "manifest_location": "<%- manifest_location %>",
         "prefix": "spa",
         "hash_name": "<%- hash_name %>",
-        "randomize_urls": <%- randomize_urls %>,
         "hash_func": hash_func,
-        "decode_func": decode_func,
-        "ask_password": <%- ask_password %>,
+        "randomize_urls": <%- randomize_urls %>,
+        "decoder_func": decoder_func,
     });
 
     <%- inline("./bootstrap.js") %>

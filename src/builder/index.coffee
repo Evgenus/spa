@@ -40,13 +40,6 @@ class NoCopyingRuleError extends Error
         @name = @constructor.name
         @message = "No copying rule for module to be crypter at path `#{@path}`"
 
-class ParameterError extends Error
-
-class PasswordParameterError extends ParameterError
-    constructor: () ->
-        @name = @constructor.name
-        @message = "`password` expected for encrypted files"
-
 class Loop
     constructor: () ->
         @_parts = []
@@ -83,7 +76,7 @@ encode_data = (data) ->
     if data instanceof String or typeof data is "string"
         return CryptoJS.enc.Utf8.parse(data)
 
-hash_algos = 
+hashers = 
     md5: (data) -> 
         encoded_data = encode_data(data)
         hash = CryptoJS.MD5(encoded_data)
@@ -117,49 +110,14 @@ hash_algos =
         hash = CryptoJS.SHA3(encoded_data)
         return hash.toString(CryptoJS.enc.Hex)
 
-CypherFormatter =
-    stringify: (cipherParams) ->
-        return CryptoJS.enc.Latin1.stringify(cipherParams.ciphertext)
-    parse: (str) ->
-        return CryptoJS.lib.CipherParams.create
-            ciphertext: CryptoJS.enc.Latin1.parse(str)
-
-cypher_algos = 
-    identity: (data, password) ->
+encoders = 
+    identity: (data, builder) ->
         return data
-    aes: (data, password) ->
-        encoded_data = encode_data(data)
-        encoded_password = encode_data(password)
-        encrypted = CryptoJS.AES.encrypt(encoded_data, password, format: CypherFormatter)
-        return encrypted.toString()
-    des: (data, password) ->
-        encoded_data = encode_data(data)
-        encoded_password = encode_data(password)
-        encrypted = CryptoJS.DES.encrypt(encoded_data, encoded_password, format: CypherFormatter)
-        return encrypted.toString()
-    tripledes: (data, password) ->
-        encoded_data = encode_data(data)
-        encoded_password = encode_data(password)
-        encrypted = CryptoJS.TripleDES.encrypt(encoded_data, encoded_password, format: CypherFormatter)
-        return encrypted.toString()
-    rabbit: (data, password) ->
-        encoded_data = encode_data(data)
-        encoded_password = encode_data(password)
-        encrypted = CryptoJS.Rabbit.encrypt(encoded_data, encoded_password, format: CypherFormatter)
-        return encrypted.toString()
-    rc4: (data, password) ->
-        encoded_data = encode_data(data)
-        encoded_password = encode_data(password)
-        encrypted = CryptoJS.RC4.encrypt(encoded_data, encoded_password, format: CypherFormatter)
-        return encrypted.toString()
-    rc4drop: (data, password) ->
-        encoded_data = encode_data(data)
-        encoded_password = encode_data(password)
-        encrypted = CryptoJS.RC4Drop.encrypt(encoded_data, encoded_password, format: CypherFormatter)
-        return encrypted.toString()
+    #28 ISSUE. Additional parameters for encoder could be obtained dirrectly from builder
 
 class Builder
     constructor: (options) ->
+        @options = options
         @root = path.resolve(process.cwd(), options.root) + "/"
         @extensions = options.extensions ? [".js"]
         @excludes = options.excludes ? []
@@ -187,10 +145,7 @@ class Builder
         @cached = options.cached
         @hash_func = options.hash_func ? "md5"
         @randomize_urls = options.randomize_urls ? true
-        @cypher_func = options.cypher_func ? "identity"
-        unless @cypher_func is "identity" or options.password?
-            throw new PasswordParameterError()
-        @password = options.password
+        @coding_func = options.coding_func ? "identity"
         @_clear()
 
     filter: (filepath) ->
@@ -199,10 +154,10 @@ class Builder
         return true
 
     calc_hash: (content) -> 
-        return hash_algos[@hash_func](content)
+        return hashers[@hash_func](content)
 
-    calc_cypher: (content) ->
-        return cypher_algos[@cypher_func](content, @password)
+    calc_code: (content) ->
+        return encoders[@coding_func](content, this)
 
     _clear: ->
         @_modules = []
@@ -300,7 +255,7 @@ class Builder
             when "amd" then detectiveAMD(source)
             else []
 
-        # add into deps hardcoded dependencies from config
+        #3 ISSUE. Add hardcoded dependencies from config here
 
         for dep in deps
             continue if dep in @_built_ins
@@ -401,8 +356,7 @@ class Builder
         namespace["inline"] = (relative) => @_inject_inline(relative)
         namespace["version"] = packagejson.version
         namespace["hash_name"] = @hash_func
-        namespace["decode_name"] = @cypher_func
-        namespace["ask_password"] = @password?
+        namespace["decoder_name"] = @coding_func
         if @manifest?
             filepath = path.resolve(@root, @manifest)
             relative = @_relativate(path.relative(@root, filepath))
@@ -460,10 +414,10 @@ class Builder
         for module in @_modules
             source = fs.readFileSync(module.path)
             destination = @_get_copying(module.relative)
-            unless destination? or @cypher_func is "identity"
+            unless destination? or @coding_func is "identity"
                 throw new NoCopyingRuleError(module.relative)
 
-            output = @calc_cypher(source)
+            output = @calc_code(source)
             if destination?
                 @_write_file(destination, output)
                 Logger.info("Writing #{destination}.")

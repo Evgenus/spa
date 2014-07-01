@@ -508,29 +508,3 @@ describe 'Building module with different hash function', ->
 
     for hash_name, hash_value of hashes
         test(hash_name, hash_value)
-
-describe 'Building module with cypher function', ->
-    it """file encoded with `aes`""", ->
-        mock(yaml.safeLoad("""
-            build:
-                placehoder: empty
-            testimonial: 
-                a.js: // empty
-                spa.yaml: |
-                    root: "/testimonial/"
-                    manifest: "manifest.json"
-                    cypher_func: aes
-                    password: itisasecret
-                    copying:
-                        "./(**/*.*)": "/build/$1"
-                    hash_func: sha1
-                    hosting:
-                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
-            """))
-        builder = spa.Builder.from_config("/testimonial/spa.yaml")
-        builder.build()
-        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
-        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
-
-        data = fs.readFileSync("/build/a.js", "base64")
-        console.log("data", data)

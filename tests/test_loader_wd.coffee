@@ -465,6 +465,7 @@ describe "WD.js", ->
                         <script type="text/javascript">
                         (function() {
                             var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
+                            var decoder_func = <%- inline("./encoding/" + decoder_name + ".js") %>
                             <%- inline("./localforage.js") %>
                             <%- inline("./loader.js") %>
 
@@ -474,6 +475,7 @@ describe "WD.js", ->
                                 "prefix": "spa",
                                 "hash_name": "<%- hash_name %>",
                                 "hash_func": hash_func,
+                                "decoder_func": decoder_func,
                             });
 
                             loader.onUpdateCompleted = function() 
@@ -770,6 +772,7 @@ describe "WD.js", ->
                         <script type="text/javascript">
                         (function() {
                             var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
+                            var decoder_func = <%- inline("./encoding/" + decoder_name + ".js") %>
                             <%- inline("./localforage.js") %>
                             <%- inline("./loader.js") %>
 
@@ -779,6 +782,7 @@ describe "WD.js", ->
                                 "prefix": "spa",
                                 "hash_name": "<%- hash_name %>",
                                 "hash_func": hash_func,
+                                "decoder_func": decoder_func,
                             });
 
                             loader.onNoManifest = function() 

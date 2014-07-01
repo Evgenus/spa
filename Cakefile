@@ -6,7 +6,6 @@ mkdirpSync = require('mkdirp').sync
 sass = require('node-sass')
 walker = require('fs-walk-glob-rules')
 {exec} = require('child_process')
-crypto = require("crypto")
 
 minify = (source) -> 
     ast = uglify.parse(source)
@@ -127,50 +126,11 @@ task "populate-assets", "prepare assets to be used by builder", ->
                     #{data};
                     var encoder = #{encoder}
                     return (function(data) {
-                        var hash = CryptoJS.#{hash_name.toUpperCase()}.create();
+                        var hash = CryptoJS.algo["#{hash_name.toUpperCase()}"].create();
                         hash.update(encoder(data));
                         return hash.finalize().toString(CryptoJS.enc.Hex);
                     });
                 })();""")
-
-    sjcj_deps =
-        aes: ["sjcl"]
-        bitArray: ["sjcl"]
-        codecString: ["bitArray"]
-        codecHex: ["bitArray"]
-        codecBase64: ["bitArray"]
-        codecBytes: ["bitArray"]
-        sha256: ["codecString"]
-        sha512: ["codecString"]
-        sha1: ["codecString"]
-        ccm: ["bitArray", "aes"]
-        ocb2: ["bitArray", "aes"]
-        gcm: ["bitArray", "aes"]
-        hmac: ["sha256"]
-        pbkdf2: ["hmac"]
-        srp: ["sha1", "bn", "bitArray"]
-        bn: ["bitArray", "random"]
-        ecc: ["bn"]
-        cbc: ["bitArray", "aes"]
-        random: ["sha256", "aes"]
-        convenience: ["ccm", "pbkdf2", "random", "codecBase64"]
-
-
-    cypher_files = 
-        aes: "aes"
-        des: "tripledes"
-        tripledes: "tripledes"
-        rabbit: "rabbit"
-        rc4: "rc4"
-        rc4drop: "rc4"
-
-    cypher_names = 
-        aes: "AES"
-        des: "DES"
-        tripledes: "TripleDES"
-        rabbit: "Rabbit"
-        rc4: "RC4"
-        rc4drop: "RC4Drop"
 
     transform "./src/cryptojs/encoder.coffee", null, (input, _, data) ->
         encoder = coffee.compile(data, bare: true)
@@ -180,32 +140,20 @@ task "populate-assets", "prepare assets to be used by builder", ->
             decoder = coffee.compile(data, bare: true)
             console.log("Compiling %s -->", input)
 
-            console.log("    Combining --> %s", "./lib/assets/cypher/identity.js")
-            write_file("./lib/assets/cypher/identity.js", minify_more("""
-                (function() {
-                    var encoder = #{encoder}
-                    var decoder = #{decoder}
-                    return (function(data, password) {
-                        return decoder(encoder(data));
-                    });
-                })();"""))
+            transform "./bower_components/cryptojslib/components/core.js", "./lib/assets/encoding/identity.js", (input, output, data) ->
 
-            for name, cypher_file of cypher_files
-                cypher_file = cypher_files[name]
-                cypher_name = cypher_names[name]
+                console.log("    Combining --> %s", "./lib/assets/cypher/identity.js")
+                return minify_more("""
+                    (function() {
+                        #{data};
+                        var encoder = #{encoder}
+                        var decoder = #{decoder}
+                        return (function(data, password) {
+                            return decoder(encoder(data));
+                        });
+                    })();""")
 
-                transform "./bower_components/cryptojslib/rollups/#{cypher_file}.js", "./lib/assets/cypher/#{name}.js", (input, output, data) ->
-
-                    console.log("    Combining %s --> %s", input, output)
-                    return minify_more("""
-                        (function() {
-                            #{data};
-                            var encoder = #{encoder}
-                            var decoder = #{decoder}
-                            return (function(data, password) {
-                                return decoder(CryptoJS.#{cypher_name}.decrypt(encoder(data), password));
-                            });
-                        })();""")
+            #28 ISSUE. Here you could build additional decoders for compression or encryption
 
     transform "./bower_components/localforage/dist/(localforage).min.js", "./lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
