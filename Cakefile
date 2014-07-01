@@ -140,10 +140,10 @@ task "populate-assets", "prepare assets to be used by builder", ->
             decoder = coffee.compile(data, bare: true)
             console.log("Compiling %s -->", input)
 
-            transform "./bower_components/cryptojslib/components/core.js", null, (input, output, data) ->
+            transform "./bower_components/cryptojslib/components/core.js", "./lib/assets/encoding/identity.js", (input, output, data) ->
 
                 console.log("    Combining --> %s", "./lib/assets/cypher/identity.js")
-                write_file("./lib/assets/encoding/identity.js", minify_more("""
+                return minify_more("""
                     (function() {
                         #{data};
                         var encoder = #{encoder}
@@ -151,9 +151,9 @@ task "populate-assets", "prepare assets to be used by builder", ->
                         return (function(data, password) {
                             return decoder(encoder(data));
                         });
-                    })();"""))
+                    })();""")
 
-            # IMPORTANT: Here you could build additional decoders for compression or encryption
+            #28 ISSUE. Here you could build additional decoders for compression or encryption
 
     transform "./bower_components/localforage/dist/(localforage).min.js", "./lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)

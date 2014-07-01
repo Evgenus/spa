@@ -113,9 +113,11 @@ hashers =
 encoders = 
     identity: (data, builder) ->
         return data
+    #28 ISSUE. Additional parameters for encoder could be obtained dirrectly from builder
 
 class Builder
     constructor: (options) ->
+        @options = options
         @root = path.resolve(process.cwd(), options.root) + "/"
         @extensions = options.extensions ? [".js"]
         @excludes = options.excludes ? []
@@ -253,7 +255,7 @@ class Builder
             when "amd" then detectiveAMD(source)
             else []
 
-        # add into deps hardcoded dependencies from config
+        #3 ISSUE. Add hardcoded dependencies from config here
 
         for dep in deps
             continue if dep in @_built_ins
