@@ -355,7 +355,6 @@ class Builder
         namespace["version"] = packagejson.version
         namespace["hash_name"] = @hash_func
         namespace["decoder_name"] = @coding_func
-        namespace["ask_password"] = @password?
         if @manifest?
             filepath = path.resolve(@root, @manifest)
             relative = @_relativate(path.relative(@root, filepath))
