@@ -1,5 +1,4 @@
 (data) ->
-    hash = CryptoJS.algo[ALGO].create()
     if data instanceof ArrayBuffer
         words = []
         u8arr = new Uint8Array(data)
@@ -8,6 +7,7 @@
         while i < len
             words[i >>> 2] |= (u8arr[i] & 0xff) << (24 - (i % 4) * 8)
             i++
-        data = CryptoJS.lib.WordArray.create(words, len)
-    hash.update data
-    return hash.finalize().toString CryptoJS.enc.Hex
+        return CryptoJS.lib.WordArray.create(words, len)
+    
+    if data instanceof String or typeof data is "string"
+        return CryptoJS.enc.Utf8.parse(data)

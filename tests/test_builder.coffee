@@ -439,7 +439,6 @@ describe 'Building mixed-formats modules', ->
                         - .js
                     manifest: "manifest.json"
                     default_loader: junk
-                    hash_func: ripemd160
             """))
 
     it 'should successfully build', ->
@@ -458,7 +457,6 @@ describe 'Building mixed-formats modules', ->
             id: -> @that.equals("a")
             deps: -> @that.deep.equals({})
             type: -> @that.equals("junk")
-            hash: -> @that.equals("9eb50257b88aaf4f2dea2ab99108fb631845ed51")
 
         expect(manifest.modules[1]).to.have.properties
             id: -> @that.equals("b")
@@ -475,3 +473,64 @@ describe 'Building mixed-formats modules', ->
         expect(manifest.modules[0]).not.to.have.property("url")
         expect(manifest.modules[1]).not.to.have.property("url")
         expect(manifest.modules[2]).not.to.have.property("url")
+
+describe 'Building module with different hash function', ->
+    hashes = 
+        md5: "1007f6da5acf8cc2643274276079bc3e"
+        ripemd160: "9eb50257b88aaf4f2dea2ab99108fb631845ed51"
+        sha1: "da03efe4b6962871b780b3bfd5794325d11ab193"
+        sha224: "48125fcd2addc22961b026524fea1c56cf4e06c2be12e98bf1c971c0"
+        sha256: "ebe41801037df7a354b168593f4545e58fd4a15dc7c2252cf5c0e7f5a799c048"
+        sha384: "70b68b5fc3774ec4e7d68d4db2f71d81548a486687e5e1c46314a8e9e79d104f6b6c52f19b6629df3b1d300a0ce7e713"
+        sha512: "333cbe76073d26fdb480d005e01ba2de20ed781ca38d9c1e25adb12d5f0cb92c5b2bfeaeb63b3ae72683aa28a809732dab4055273781f5f4a3af25105128a228"
+        sha3: "c37785c2a1ad86b547ec92f840f19a6ea19db65ed02b7307f45ceca8b1882540240c07e5defa72d931c149578f5e48b0cb7d211b69dca14184560a19afd46441"
+    
+    test = (hash_name, hash_value) ->
+        it """should compute valid `#{hash_name}` hash""", ->
+            mock(yaml.safeLoad("""
+                testimonial: 
+                    a.js: // empty
+                    spa.yaml: |
+                        root: "/testimonial/"
+                        manifest: "manifest.json"
+                        hash_func: #{hash_name}
+                        hosting:
+                            "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                """))
+            builder = spa.Builder.from_config("/testimonial/spa.yaml")
+            builder.build()
+            expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+            manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+            expect(manifest.modules[0]).to.have.properties
+                id: -> @that.equals("a")
+                hash: -> @that.equals(hash_value)
+
+    for hash_name, hash_value of hashes
+        test(hash_name, hash_value)
+
+describe 'Building module with cypher function', ->
+    it """file encoded with `aes`""", ->
+        mock(yaml.safeLoad("""
+            build:
+                placehoder: empty
+            testimonial: 
+                a.js: // empty
+                spa.yaml: |
+                    root: "/testimonial/"
+                    manifest: "manifest.json"
+                    cypher_func: aes
+                    password: itisasecret
+                    copying:
+                        "./(**/*.*)": "/build/$1"
+                    hash_func: sha1
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+            """))
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+        data = fs.readFileSync("/build/a.js", "base64")
+        console.log("data", data)

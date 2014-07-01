@@ -7,6 +7,7 @@
 <script type="text/javascript">
 (function() {
     var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
+    var decode_func = <%- inline("./cypher/" + decode_name + ".js") %>
     <%- inline("./localforage.js") %>
     <%- inline("./loader.js") %>
 
@@ -17,6 +18,8 @@
         "hash_name": "<%- hash_name %>",
         "randomize_urls": <%- randomize_urls %>,
         "hash_func": hash_func,
+        "decode_func": decode_func,
+        "ask_password": <%- ask_password %>,
     });
 
     <%- inline("./bootstrap.js") %>
