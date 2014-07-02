@@ -418,6 +418,9 @@ class Loader
         key = @make_key(module)
         @get_content key, (module_source) =>
             if module_source?
+                if @hash_func(module_source) != module.hash
+                    @emit("ModuleDownloadFailed", null, module)
+                    return
                 module.source = module_source
                 module.loaded = module.size
                 @emit("ModuleDownloaded", module)
