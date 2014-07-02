@@ -62,7 +62,7 @@
     "uglify-js": "^2.4.14",
     "mkdirp": "*",
     "selenium-standalone": "^2.42.0-2.9.0-1",
-    "wd": "^0.3.1",
+    "wd": "^0.3.3",
     "chai-as-promised": ">=4.x.x"
   },
   "license": "MIT"

@@ -31,9 +31,10 @@ class UrlsLog
         return @_items.slice()
 
 describe "WD.js", ->
-    @timeout(15000)
+    @timeout(20000)
 
     DELAY = 200
+    MALFUNCTION_DELAY = 3000
 
     before ->
         @urls_log = urls_log = new UrlsLog()
@@ -880,4 +881,144 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title().should.eventually.become("version_7")
+            .nodeify(done)
+
+    it 'malfunction while evaluating', (done) ->
+        return @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        d.js: |
+                            module.exports = function() 
+                            {
+                                return "d";
+                            };
+                        c.js: |
+                            var d = require("./d.js");
+                            module.exports = function() 
+                            {
+                                return "c" + d();
+                            };
+                        b.js: |
+                            var c = require("./c.js");
+                            module.exports = function() 
+                            {
+                                return "b" + c();
+                            };
+                        a.js: |
+                            var loader = require("loader");
+                            var b = require("./b.js");
+                            loader.onApplicationReady = function() 
+                            {
+                                document.title = "a" + b();
+                                loader.checkUpdate();
+                            };
+                            loader.onUpdateCompleted = function(event) {
+                                setTimeout(location.reload.bind(location), 0)
+                                return true
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            manifest: "./manifest.json"
+                            index: "./index.html"
+                            randomize_urls: false
+                            hosting:
+                                "./(*.js)": "/app/$1"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .clearLocalStorage()
+            .then => @urls_log.clear()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3 * DELAY)
+            .title().should.eventually.become("abcd")
+            .then =>
+                urls = @urls_log.get()
+                expect(urls).to.be.an("Array").with.length(8)
+                expect(urls[0]).to.equal("/app/")
+                expect(urls[1]).to.equal("/app/manifest.json")
+                expect(urls.slice(2, 6)).to.consist([
+                    "/app/a.js",
+                    "/app/b.js",
+                    "/app/c.js",
+                    "/app/d.js",
+                    ])
+                expect(urls[6]).to.equal("/app/")
+                expect(urls[7]).to.equal("/app/manifest.json")
+            .then ->
+                content = """
+                    var d = require("./d.js");
+                    throw Error("error in loading");
+                    """
+                fs.writeFileSync("/app/c.js", content)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .then => @urls_log.clear()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3 * DELAY)
+            .then =>
+                urls = @urls_log.get()
+                expect(urls).to.be.an("Array").with.length(4)
+                expect(urls[0]).to.equal("/app/")
+                expect(urls[1]).to.equal("/app/manifest.json")
+                expect(urls[2]).to.equal("/app/c.js")
+                expect(urls[3]).to.equal("/app/")
+            .elementById("btn-force").isDisplayed().should.become(false)
+            .sleep(MALFUNCTION_DELAY + 2 * DELAY)
+            .elementById("btn-force").isDisplayed().should.become(true)
+            .then ->
+                content = """
+                    var d = require("./d.js");
+                    module.exports = function() 
+                    {
+                        return "b" + d();
+                    };
+                    """
+                fs.writeFileSync("/app/b.js", content)
+                fs.unlinkSync("/app/c.js")
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .then => @urls_log.clear()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3 * DELAY)
+            .then =>
+                urls = @urls_log.get()
+                expect(urls).to.be.an("Array").with.length(1)
+                expect(urls[0]).to.equal("/app/")
+            .then => @urls_log.clear()
+            .sleep(MALFUNCTION_DELAY + 2 * DELAY)
+            .elementById("btn-retry").isDisplayed().should.become(true)
+            .elementById("btn-retry").click()
+            .sleep(MALFUNCTION_DELAY + 2 * DELAY)
+            .then =>
+                urls = @urls_log.get()
+                expect(urls).to.be.an("Array").with.length(1)
+                expect(urls[0]).to.equal("/app/")
+            .then => @urls_log.clear()
+            .elementById("btn-force").isDisplayed().should.become(true)
+            .elementById("btn-force").click()
+            .sleep(5 * DELAY)
+            .then =>
+                urls = @urls_log.get()
+                expect(urls).to.be.an("Array").with.length(5)
+                expect(urls[0]).to.equal("/app/")
+                expect(urls[1]).to.equal("/app/manifest.json")
+                expect(urls[2]).to.equal("/app/b.js")
+                expect(urls[3]).to.equal("/app/")
+                expect(urls[4]).to.equal("/app/manifest.json")
+            .title().should.eventually.become("abd")
             .nodeify(done)

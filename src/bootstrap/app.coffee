@@ -2,7 +2,7 @@ log = (args...) -> #loader.log("bootstrap", args...)
 
 malfunction =
     start: ->
-        @_timeout = setTimeout(@show.bind(this), 1000)
+        @_timeout = setTimeout(@show.bind(this), 3000)
 
     stop: ->
         clearTimeout(@_timeout)
@@ -12,19 +12,16 @@ malfunction =
         @start()
 
     show: ->
-        unless @error?
-            @reset()
-        else
-            $("#page-fail .error").text(@error)
-            $("#loader .page").addClass("hide")
-            $("#page-fail").removeClass("hide")
-            
-            $("#btn-retry").bind "click", (event) ->
-                location.reload()
+        $("#page-fail .error").text(@error)
+        $("#loader .page").addClass("hide")
+        $("#page-fail").removeClass("hide")
+        
+        $("#btn-retry").bind "click", (event) ->
+            location.reload()
 
-            $("#btn-force").bind "click", (event) ->
-                loader.dropData()
-                location.reload()
+        $("#btn-force").bind "click", (event) ->
+            loader.dropData()
+            location.reload()
 
         return
 
@@ -56,6 +53,7 @@ loader.onNoManifest = ->
             el.find(".name").text(module.url)
             list.append(el)
 
+        malfunction.report("Unknown error during update")
         loader.startUpdate()
 
     loader.onModuleBeginDownload = (module) -> 
@@ -146,4 +144,5 @@ loader.onEvaluationStarted = (manifest) ->
         malfunction.stop()
         @checkUpdate()
 
+    malfunction.report("Unknown error occured while loading modules")
     return true
