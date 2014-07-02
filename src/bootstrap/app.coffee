@@ -35,7 +35,7 @@ loader.onNoManifest = ->
     loader.onUpdateFailed = (event, error) -> 
         log("onUpdateFailed", event, error)
 
-        malfunction.report(error ? event.target.statusText)
+        malfunction.report(error ? ("Error while downloading manifest file: " + event.target.statusText))
         $("#loader .page").addClass("hide")
 
     loader.onUpdateFound = (event, manifest) ->
@@ -69,7 +69,7 @@ loader.onNoManifest = ->
     loader.onModuleDownloadFailed = (event, module) -> 
         log("onModuleDownloadFailed", event, module)
 
-        malfunction.report(event.target.statusText)
+        malfunction.report(("Error while downloading module `#{module.id}` from url `#{module.url}`: " + event.target.statusText))
         el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".error").text(event.target.statusText).removeClass("hide")

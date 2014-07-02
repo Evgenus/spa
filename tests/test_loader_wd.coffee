@@ -757,7 +757,7 @@ describe "WD.js", ->
             .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(DELAY)
+            .sleep(3*DELAY)
             .title().should.eventually.become("version_6")
             .nodeify(done)
 
