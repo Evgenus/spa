@@ -286,7 +286,7 @@ class Loader
     onModuleDownloadProgress: (event, module) -> 
     onTotalDownloadProgress: (progress) -> 
     onModuleDownloaded: (module) -> 
-    onEvaluationStarted: (manifest) -> 
+    onEvaluationStarted: (manifest) -> return true
     onEvaluationError: (module, error) -> 
     onModuleEvaluated: (module) -> 
     onApplicationReady: (manifest) -> @checkUpdate()
@@ -305,10 +305,12 @@ class Loader
             @emit("NoManifest")
             return
 
-        @emit("EvaluationStarted", @_current_manifest)
         @log("Current manifest", @_current_manifest.content)
-        @evaluate(@_current_manifest.modules)
-        @_cleanUp()
+
+        if @emit("EvaluationStarted", @_current_manifest)
+            @evaluate(@_current_manifest.modules)
+            @_cleanUp()
+
         return
 
     evaluate: (queue) ->

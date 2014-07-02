@@ -331,7 +331,7 @@ class Builder
             hash_func: @hash_func
             modules: modules
 
-        return JSON.stringify(manifest, null, if @pretty then "  ")
+        return manifest
 
     _write_file: (destination, content) ->
         filepath = path.resolve(@root, destination)
@@ -424,8 +424,10 @@ class Builder
             module.hash = @calc_hash(output)
             module.size = output.length
 
-        manifest_content = @_create_manifest()
-        @_write_file(@manifest, manifest_content) if @manifest?
+        if @manifest?
+            manifest_data = @_create_manifest()
+            manifest_content = JSON.stringify(manifest_data, null, if @pretty then "  ")
+            @_write_file(@manifest, manifest_content)
         @_write_index() if @index?
         @_write_appcache() if @appcache?
         @_print_stats()
