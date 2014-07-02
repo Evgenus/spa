@@ -256,6 +256,10 @@ class Loader
         window.localStorage.setItem(@manifest_key, manifest.content)
         return
 
+    del_manifest: ->
+        window.localStorage.removeItem(@manifest_key)
+        return
+
     make_key: (module) ->
         return @prefix + ":" + module.hash + ":" + module.url
 
@@ -406,6 +410,9 @@ class Loader
         for module in @_modules_to_load.splice(0, 4)
             @_updateModule(module)
         return
+
+    dropData: ->
+        @del_manifest()
 
     _updateModule: (module) ->
         key = @make_key(module)

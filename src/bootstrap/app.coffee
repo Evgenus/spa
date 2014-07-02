@@ -1,17 +1,50 @@
 log = (args...) -> #loader.log("bootstrap", args...)
 
+malfunction =
+    start: ->
+        @_timeout = setTimeout(@show.bind(this), 1000)
+
+    stop: ->
+        clearTimeout(@_timeout)
+
+    reset: ->
+        @stop()
+        @start()
+
+    show: ->
+        unless @error?
+            @reset()
+        else
+            $("#page-fail .error").text(@error)
+            $("#loader .page").addClass("hide")
+            $("#page-fail").removeClass("hide")
+            
+            $("#btn-retry").bind "click", (event) ->
+                location.reload()
+
+            $("#btn-force").bind "click", (event) ->
+                loader.dropData()
+                location.reload()
+
+        return
+
+    report: (@error) ->
+
+malfunction.start()
+
 loader.onNoManifest = ->
     log("onNoManifest")
 
-    loader.onUpdateFailed = (event, error)-> 
+    loader.onUpdateFailed = (event, error) -> 
         log("onUpdateFailed", event, error)
 
+        malfunction.report(error ? event.target.statusText)
         $("#loader .page").addClass("hide")
-        $("#page-fail").removeClass("hide")
-        $("#page-fail .error").text(error ? event.target.statusText)
 
     loader.onUpdateFound = (event, manifest) ->
         log("onUpdateFound", event, manifest)
+
+        malfunction.reset()
         $("#loader .page").addClass("hide")
         $("#page-update").removeClass("hide")
 
@@ -28,6 +61,7 @@ loader.onNoManifest = ->
     loader.onModuleBeginDownload = (module) -> 
         log("onModuleBeginDownload", module)
 
+        malfunction.reset()
         el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".progress").removeClass("hide")
@@ -37,6 +71,7 @@ loader.onNoManifest = ->
     loader.onModuleDownloadFailed = (event, module) -> 
         log("onModuleDownloadFailed", event, module)
 
+        malfunction.report(event.target.statusText)
         el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".error").text(event.target.statusText).removeClass("hide")
@@ -44,12 +79,14 @@ loader.onNoManifest = ->
     loader.onModuleDownloadProgress = (event, module) -> 
         log("onModuleDownloadProgress", event, module)
 
+        malfunction.reset()
         el = $("#module-" + module.id)
         el.find(".bytes-loaded").text(event.loaded)
 
     loader.onModuleDownloaded = (module) -> 
         log("onModuleDownloaded", module)
 
+        malfunction.reset()
         el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".success").removeClass("hide")
@@ -57,6 +94,7 @@ loader.onNoManifest = ->
     loader.onTotalDownloadProgress = (progress) ->
         log(progress)
 
+        malfunction.reset()
         $("#page-update .total-progress .modules-loaded").text(progress.loaded_count)
         $("#page-update .total-progress .modules-total").text(progress.total_count)
         $("#page-update .total-progress .bytes-loaded").text(progress.loaded_size)
@@ -64,6 +102,8 @@ loader.onNoManifest = ->
 
     loader.onUpdateCompleted = (manifest) -> 
         log("onUpdateCompleted", manifest)
+
+        malfunction.reset()
         setTimeout(location.reload.bind(location), 0)
         return true
 
@@ -72,6 +112,7 @@ loader.onNoManifest = ->
 loader.onEvaluationStarted = (manifest) -> 
     log("onEvaluationStarted")
 
+    malfunction.reset()
     $("#loader .page").addClass("hide")
     $("#page-load").removeClass("hide")
 
@@ -86,6 +127,7 @@ loader.onEvaluationStarted = (manifest) ->
     loader.onEvaluationError = (module, error) -> 
         log("onEvaluationError", module, error)
 
+        malfunction.report(error)
         el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".error").text(error).removeClass("hide")
@@ -93,11 +135,15 @@ loader.onEvaluationStarted = (manifest) ->
     loader.onModuleEvaluated = (module) -> 
         log("onModuleEvaluated", module)
 
+        malfunction.reset()
         el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
         el.find(".success").removeClass("hide")
 
     loader.onApplicationReady = (manifest) ->
         log("onApplicationReady")
+
+        malfunction.stop()
         @checkUpdate()
 
+    return true

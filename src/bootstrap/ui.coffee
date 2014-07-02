@@ -16,6 +16,11 @@ class UI
                 classList.push(klass) if classList.indexOf(klass) == -1
             this.className = classList.join(" ")
 
+    bind: (name, func) ->
+        return this.each (idx) ->
+            this.addEventListener(name, func)
+            return
+
     removeClass: (name) ->
         return this.each (idx) ->
             unless name?
