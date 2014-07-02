@@ -419,6 +419,8 @@ class Loader
         @get_content key, (module_source) =>
             if module_source?
                 module.source = module_source
+                module.loaded = module.size
+                @emit("ModuleDownloaded", module)
                 @_reportTotalProgress()
                 @_checkAllUpdated()
             else
