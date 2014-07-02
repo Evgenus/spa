@@ -181,6 +181,18 @@ class RawEvaluator extends BasicEvaluator
 
 SAFE_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
+class Logger
+    constructor: (@prefix) ->
+
+    info: (args...) ->
+        console.info(@prefix, args...)
+
+    warn: (args...) ->
+        console.warn(@prefix, args...)
+
+    error: (args...) ->
+        console.error(@prefix, args...)
+
 class Loader
     constructor: (options) ->
         @_all_modules = {}
@@ -206,6 +218,9 @@ class Loader
         @decoder_func = options.decoder_func
         @randomize_urls = options.randomize_urls
         @manifest_location = options.manifest_location ? "manifest.json"
+
+        @options = options
+        @logger = options.logger ? new Logger("LOADER:#{@prefix}") 
 
         @manifest_key = @prefix + "::manifest"
         localforage.config()
@@ -248,7 +263,7 @@ class Loader
         return localforage.getItem(key, cb)
 
     set_content: (key, content, cb) ->
-        @log("storing", key)
+        @logger.info("storing", key)
         return localforage.setItem(key, content, cb)
 
     get_contents_keys: (cb) ->
@@ -267,14 +282,8 @@ class Loader
         return
 
     del_content: (key, cb) ->
-        @log("removing", key)
+        @logger.warn("removing", key)
         return localforage.removeItem(key, cb)
-
-    log: (args...) -> 
-        console.log("LOADER:#{@prefix}", args...)
-
-    log_error: (args...) -> 
-        console.error("LOADER:#{@prefix}", args...)
 
     onNoManifest: ->
     onUpToDate: (event) ->
@@ -292,11 +301,11 @@ class Loader
     onApplicationReady: (manifest) -> @checkUpdate()
 
     emit: (name, args...) ->
-        @log(name, args...)
+        @logger.info(name, args...)
         try
             return this["on" + name](args...)
         catch error
-            @log_error(error)
+            @logger.error(error)
 
     load: ->
         try
@@ -305,9 +314,9 @@ class Loader
             @emit("NoManifest")
             return
 
-        @log("Current manifest", @_current_manifest.content)
+        @logger.info("Current manifest", @_current_manifest)
 
-        if @emit("EvaluationStarted", @_current_manifest)
+        unless @emit("EvaluationStarted", @_current_manifest) is false
             @evaluate(@_current_manifest.modules)
             @_cleanUp()
 
@@ -358,7 +367,7 @@ class Loader
 
     checkUpdate: () ->
         return if @_update_started
-        @log("Checking for update...")
+        @logger.info("Checking for update...")
         manifest_request = XHR()
         manifest_request.open("GET", @_prepare_url(@manifest_location), true)
         manifest_request.overrideMimeType("application/json; charset=utf-8")
@@ -372,7 +381,7 @@ class Loader
                 @emit("UpdateFailed", event, error)
                 return
 
-            @log("New manifest", @_new_manifest.content)
+            @logger.info("New manifest", @_new_manifest)
             if @_current_manifest?
                 if @_current_manifest.hash == @_new_manifest.hash
                     @emit("UpToDate", @_current_manifest)
@@ -389,7 +398,7 @@ class Loader
         return
 
     startUpdate: ->
-        @log("Starting update...")
+        @logger.info("Starting update...")
         @_update_started = true
         for module in @_new_manifest.modules
             module.loaded = 0

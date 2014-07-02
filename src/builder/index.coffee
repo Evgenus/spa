@@ -53,15 +53,17 @@ class Loop
             "#{p[i][0]} --[#{p[i][1]}]--> #{p[i+1][0]}" 
             ).join("\n")
 
-Logger = 
+class Logger
+    constructor: (@prefix) ->
+
     info: (args...) ->
         console.info(args.join(" "))
 
     warn: (args...) ->
-        console.warn(clc.bgYellow.bold("SPA"), clc.yellow(args.join(" ")))
+        console.warn(clc.bgYellow.bold(@prefix), clc.yellow(args.join(" ")))
 
     error: (args...) ->
-        console.error(clc.bgRed.bold("SPA"), clc.red.bold(args.join(" ")))
+        console.error(clc.bgRed.bold(@prefix), clc.red.bold(args.join(" ")))
 
 encode_data = (data) ->
     if data instanceof Buffer
@@ -118,6 +120,7 @@ encoders =
 class Builder
     constructor: (options) ->
         @options = options
+        @logger = options.logger ? new Logger("SPA")
         @root = path.resolve(process.cwd(), options.root) + "/"
         @extensions = options.extensions ? [".js"]
         @excludes = options.excludes ? []
@@ -335,7 +338,7 @@ class Builder
 
     _write_file: (destination, content) ->
         filepath = path.resolve(@root, destination)
-        Logger.info("Writing #{filepath}. #{content.length} bytes.")
+        @logger.info("Writing #{filepath}. #{content.length} bytes.")
         fs.writeFileSync(filepath, content)
 
     _inject_inline: (relative) ->
@@ -364,7 +367,7 @@ class Builder
             if url?
                 namespace["manifest_location"] = url
             else
-                Logger.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
+                @logger.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
             
         compiled = ejs.compile(assets["index_template"])
         @_index_content = compiled(namespace)
@@ -389,9 +392,9 @@ class Builder
         
         if Object.keys(assets).length == 0
             if @index?
-                Logger.warn("No hosting rule for `#{@index}` file. AppCache manifest `#{@appcache}` appears to be empty")
+                @logger.warn("No hosting rule for `#{@index}` file. AppCache manifest `#{@appcache}` appears to be empty")
             else
-                Logger.warn("There are no assets to be included into AppCache manifest `#{@appcache}`")
+                @logger.warn("There are no assets to be included into AppCache manifest `#{@appcache}`")
 
         template = @assets["appcache_template"]
         compiled = ejs.compile(fs.readFileSync(template, encoding: "utf8"))
@@ -410,7 +413,7 @@ class Builder
         for module in @_modules
             module.url = @_host(module.relative)
             unless module.url?
-                Logger.error("No hosting rules for `#{module.relative}`")
+                @logger.error("No hosting rules for `#{module.relative}`")
         for module in @_modules
             source = fs.readFileSync(module.path)
             destination = @_get_copying(module.relative)
@@ -420,7 +423,7 @@ class Builder
             output = @calc_code(source)
             if destination?
                 @_write_file(destination, output)
-                Logger.info("Writing #{destination}.")
+                @logger.info("Writing #{destination}.")
             module.hash = @calc_hash(output)
             module.size = output.length
 
@@ -440,8 +443,8 @@ class Builder
             message = _.sprintf "%(num)3s %(module.relative)-20s %(module.size)7s %(module.type)4s %(module.hash)s",
                 num: parseInt(num) + 1
                 module: module
-            Logger.info(message)
-        Logger.info("Total #{total} bytes in #{@_modules.length} files")
+            @logger.info(message)
+        @logger.info("Total #{total} bytes in #{@_modules.length} files")
 
 hasBOM = (data) ->
     return false if data.length < 3
@@ -469,11 +472,13 @@ get_config_content = (filepath) ->
             return load_json(filepath)
 
 Builder.from_config = (config_path) ->
-    Logger.info("Reading config from #{config_path}")
+    logger = new Logger("SPA")
+    logger.info("Reading config from #{config_path}")
     basedir = path.dirname(config_path)
     config = get_config_content(config_path)
     config.root ?= "."
     config.root = path.resolve(basedir, config.root)
+    config.logger = logger
     return new Builder(config)
 
 exports.Builder = Builder
