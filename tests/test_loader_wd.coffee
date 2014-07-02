@@ -717,7 +717,7 @@ describe "WD.js", ->
             .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(30*DELAY)
+            .sleep(35*DELAY)
             .title()
             .then (title) =>
                 expect(title).to.equal("15730830")
