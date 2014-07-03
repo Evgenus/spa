@@ -135,6 +135,7 @@ describe "WD.js", ->
             .refresh()
             .sleep(2 * DELAY)
             .title().should.eventually.become("version_2")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'should not remove not owning keys from localstorage', (done) ->
@@ -174,6 +175,7 @@ describe "WD.js", ->
             .sleep(DELAY)
             .title().should.eventually.become("version_1")
             .getLocalStorageKey("test_item").should.become("should_not be removed")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'multiple files loading and updating', (done) ->
@@ -274,6 +276,7 @@ describe "WD.js", ->
                 expect(urls[2]).to.equal("/app/b.js")
                 expect(urls[3]).to.equal("/app/")
                 expect(urls[4]).to.equal("/app/manifest.json")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'no manifest file', (done) ->
@@ -376,6 +379,7 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title().should.eventually.become("UpdateFailed")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'renamed manifest file', (done) ->
@@ -414,6 +418,7 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title().should.eventually.become("version_4")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'manifest with alternated hash function', (done) ->
@@ -452,6 +457,7 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title().should.eventually.become("version_5")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'building files with BOM', (done) ->
@@ -560,6 +566,7 @@ describe "WD.js", ->
             .refresh()
             .sleep(DELAY)
             .title().should.eventually.become("ApplicationReady")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'should be same manifest version and loader version', (done) ->
@@ -603,6 +610,7 @@ describe "WD.js", ->
             .title()
             .then (title) =>
                 expect(title).to.equal("VERSION-" + @manifest.version)
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'should load a lot of files', (done) ->
@@ -659,6 +667,7 @@ describe "WD.js", ->
             .title()
             .then (title) =>
                 expect(title).to.equal("5050")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'should load big files', (done) ->
@@ -718,10 +727,11 @@ describe "WD.js", ->
             .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(35*DELAY)
+            .sleep(40*DELAY)
             .title()
             .then (title) =>
                 expect(title).to.equal("15730830")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'building files with wierd names', (done) ->
@@ -759,6 +769,7 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title().should.eventually.become("version_6")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'could not break loader', (done) ->
@@ -881,6 +892,116 @@ describe "WD.js", ->
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
             .title().should.eventually.become("version_7")
+            .safeExecute("localforage.clear()")
+            .nodeify(done)
+
+    it 'malfunction while updating', (done) ->
+        return @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        d.js: |
+                            module.exports = function() 
+                            {
+                                return "d";
+                            };
+                        c.js: |
+                            var d = require("./d.js"); 
+                            module.exports = function() 
+                            { 
+                                return "c" + d(); 
+                            };
+                        b.js: |
+                            var c = require("./c.js");
+                            module.exports = function() 
+                            {
+                                return "b" + c();
+                            };
+                        a.js: |
+                            var loader = require("loader");
+                            var b = require("./b.js");
+                            loader.onApplicationReady = function() 
+                            {
+                                document.title = "a" + b();
+                                loader.checkUpdate();
+                            };
+                            loader.onUpdateCompleted = function(event) {
+                                setTimeout(location.reload.bind(location), 0)
+                                return true
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            manifest: "./manifest.json"
+                            index: "./index.html"
+                            randomize_urls: false
+                            hosting:
+                                "./(*.js)": "/app/$1"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .clearLocalStorage()
+            .then ->
+                content = """
+                    var c = require("./c.js");
+                    module.exports = function() 
+                    {
+                        return "bb" + c();
+                    };
+                    """
+                fs.writeFileSync("/app/b.js", content)
+                content = """var d = require("./d.js"); module.exports = function() { return "cc" + d(); };"""
+                fs.writeFileSync("/app/c.js", content)
+                spa.Builder.from_config("/app/spa.yaml").build()
+                fs.unlinkSync("/app/c.js")
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .then => @urls_log.clear()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3 * DELAY)
+            .then =>
+                urls = @urls_log.get()
+                expect(urls).to.be.an("Array").with.length(6)
+                expect(urls[0]).to.equal("/app/")
+                expect(urls[1]).to.equal("/app/manifest.json")
+                expect(urls.slice(2, 6)).to.consist([
+                    "/app/a.js",
+                    "/app/b.js",
+                    "/app/c.js",
+                    "/app/d.js",
+                    ])
+            .elementById("btn-retry").isDisplayed().should.become(false)
+            .sleep(MALFUNCTION_DELAY + 2 * DELAY)
+            .elementById("btn-retry").isDisplayed().should.become(true)
+            .elementById("btn-retry").click()
+            .sleep(MALFUNCTION_DELAY + 2 * DELAY)
+            .elementById("btn-retry").isDisplayed().should.become(true)
+            .then ->
+                content = """var d = require("./d.js"); module.exports = function() { return "cc" + d(); };"""
+                fs.writeFileSync("/app/c.js", content)
+            .then => @urls_log.clear()
+            .elementById("btn-retry").click()
+            .sleep(3 * DELAY)
+            .then =>
+                urls = @urls_log.get()
+                expect(urls).to.be.an("Array").with.length(5)
+                expect(urls[0]).to.equal("/app/")
+                expect(urls[1]).to.equal("/app/manifest.json")
+                expect(urls[2]).to.equal("/app/c.js")
+                expect(urls[3]).to.equal("/app/")
+                expect(urls[4]).to.equal("/app/manifest.json")
+            .title().should.eventually.become("abbccd")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
 
     it 'malfunction while evaluating', (done) ->
@@ -1021,4 +1142,5 @@ describe "WD.js", ->
                 expect(urls[3]).to.equal("/app/")
                 expect(urls[4]).to.equal("/app/manifest.json")
             .title().should.eventually.become("abd")
+            .safeExecute("localforage.clear()")
             .nodeify(done)
