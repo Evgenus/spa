@@ -6,12 +6,12 @@ clc = require('cli-color')
 detectiveCJS = require('detective')
 detectiveAMD = require('detective-amd')
 definition = require('module-definition').sync
-CryptoJS = require("crypto-js")
 yaml = require('js-yaml')
 ejs = require("ejs")
 _  = require('underscore')
 _.string =  require('underscore.string')
 _.mixin(_.string.exports())
+crypto = require("crypto")
 
 packagejson = ( ->
     packagepath = path.resolve(__dirname, '../package.json')
@@ -65,52 +65,10 @@ class Logger
     error: (args...) ->
         console.error(clc.bgRed.bold(@prefix), clc.red.bold(args.join(" ")))
 
-encode_data = (data) ->
-    if data instanceof Buffer
-        words = []
-        len = data.length
-        i = 0
-        while i < len
-            words[i >>> 2] |= (data[i] & 0xff) << (24 - (i % 4) * 8)
-            i++
-        return CryptoJS.lib.WordArray.create(words, len)
-    
-    if data instanceof String or typeof data is "string"
-        return CryptoJS.enc.Utf8.parse(data)
-
 hashers = 
-    md5: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.MD5(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    ripemd160: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.RIPEMD160(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha1: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA1(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha224: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA224(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha256: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA256(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha384: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA384(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha512: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA512(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha3: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA3(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
+    sha1: (data) -> crypto.createHash("sha1").update(data).digest('hex')
+    sha256: (data) -> crypto.createHash("sha256").update(data).digest('hex')
+    sha512: (data) -> crypto.createHash("sha512").update(data).digest('hex')
 
 encoders = 
     identity: (data, builder) ->
@@ -146,7 +104,7 @@ class Builder
             @assets[name] = value
         @appcache = options.appcache
         @cached = options.cached
-        @hash_func = options.hash_func ? "md5"
+        @hash_func = options.hash_func ? "sha1"
         @randomize_urls = options.randomize_urls ? true
         @coding_func = options.coding_func ? "identity"
         @_clear()
@@ -424,7 +382,10 @@ class Builder
             if destination?
                 @_write_file(destination, output)
                 @logger.info("Writing #{destination}.")
+
+            start = (new Date()).getTime()
             module.hash = @calc_hash(output)
+            console.log(source.length / ((new Date()).getTime() - start))
             module.size = output.length
 
         if @manifest?
