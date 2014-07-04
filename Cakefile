@@ -38,7 +38,7 @@ minify = (source) ->
 
     return minified
 
-minify_more = (source) ->
+minify_more = (source, comments) ->
     ast = uglify.parse(source)
     ast.figure_out_scope()
     ast.compute_char_frequency()
@@ -52,7 +52,7 @@ minify_more = (source) ->
     compressed = ast.transform(compressor)
     minified = compressed.print_to_string
         bracketize    : true
-        comments      : /License/
+        comments      : comments ? /License/
 
     return minified
 
@@ -112,48 +112,85 @@ task "compile-loader", "compile loader coffee source into javascript", ->
 
 task "populate-assets", "prepare assets to be used by builder", ->
 
-    transform "./src/cryptojs/encoder.coffee", null, (input, _, data) ->
-        encoder = coffee.compile(data, bare: true)
-        console.log("Compiling %s -->", input)
+    sjcl = fs.readFileSync("./bower_components/sjcl/core/sjcl.js", "utf8")
+    bitArray = fs.readFileSync("./bower_components/sjcl/core/bitArray.js", "utf8")
+    codecBytes = fs.readFileSync("./bower_components/sjcl/core/codecBytes.js", "utf8")
+    codecString = fs.readFileSync("./bower_components/sjcl/core/codecString.js", "utf8")
+    codecHex = fs.readFileSync("./bower_components/sjcl/core/codecHex.js", "utf8")
 
-        transform "./bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
+    transform "./bower_components/sjcl/core/(sha1|sha256|sha512).js", "./lib/assets/hash/$1.js", (input, output, hash_func, match) ->
 
-            console.log("    Combining %s --> %s", input, output)
-            hash_name = match[1]
+        console.log("Combining %s --> %s", input, output)
+        hash_name = match[1]
 
-            return minify_more("""
-                (function() {
-                    #{data};
-                    var encoder = #{encoder}
-                    return (function(data) {
-                        var hash = CryptoJS.algo["#{hash_name.toUpperCase()}"].create();
-                        hash.update(encoder(data));
-                        return hash.finalize().toString(CryptoJS.enc.Hex);
-                    });
-                })();""")
+        return minify_more("""
+            (function() {
+                #{sjcl};
+                #{bitArray};
+                #{codecBytes};
+                #{codecString};
+                #{codecHex};
 
-    transform "./src/cryptojs/encoder.coffee", null, (input, _, data) ->
-        encoder = coffee.compile(data, bare: true)
-        console.log("Compiling %s -->", input)
+                #{hash_func};
+                return (function(data) {
+                    var input;
 
-        transform "./src/cryptojs/decoder.coffee", null, (input, _, data) ->
-            decoder = coffee.compile(data, bare: true)
-            console.log("Compiling %s -->", input)
+                    if(data instanceof String || typeof data === "string") 
+                    {
+                        input = sjcl.codec.utf8String.toBits(data);
+                    }
+                    else if(data instanceof ArrayBuffer) 
+                    {
+                        var view = new Uint8Array(data);
+                        input = sjcl.codec.bytes.toBits(view);
+                    } 
+                    else if(data instanceof Buffer)
+                    {
+                        input = sjcl.codec.bytes.toBits(data);
+                    } 
+                    else 
+                    {
+                        throw Error("invalid input type");
+                    }
 
-            transform "./bower_components/cryptojslib/components/core.js", "./lib/assets/encoding/identity.js", (input, output, data) ->
+                    return sjcl.codec.hex.fromBits(sjcl.hash.#{hash_name}.hash(input))
+                });
+            })();""", /Copyright/)
 
-                console.log("    Combining --> %s", "./lib/assets/cypher/identity.js")
-                return minify_more("""
-                    (function() {
-                        #{data};
-                        var encoder = #{encoder}
-                        var decoder = #{decoder}
-                        return (function(data, password) {
-                            return decoder(encoder(data));
-                        });
-                    })();""")
+    console.log("Combining --> %s", "./lib/assets/cypher/identity.js")
+    write_file("./lib/assets/encoding/identity.js", """
+            (function() {
+                #{sjcl};
+                #{bitArray};
+                #{codecBytes};
+                #{codecString};
 
-            #28 ISSUE. Here you could build additional decoders for compression or encryption
+                return (function(data) {
+                    var output;
+
+                    if(data instanceof String || typeof data === "string") 
+                    {
+                        output = data;
+                    }
+                    else if(data instanceof ArrayBuffer) 
+                    {
+                        var view = new Uint8Array(data);
+                        output = sjcl.codec.utf8String.fromBits(sjcl.codec.bytes.toBits(view));
+                    } 
+                    else if(data instanceof Buffer)
+                    {
+                        output = sjcl.codec.utf8String.fromBits(sjcl.codec.bytes.toBits(data));
+                    } 
+                    else 
+                    {
+                        throw Error("invalid input type");
+                    }
+
+                    return output;
+                });
+            })();""")
+
+    #28 ISSUE. Here you could build additional decoders for compression or encryption
 
     transform "./bower_components/localforage/dist/(localforage).min.js", "./lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
@@ -190,5 +227,5 @@ task "build", "compile all coffeescript files to javascript", ->
 
 task "sbuild", "build routine for sublime", ->
     invoke 'build'
-    invoke 'test'
+    #invoke 'test'
 
