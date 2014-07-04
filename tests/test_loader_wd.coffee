@@ -690,6 +690,7 @@ describe "WD.js", ->
                             manifest: "./manifest.json"
                             hosting:
                                 "./(*.js)": "/app/$1"
+                            hash_func: sha256
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
                 mock(system)
@@ -698,7 +699,7 @@ describe "WD.js", ->
                 for i in [1..5]
                     c = "(#{c} + #{c})"
                 q = c
-                for i in [1..13]
+                for i in [1..11]
                     q = "(#{q} + #{q})"
 
                 NUM = 10
@@ -727,10 +728,10 @@ describe "WD.js", ->
             .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(40*DELAY)
+            .sleep(25 * DELAY)
             .title()
             .then (title) =>
-                expect(title).to.equal("15730830")
+                expect(title).to.equal("3934350")
             .safeExecute("localforage.clear()")
             .nodeify(done)
 
