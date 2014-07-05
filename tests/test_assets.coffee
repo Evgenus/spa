@@ -99,7 +99,7 @@ describe 'Testing cypher functions from assets', ->
         ])
         expect(decrypt(ct, "aaa111", params)).to.equals("This page is a demo of the Stanford Javascript Crypto Library.")
 
-    it "sjcl encrypt", ->
+    it "sjcl aes-gcm", ->
         window = {}
         window.window = window
 

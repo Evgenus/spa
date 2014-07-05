@@ -129,12 +129,6 @@ task "compile-loader", "compile loader coffee source into javascript", ->
 
 task "populate-assets", "prepare assets to be used by builder", ->
 
-    sjcl = fs.readFileSync("./bower_components/sjcl/core/sjcl.js", "utf8")
-    bitArray = fs.readFileSync("./bower_components/sjcl/core/bitArray.js", "utf8")
-    codecBytes = fs.readFileSync("./bower_components/sjcl/core/codecBytes.js", "utf8")
-    codecString = fs.readFileSync("./bower_components/sjcl/core/codecString.js", "utf8")
-    codecHex = fs.readFileSync("./bower_components/sjcl/core/codecHex.js", "utf8")
-
     transform "./bower_components/cryptojslib/rollups/(md5|sha224|sha3|sha384|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
 
         console.log("    Combining %s --> %s", input, output)
@@ -168,6 +162,12 @@ task "populate-assets", "prepare assets to be used by builder", ->
                     return hash.finalize().toString(CryptoJS.enc.Hex);
                 });
             })();""")
+
+    sjcl = fs.readFileSync("./bower_components/sjcl/core/sjcl.js", "utf8")
+    bitArray = fs.readFileSync("./bower_components/sjcl/core/bitArray.js", "utf8")
+    codecBytes = fs.readFileSync("./bower_components/sjcl/core/codecBytes.js", "utf8")
+    codecString = fs.readFileSync("./bower_components/sjcl/core/codecString.js", "utf8")
+    codecHex = fs.readFileSync("./bower_components/sjcl/core/codecHex.js", "utf8")
 
     transform "./bower_components/sjcl/core/(sha1|sha256|sha512).js", "./lib/assets/hash/$1.js", (input, output, hash_func, match) ->
 
