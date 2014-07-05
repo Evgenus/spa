@@ -1,4 +1,5 @@
 fs = require('fs')
+vm = require("vm")
 walker = require('fs-walk-glob-rules')
 globrules = require('glob-rules')
 path = require('path')
@@ -65,10 +66,23 @@ class Logger
     error: (args...) ->
         console.error(clc.bgRed.bold(@prefix), clc.red.bold(args.join(" ")))
 
+sandbox =
+    ArrayBuffer: Object.freeze(ArrayBuffer)
+    Buffer: Object.freeze(Buffer)
+    Uint8Array: Object.freeze(Uint8Array)
+
+eval_file = (p, s) ->
+    return vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, p), "utf8"), sandbox)
+
 hashers = 
+    md5: (data) -> crypto.createHash("md5").update(data).digest('hex')
+    ripemd160: (data) -> crypto.createHash("ripemd160").update(data).digest('hex')
     sha1: (data) -> crypto.createHash("sha1").update(data).digest('hex')
+    sha224: (data) -> crypto.createHash("sha224").update(data).digest('hex')
     sha256: (data) -> crypto.createHash("sha256").update(data).digest('hex')
+    sha384: (data) -> crypto.createHash("sha384").update(data).digest('hex')
     sha512: (data) -> crypto.createHash("sha512").update(data).digest('hex')
+    sha3: eval_file("./assets/hash/sha3.js")
 
 encoders = 
     identity: (data, builder) ->
@@ -104,7 +118,7 @@ class Builder
             @assets[name] = value
         @appcache = options.appcache
         @cached = options.cached
-        @hash_func = options.hash_func ? "sha1"
+        @hash_func = options.hash_func ? "md5"
         @randomize_urls = options.randomize_urls ? true
         @coding_func = options.coding_func ? "identity"
         @_clear()
