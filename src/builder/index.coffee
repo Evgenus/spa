@@ -85,9 +85,10 @@ hashers =
     sha3: eval_file("./assets/hash/sha3.js")
 
 encoders = 
-    identity: (data, builder) ->
-        return data
-    #28 ISSUE. Additional parameters for encoder could be obtained dirrectly from builder
+    "aes-cbc": eval_file("./assets/encode/aes-cbc.js")
+    "aes-ccm": eval_file("./assets/encode/aes-ccm.js")
+    "aes-gcm": eval_file("./assets/encode/aes-gcm.js")
+    "aes-ocb2": eval_file("./assets/encode/aes-ocb2.js")
 
 class Builder
     constructor: (options) ->
@@ -120,7 +121,7 @@ class Builder
         @cached = options.cached
         @hash_func = options.hash_func ? "md5"
         @randomize_urls = options.randomize_urls ? true
-        @coding_func = options.coding_func ? "identity"
+        @coding_func = options.coding_func
         @_clear()
 
     filter: (filepath) ->
@@ -131,8 +132,10 @@ class Builder
     calc_hash: (content) -> 
         return hashers[@hash_func](content)
 
-    calc_code: (content) ->
-        return encoders[@coding_func](content, this)
+    encode: (content) ->
+        unless @coding_func?
+            return content
+
 
     _clear: ->
         @_modules = []
@@ -371,7 +374,7 @@ class Builder
         template = @assets["appcache_template"]
         compiled = ejs.compile(fs.readFileSync(template, encoding: "utf8"))
         content = compiled
-            assets: assets
+            cached: assets
         @_write_file(@appcache, content)
 
     build: ->
@@ -392,7 +395,7 @@ class Builder
             unless destination? or @coding_func is "identity"
                 throw new NoCopyingRuleError(module.relative)
 
-            output = @calc_code(source)
+            output = @encode(source)
             if destination?
                 @_write_file(destination, output)
                 @logger.info("Writing #{destination}.")

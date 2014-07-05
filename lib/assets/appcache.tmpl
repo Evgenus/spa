@@ -1,8 +1,9 @@
 CACHE MANIFEST
 
 CACHE:
-<% for(var name in assets) { %>
-<%- name %> # <%- assets[name] %>
+<% for(var name in cached) { %>
+# <%- cached[name] %>
+<%- name %> 
 <% } %>
 
 NETWORK:
