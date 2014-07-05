@@ -31,7 +31,8 @@
   "scripts": {
     "test": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_*.coffee --reporter spec",
     "test:unit": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_builder.coffee ./tests/test_assets.coffee --reporter spec",
-    "test:unit:short": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_builder.coffee ./tests/test_assets.coffee --reporter tap"
+    "test:unit:short": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_builder.coffee ./tests/test_assets.coffee --reporter tap",
+    "test:dev": "mocha --require chai --compilers coffee:coffee-script/register ./tests/test_crypto.coffee --reporter spec"
   },
   "directories": {
     "test": "tests"
