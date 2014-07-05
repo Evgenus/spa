@@ -43,8 +43,25 @@ minify_more = (source, comments) ->
     ast.figure_out_scope()
     ast.compute_char_frequency()
     ast.mangle_names()
-    
+
     compressor = uglify.Compressor
+        sequences     : true
+        properties    : true
+        dead_code     : true
+        drop_debugger : true
+        unsafe        : false
+        conditionals  : true
+        comparisons   : true
+        evaluate      : true
+        booleans      : true
+        loops         : true
+        unused        : true
+        hoist_funs    : true
+        hoist_vars    : false
+        if_return     : true
+        join_vars     : true
+        cascade       : true
+        side_effects  : true
         warnings      : false
         negate_iife   : false
         global_defs: {}
@@ -158,7 +175,7 @@ task "populate-assets", "prepare assets to be used by builder", ->
             })();""", /Copyright/)
 
     console.log("Combining --> %s", "./lib/assets/cypher/identity.js")
-    write_file("./lib/assets/encoding/identity.js", """
+    write_file("./lib/assets/decode/identity.js", """
             (function() {
                 #{sjcl};
                 #{bitArray};
@@ -189,6 +206,103 @@ task "populate-assets", "prepare assets to be used by builder", ->
                     return output;
                 });
             })();""")
+
+    aes = fs.readFileSync("./bower_components/sjcl/core/aes.js", "utf8")
+    sha256 = fs.readFileSync("./bower_components/sjcl/core/sha256.js", "utf8")
+    hmac = fs.readFileSync("./bower_components/sjcl/core/hmac.js", "utf8")
+    pbkdf2 = fs.readFileSync("./bower_components/sjcl/core/pbkdf2.js", "utf8")
+    random = fs.readFileSync("./bower_components/sjcl/core/random.js", "utf8")
+
+    transform "./bower_components/sjcl/core/(ccm|cbc|ocb2|gcm).js", "./lib/assets/decode/aes-$1.js", (input, output, block_mode, match) ->
+
+        console.log("Combining %s --> %s", input, output)
+        mode_name = match[1]
+
+        return minify_more("""
+            (function() {
+                #{sjcl};
+                #{bitArray};
+                #{codecBytes};
+                #{codecString};
+                #{codecHex};
+
+                #{aes};
+                #{sha256};
+                #{hmac};
+                #{pbkdf2};
+
+                #{block_mode};
+
+                return (function(data, password, p) {
+                    var ct;
+                    if(data instanceof ArrayBuffer) 
+                    {
+                        var view = new Uint8Array(data);
+                        ct = sjcl.codec.bytes.toBits(view);
+                    } 
+                    else if(data instanceof Buffer)
+                    {
+                        ct = sjcl.codec.bytes.toBits(data);
+                    } 
+
+                    var salt = sjcl.codec.hex.toBits(p.salt);
+                    var iv = sjcl.codec.hex.toBits(p.iv);
+                    var key = sjcl.misc.pbkdf2(password, salt, p.iter).slice(0, p.ks / 32);
+                    var prp = new sjcl.cipher.aes(key);
+                    var auth = sjcl.codec.utf8String.toBits(p.auth);
+                    var text = sjcl.mode.#{mode_name}.decrypt(prp, ct, iv, auth, p.ts);
+                    return sjcl.codec.utf8String.fromBits(text);
+                });
+            })();""", /Copyright/)
+
+    transform "./bower_components/sjcl/core/(ccm|cbc|ocb2|gcm).js", "./lib/assets/encode/aes-$1.js", (input, output, block_mode, match) ->
+
+        console.log("Combining %s --> %s", input, output)
+        mode_name = match[1]
+
+        return minify_more("""
+            (function() {
+                #{sjcl};
+                #{bitArray};
+                #{codecBytes};
+                #{codecString};
+                #{codecHex};
+
+                #{aes};
+                #{sha256};
+                #{hmac};
+                #{pbkdf2};
+                #{random};
+
+                #{block_mode};
+
+                return (function(data, password, p) {
+                    var msg;
+                    if(data instanceof String || typeof data === "string") 
+                    {
+                        msg = sjcl.codec.utf8String.toBits(data);
+                    }
+                    else if(data instanceof ArrayBuffer) 
+                    {
+                        var view = new Uint8Array(data);
+                        msg = sjcl.codec.bytes.toBits(view);
+                    } 
+                    else if(data instanceof Buffer)
+                    {
+                        msg = sjcl.codec.bytes.toBits(data);
+                    } 
+
+                    var iv = sjcl.random.randomWords(4, 0);
+                    p.iv = sjcl.codec.hex.fromBits(iv);
+                    var salt = sjcl.random.randomWords(2, 0);
+                    p.salt = sjcl.codec.hex.fromBits(salt);
+                    var key = sjcl.misc.pbkdf2(password, salt, p.iter).slice(0, p.ks / 32);
+                    var auth = sjcl.codec.utf8String.toBits(p.auth);
+                    var prp = new sjcl.cipher.aes(key);
+                    var ct = sjcl.mode.#{mode_name}.encrypt(prp, msg, iv, auth, p.ts);
+                    return new Buffer(sjcl.codec.bytes.fromBits(ct));
+                });
+            })();""", /Copyright/)
 
     #28 ISSUE. Here you could build additional decoders for compression or encryption
 
