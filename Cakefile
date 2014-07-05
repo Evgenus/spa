@@ -135,6 +135,40 @@ task "populate-assets", "prepare assets to be used by builder", ->
     codecString = fs.readFileSync("./bower_components/sjcl/core/codecString.js", "utf8")
     codecHex = fs.readFileSync("./bower_components/sjcl/core/codecHex.js", "utf8")
 
+    transform "./bower_components/cryptojslib/rollups/(md5|sha224|sha3|sha384|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
+
+        console.log("    Combining %s --> %s", input, output)
+        hash_name = match[1]
+
+        return minify_more("""
+            (function() {
+                #{data};
+                return (function(data) {
+                    var wa;
+                    if (data instanceof String || typeof data === "string") {
+                        wa = CryptoJS.enc.Utf8.parse(data);
+                    } else {
+                        var words = [];
+                        var array;
+                        if (data instanceof ArrayBuffer) {
+                            array = new Uint8Array(data);
+                        } else if(data instanceof Buffer) {
+                            array = data;
+                        } else {
+                            throw Error("invalid input type");
+                        }
+                        var len = array.length;
+                        for (var i = 0; i < len; i++) {
+                            words[i >>> 2] |= (array[i] & 0xff) << (24 - (i % 4) * 8);
+                        }
+                        wa = CryptoJS.lib.WordArray.create(words, len);
+                    }
+                    var hash = CryptoJS.algo["#{hash_name.toUpperCase()}"].create();
+                    hash.update(wa);
+                    return hash.finalize().toString(CryptoJS.enc.Hex);
+                });
+            })();""")
+
     transform "./bower_components/sjcl/core/(sha1|sha256|sha512).js", "./lib/assets/hash/$1.js", (input, output, hash_func, match) ->
 
         console.log("Combining %s --> %s", input, output)
@@ -152,21 +186,14 @@ task "populate-assets", "prepare assets to be used by builder", ->
                 return (function(data) {
                     var input;
 
-                    if(data instanceof String || typeof data === "string") 
-                    {
+                    if(data instanceof String || typeof data === "string") {
                         input = sjcl.codec.utf8String.toBits(data);
-                    }
-                    else if(data instanceof ArrayBuffer) 
-                    {
+                    } else if(data instanceof ArrayBuffer) {
                         var view = new Uint8Array(data);
                         input = sjcl.codec.bytes.toBits(view);
-                    } 
-                    else if(data instanceof Buffer)
-                    {
+                    } else if(data instanceof Buffer) {
                         input = sjcl.codec.bytes.toBits(data);
-                    } 
-                    else 
-                    {
+                    } else {
                         throw Error("invalid input type");
                     }
 
@@ -185,21 +212,14 @@ task "populate-assets", "prepare assets to be used by builder", ->
                 return (function(data) {
                     var output;
 
-                    if(data instanceof String || typeof data === "string") 
-                    {
+                    if(data instanceof String || typeof data === "string") {
                         output = data;
-                    }
-                    else if(data instanceof ArrayBuffer) 
-                    {
+                    } else if(data instanceof ArrayBuffer) {
                         var view = new Uint8Array(data);
                         output = sjcl.codec.utf8String.fromBits(sjcl.codec.bytes.toBits(view));
-                    } 
-                    else if(data instanceof Buffer)
-                    {
+                    } else if(data instanceof Buffer) {
                         output = sjcl.codec.utf8String.fromBits(sjcl.codec.bytes.toBits(data));
-                    } 
-                    else 
-                    {
+                    } else {
                         throw Error("invalid input type");
                     }
 
