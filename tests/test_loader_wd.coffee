@@ -472,7 +472,7 @@ describe "WD.js", ->
                         <script type="text/javascript">
                         (function() {
                             var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
-                            var decoder_func = <%- inline("./encoding/" + decoder_name + ".js") %>
+                            var decoder_func = <%- inline("./decode/" + decoder_name + ".js") %>
                             <%- inline("./localforage.js") %>
                             <%- inline("./loader.js") %>
 
@@ -785,7 +785,7 @@ describe "WD.js", ->
                         <script type="text/javascript">
                         (function() {
                             var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
-                            var decoder_func = <%- inline("./encoding/" + decoder_name + ".js") %>
+                            var decoder_func = <%- inline("./decode/" + decoder_name + ".js") %>
                             <%- inline("./localforage.js") %>
                             <%- inline("./loader.js") %>
 
