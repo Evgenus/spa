@@ -66,13 +66,22 @@ class Logger
     error: (args...) ->
         console.error(clc.bgRed.bold(@prefix), clc.red.bold(args.join(" ")))
 
-sandbox =
-    ArrayBuffer: Object.freeze(ArrayBuffer)
-    Buffer: Object.freeze(Buffer)
-    Uint8Array: Object.freeze(Uint8Array)
+sandbox = -> 
+    window = {}
+    window.window = window
+
+    result = 
+        ArrayBuffer: Object.freeze(ArrayBuffer)
+        Buffer: Object.freeze(Buffer)
+        Uint8Array: Object.freeze(Uint8Array)
+        console: Object.freeze(console)
+        window: Object.freeze(window)
+        Uint32Array: Object.freeze(Uint32Array)
+
+    return result
 
 eval_file = (p, s) ->
-    return vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, p), "utf8"), sandbox)
+    return vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, p), "utf8"), sandbox())
 
 hashers = 
     md5: (data) -> crypto.createHash("md5").update(data).digest('hex')
@@ -132,10 +141,16 @@ class Builder
     calc_hash: (content) -> 
         return hashers[@hash_func](content)
 
-    encode: (content) ->
-        unless @coding_func?
-            return content
-
+    encode: (content, module) ->
+        encoder = encoders[@coding_func.name]
+        result =
+            iter: @coding_func.iter 
+            ks: @coding_func.ks
+            ts: @coding_func.ts
+            auth: module.url
+        data = encoder(content, @coding_func.password, result)
+        module.decoding = result
+        return data
 
     _clear: ->
         @_modules = []
@@ -303,10 +318,12 @@ class Builder
             size: module.size
             type: module.type
             deps: module.deps_ids
+            decoding: module.decoding
 
         manifest = 
             version: packagejson.version
             hash_func: @hash_func
+            decoder_func: if @coding_func? then @coding_func.name else "identity"
             modules: modules
 
         return manifest
@@ -334,7 +351,7 @@ class Builder
         namespace["inline"] = (relative) => @_inject_inline(relative)
         namespace["version"] = packagejson.version
         namespace["hash_name"] = @hash_func
-        namespace["decoder_name"] = @coding_func
+        namespace["decoder_name"] = if @coding_func? then @coding_func.name else "identity"
         if @manifest?
             filepath = path.resolve(@root, @manifest)
             relative = @_relativate(path.relative(@root, filepath))
@@ -379,6 +396,10 @@ class Builder
 
     build: ->
         @_enlist(@root)
+        for module in @_modules
+            module.url = @_host(module.relative)
+            unless module.url?
+                @logger.error("No hosting rules for `#{module.relative}`")
         @_set_ids()
         for module in @_modules
             module.type = @_get_type(module)
@@ -386,23 +407,19 @@ class Builder
         @_link()
         @_sort()
         for module in @_modules
-            module.url = @_host(module.relative)
-            unless module.url?
-                @logger.error("No hosting rules for `#{module.relative}`")
-        for module in @_modules
             source = fs.readFileSync(module.path)
-            destination = @_get_copying(module.relative)
-            unless destination? or @coding_func is "identity"
-                throw new NoCopyingRuleError(module.relative)
 
-            output = @encode(source)
-            if destination?
+            if @coding_func?
+                destination = @_get_copying(module.relative)
+                unless destination?
+                    throw new NoCopyingRuleError(module.relative)
+
+                output = @encode(source, module)
                 @_write_file(destination, output)
-                @logger.info("Writing #{destination}.")
+            else
+                output = source
 
-            start = (new Date()).getTime()
             module.hash = @calc_hash(output)
-            console.log(source.length / ((new Date()).getTime() - start))
             module.size = output.length
 
         if @manifest?
