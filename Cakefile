@@ -233,7 +233,7 @@ task "populate-assets", "prepare assets to be used by builder", ->
     pbkdf2 = fs.readFileSync("./bower_components/sjcl/core/pbkdf2.js", "utf8")
     random = fs.readFileSync("./bower_components/sjcl/core/random.js", "utf8")
 
-    transform "./bower_components/sjcl/core/(ccm|cbc|ocb2|gcm).js", "./lib/assets/decode/aes-$1.js", (input, output, block_mode, match) ->
+    transform "./bower_components/sjcl/core/(ccm|ocb2|gcm).js", "./lib/assets/decode/aes-$1.js", (input, output, block_mode, match) ->
 
         console.log("Combining %s --> %s", input, output)
         mode_name = match[1]
@@ -275,7 +275,7 @@ task "populate-assets", "prepare assets to be used by builder", ->
                 });
             })();""", /Copyright/)
 
-    transform "./bower_components/sjcl/core/(ccm|cbc|ocb2|gcm).js", "./lib/assets/encode/aes-$1.js", (input, output, block_mode, match) ->
+    transform "./bower_components/sjcl/core/(ccm|ocb2|gcm).js", "./lib/assets/encode/aes-$1.js", (input, output, block_mode, match) ->
 
         console.log("Combining %s --> %s", input, output)
         mode_name = match[1]
