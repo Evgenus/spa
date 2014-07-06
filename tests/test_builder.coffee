@@ -580,6 +580,16 @@ describe 'Building with encoder', ->
         expect(fs.existsSync("/build/c.js")).to.be.true
         expect(fs.existsSync("/build/d.js")).to.be.true
 
+        expect(manifest.modules[0].decoding).to.have.properties
+            cipher: -> this.to.be.a("String").equals("aes")
+            mode: -> this.to.be.a("String").equals("gcm")
+            iter: -> this.to.be.a("Number").that.equals(1000)
+            ks: -> this.to.be.a("Number").that.equals(128)
+            ts: -> this.to.be.a("Number").that.equals(128)
+            auth: -> this.to.be.a("String")
+            salt: -> this.to.be.a("String").with.length(16)
+            iv: -> this.to.be.a("String").with.length(32)
+
         expect(decoder(fs.readFileSync("/build/d.js"), "babuka", manifest.modules[0].decoding))
             .to.equal(fs.readFileSync("/testimonial/d.js", encoding: "utf8"))
         expect(decoder(fs.readFileSync("/build/c.js"), "babuka", manifest.modules[1].decoding))
