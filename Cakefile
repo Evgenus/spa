@@ -312,6 +312,8 @@ task "populate-assets", "prepare assets to be used by builder", ->
                         msg = sjcl.codec.bytes.toBits(data);
                     } 
 
+                    p.cipher = "aes";
+                    p.mode = "#{mode_name}";
                     var iv = sjcl.random.randomWords(4, 0);
                     p.iv = sjcl.codec.hex.fromBits(iv);
                     var salt = sjcl.random.randomWords(2, 0);
