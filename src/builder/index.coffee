@@ -322,8 +322,10 @@ class Builder
         manifest = 
             version: packagejson.version
             hash_func: @hash_func
-            decoder_func: if @coding_func? then @coding_func.name else "identity"
             modules: modules
+            
+        if @coding_func?
+            manifest.decoder_func = @coding_func.name
 
         return manifest
 
