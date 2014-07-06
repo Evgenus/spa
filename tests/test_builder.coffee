@@ -508,3 +508,83 @@ describe 'Building module with different hash function', ->
 
     for hash_name, hash_value of hashes
         test(hash_name, hash_value)
+
+describe 'Building with encoder', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            build:
+                placeholder.txt: empty
+            testimonial: 
+                d.js: |
+                    module.exports = function() 
+                    {
+                        return "d";
+                    };
+                c.js: |
+                    var d = require("./d.js"); 
+                    module.exports = function() 
+                    { 
+                        return "c" + d(); 
+                    };
+                b.js: |
+                    var c = require("./c.js");
+                    module.exports = function() 
+                    {
+                        return "b" + c();
+                    };
+                a.js: |
+                    var b = require("./b.js");
+                    module.exports = function() 
+                    {
+                        return "a" + b();
+                    };
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    manifest: "manifest.json"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    coding_func:
+                        name: aes-gcm
+                        password: babuka
+                        iter: 1000
+                        ks: 128
+                        ts: 128
+                    copying:
+                        "./(**/*.*)": "/build/$1"
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    sandbox =
+        ArrayBuffer: Object.freeze(ArrayBuffer)
+        Buffer: Object.freeze(Buffer)
+        Uint8Array: Object.freeze(Uint8Array)
+
+    vm = require("vm")
+    eval_file = (p) ->
+        return vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, p), "utf8"), sandbox)
+
+    decoder = eval_file("../lib/assets/decode/aes-gcm.js")
+
+    it 'should manifest and encrypted files', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+        expect(fs.existsSync("/build/a.js")).to.be.true
+        expect(fs.existsSync("/build/b.js")).to.be.true
+        expect(fs.existsSync("/build/c.js")).to.be.true
+        expect(fs.existsSync("/build/d.js")).to.be.true
+
+        expect(decoder(fs.readFileSync("/build/d.js"), "babuka", manifest.modules[0].decoding))
+            .to.equal(fs.readFileSync("/testimonial/d.js", encoding: "utf8"))
+        expect(decoder(fs.readFileSync("/build/c.js"), "babuka", manifest.modules[1].decoding))
+            .to.equal(fs.readFileSync("/testimonial/c.js", encoding: "utf8"))
+        expect(decoder(fs.readFileSync("/build/b.js"), "babuka", manifest.modules[2].decoding))
+            .to.equal(fs.readFileSync("/testimonial/b.js", encoding: "utf8"))
+        expect(decoder(fs.readFileSync("/build/a.js"), "babuka", manifest.modules[3].decoding))
+            .to.equal(fs.readFileSync("/testimonial/a.js", encoding: "utf8"))
