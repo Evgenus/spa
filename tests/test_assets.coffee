@@ -123,9 +123,8 @@ describe 'Testing cypher functions from assets', ->
             auth: "zzzzzz"
 
         data = encrypt(message, "aaa111", params)
-        expect(decrypt(data, "aaa111", params)).to.equals(message)
-
-        data = encrypt(message, "aaa111", params)
+        expect(params).to.have.property("cipher").that.equals("aes")
+        expect(params).to.have.property("mode").that.equals("ccm")
         expect(decrypt(data, "aaa111", params)).to.equals(message)
 
     it "sjcl aes-gcm", ->
@@ -141,6 +140,8 @@ describe 'Testing cypher functions from assets', ->
             auth: "zzzzzz"
 
         data = encrypt(message, "aaa111", params)
+        expect(params).to.have.property("cipher").that.equals("aes")
+        expect(params).to.have.property("mode").that.equals("gcm")
         expect(decrypt(data, "aaa111", params)).to.equals(message)
 
     it "sjcl aes-ocb2", ->
@@ -156,4 +157,6 @@ describe 'Testing cypher functions from assets', ->
             auth: "zzzzzz"
 
         data = encrypt(message, "aaa111", params)
+        expect(params).to.have.property("cipher").that.equals("aes")
+        expect(params).to.have.property("mode").that.equals("ocb2")
         expect(decrypt(data, "aaa111", params)).to.equals(message)
