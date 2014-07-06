@@ -94,7 +94,6 @@ hashers =
     sha3: eval_file("./assets/hash/sha3.js")
 
 encoders = 
-    "aes-cbc": eval_file("./assets/encode/aes-cbc.js")
     "aes-ccm": eval_file("./assets/encode/aes-ccm.js")
     "aes-gcm": eval_file("./assets/encode/aes-gcm.js")
     "aes-ocb2": eval_file("./assets/encode/aes-ocb2.js")
