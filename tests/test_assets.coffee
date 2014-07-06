@@ -99,26 +99,57 @@ describe 'Testing cypher functions from assets', ->
         ])
         expect(decrypt(ct, "aaa111", params)).to.equals("This page is a demo of the Stanford Javascript Crypto Library.")
 
-    it "sjcl aes-gcm", ->
-        window = {}
-        window.window = window
+    window = {}
+    window.window = window
 
-        s =
-            ArrayBuffer: Object.freeze(ArrayBuffer)
-            Buffer: Object.freeze(Buffer)
-            Uint8Array: Object.freeze(Uint8Array)
-            console: Object.freeze(console)
-            window: Object.freeze(window)
-            Uint32Array: Object.freeze(Uint32Array)
+    esandbox =
+        ArrayBuffer: Object.freeze(ArrayBuffer)
+        Buffer: Object.freeze(Buffer)
+        Uint8Array: Object.freeze(Uint8Array)
+        console: Object.freeze(console)
+        window: Object.freeze(window)
+        Uint32Array: Object.freeze(Uint32Array)
 
-        decrypt = eval_file("../lib/assets/decode/aes-gcm.js", s)
-        encrypt = eval_file("../lib/assets/encode/aes-gcm.js", s)
+    it "sjcl aes-ccm", ->
+        decrypt = eval_file("../lib/assets/decode/aes-ccm.js", esandbox)
+        encrypt = eval_file("../lib/assets/encode/aes-ccm.js", esandbox)
 
         message = gen(5)
 
         params =
-            cipher: "aes"
-            mode: "gcm"
+            iter: 1000
+            ks: 128
+            ts: 128
+            auth: "zzzzzz"
+
+        data = encrypt(message, "aaa111", params)
+        expect(decrypt(data, "aaa111", params)).to.equals(message)
+
+        data = encrypt(message, "aaa111", params)
+        expect(decrypt(data, "aaa111", params)).to.equals(message)
+
+    it "sjcl aes-gcm", ->
+        decrypt = eval_file("../lib/assets/decode/aes-gcm.js", esandbox)
+        encrypt = eval_file("../lib/assets/encode/aes-gcm.js", esandbox)
+
+        message = gen(5)
+
+        params =
+            iter: 1000
+            ks: 128
+            ts: 128
+            auth: "zzzzzz"
+
+        data = encrypt(message, "aaa111", params)
+        expect(decrypt(data, "aaa111", params)).to.equals(message)
+
+    it "sjcl aes-ocb2", ->
+        decrypt = eval_file("../lib/assets/decode/aes-ocb2.js", esandbox)
+        encrypt = eval_file("../lib/assets/encode/aes-ocb2.js", esandbox)
+
+        message = gen(5)
+
+        params =
             iter: 1000
             ks: 128
             ts: 128
