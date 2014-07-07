@@ -424,6 +424,9 @@ describe 'Building renamed manifest', ->
             hash: -> @that.equals("1007f6da5acf8cc2643274276079bc3e")
             url: -> @that.equals("http://127.0.0.1:8010/a.js")
 
+        expect(manifest).not.to.have.property("decoder_func")
+        expect(manifest.modules[0]).not.to.have.property("decoding")
+
 describe 'Building mixed-formats modules', ->
     beforeEach ->
         mock(yaml.safeLoad("""
@@ -574,6 +577,10 @@ describe 'Building with encoder', ->
         expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
 
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+        expect(manifest)
+            .to.have.property("decoder_func")
+            .that.equals("aes-gcm")
 
         expect(fs.existsSync("/build/a.js")).to.be.true
         expect(fs.existsSync("/build/b.js")).to.be.true
