@@ -76,15 +76,16 @@ describe 'Testing cypher functions from assets', ->
     it "sjcl decrypt", ->
         decrypt = eval_file("../lib/assets/decode/aes-ccm.js", sandbox)
 
-        params = 
-            cipher: "aes"
-            mode: "ccm"
-            iter: 1000
-            ks: 128
-            ts: 64
-            iv: "0d9e71975ce5b84732bc9ea325786893",
-            salt: "a4e4d6b02a887b71"
-            auth: ""
+        module =
+            decoding: 
+                cipher: "aes"
+                mode: "ccm"
+                iter: 1000
+                ks: 128
+                ts: 64
+                iv: "0d9e71975ce5b84732bc9ea325786893",
+                salt: "a4e4d6b02a887b71"
+                auth: ""
 
         ct = new Buffer([
             76, 93, 211, 25, 205, 64, 12, 250,
@@ -97,7 +98,12 @@ describe 'Testing cypher functions from assets', ->
             15, 119, 77, 79, 135, 80, 214, 34,
             26, 184, 156, 192, 15, 1
         ])
-        expect(decrypt(ct, "aaa111", params)).to.equals("This page is a demo of the Stanford Javascript Crypto Library.")
+
+        loader =
+            options:
+                password: "aaa111"
+
+        expect(decrypt(ct, module, loader)).to.equals("This page is a demo of the Stanford Javascript Crypto Library.")
 
     window = {}
     window.window = window
@@ -126,10 +132,14 @@ describe 'Testing cypher functions from assets', ->
         module =
             url: "zzzzzz"
 
+        loader =
+            options:
+                password: "aaa111"
+
         data = encrypt(message, module, builder)
         expect(module.decoding).to.have.property("cipher").that.equals("aes")
         expect(module.decoding).to.have.property("mode").that.equals("ccm")
-        expect(decrypt(data, "aaa111", module.decoding)).to.equals(message)
+        expect(decrypt(data, module, loader)).to.equals(message)
 
     it "sjcl aes-gcm", ->
         decrypt = eval_file("../lib/assets/decode/aes-gcm.js", esandbox)
@@ -147,10 +157,14 @@ describe 'Testing cypher functions from assets', ->
         module =
             url: "zzzzzz"
 
+        loader =
+            options:
+                password: "aaa111"
+
         data = encrypt(message, module, builder)
         expect(module.decoding).to.have.property("cipher").that.equals("aes")
         expect(module.decoding).to.have.property("mode").that.equals("gcm")
-        expect(decrypt(data, "aaa111", module.decoding)).to.equals(message)
+        expect(decrypt(data, module, loader)).to.equals(message)
 
     it "sjcl aes-ocb2", ->
         decrypt = eval_file("../lib/assets/decode/aes-ocb2.js", esandbox)
@@ -168,7 +182,11 @@ describe 'Testing cypher functions from assets', ->
         module =
             url: "zzzzzz"
 
+        loader =
+            options:
+                password: "aaa111"
+
         data = encrypt(message, module, builder)
         expect(module.decoding).to.have.property("cipher").that.equals("aes")
         expect(module.decoding).to.have.property("mode").that.equals("ocb2")
-        expect(decrypt(data, "aaa111", module.decoding)).to.equals(message)
+        expect(decrypt(data, module, loader)).to.equals(message)

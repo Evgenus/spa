@@ -137,6 +137,8 @@ task "populate-assets", "prepare assets to be used by builder", ->
         return minify_more("""
             (function() {
                 #{data};
+                var HASH = "#{hash_name.toUpperCase()}";
+
                 return (function(data) {
                     var wa;
                     if (data instanceof String || typeof data === "string") {
@@ -157,7 +159,7 @@ task "populate-assets", "prepare assets to be used by builder", ->
                         }
                         wa = CryptoJS.lib.WordArray.create(words, len);
                     }
-                    var hash = CryptoJS.algo["#{hash_name.toUpperCase()}"].create();
+                    var hash = CryptoJS.algo[HASH].create();
                     hash.update(wa);
                     return hash.finalize().toString(CryptoJS.enc.Hex);
                 });
@@ -183,6 +185,8 @@ task "populate-assets", "prepare assets to be used by builder", ->
                 #{codecHex};
 
                 #{hash_func};
+                var HASH = "#{hash_name}";
+
                 return (function(data) {
                     var input;
 
@@ -197,7 +201,7 @@ task "populate-assets", "prepare assets to be used by builder", ->
                         throw Error("invalid input type");
                     }
 
-                    return sjcl.codec.hex.fromBits(sjcl.hash.#{hash_name}.hash(input))
+                    return sjcl.codec.hex.fromBits(sjcl.hash[HASH].hash(input))
                 });
             })();""", /Copyright/)
 
@@ -252,8 +256,9 @@ task "populate-assets", "prepare assets to be used by builder", ->
                 #{pbkdf2};
 
                 #{block_mode};
+                var MODE = "#{mode_name}";
 
-                return (function(data, password, p) {
+                var decoder = function(data, password, p) {
                     var ct;
                     if(data instanceof ArrayBuffer) 
                     {
@@ -270,8 +275,12 @@ task "populate-assets", "prepare assets to be used by builder", ->
                     var key = sjcl.misc.pbkdf2(password, salt, p.iter).slice(0, p.ks / 32);
                     var prp = new sjcl.cipher.aes(key);
                     var auth = sjcl.codec.utf8String.toBits(p.auth);
-                    var text = sjcl.mode.#{mode_name}.decrypt(prp, ct, iv, auth, p.ts);
+                    var text = sjcl.mode[MODE].decrypt(prp, ct, iv, auth, p.ts);
                     return sjcl.codec.utf8String.fromBits(text);
+                };
+
+                return (function(content, module, loader) {
+                    return decoder(content, loader.options.password, module.decoding)
                 });
             })();""", /Copyright/)
 

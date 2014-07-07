@@ -597,11 +597,15 @@ describe 'Building with encoder', ->
             salt: -> this.to.be.a("String").with.length(16)
             iv: -> this.to.be.a("String").with.length(32)
 
-        expect(decoder(fs.readFileSync("/build/d.js"), "babuka", manifest.modules[0].decoding))
+        loader =
+            options:
+                password: "babuka"
+
+        expect(decoder(fs.readFileSync("/build/d.js"), manifest.modules[0], loader))
             .to.equal(fs.readFileSync("/testimonial/d.js", encoding: "utf8"))
-        expect(decoder(fs.readFileSync("/build/c.js"), "babuka", manifest.modules[1].decoding))
+        expect(decoder(fs.readFileSync("/build/c.js"), manifest.modules[1], loader))
             .to.equal(fs.readFileSync("/testimonial/c.js", encoding: "utf8"))
-        expect(decoder(fs.readFileSync("/build/b.js"), "babuka", manifest.modules[2].decoding))
+        expect(decoder(fs.readFileSync("/build/b.js"), manifest.modules[2], loader))
             .to.equal(fs.readFileSync("/testimonial/b.js", encoding: "utf8"))
-        expect(decoder(fs.readFileSync("/build/a.js"), "babuka", manifest.modules[3].decoding))
+        expect(decoder(fs.readFileSync("/build/a.js"), manifest.modules[3], loader))
             .to.equal(fs.readFileSync("/testimonial/a.js", encoding: "utf8"))

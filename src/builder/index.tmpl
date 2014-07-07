@@ -9,15 +9,6 @@
     var hash_func = <%- inline("./hash/" + hash_name + ".js") %>
     var decoder_func = <%- inline("./decode/" + decoder_name + ".js") %>
 
-<% if(passcode_required) { %>
-    var passcode = null;
-    var decoder_wrapper = function(source, module, loader) {
-        return decoder_func(source, passcode, module.decoding)
-    };
-<% } else { %>
-    var decoder_wrapper = decoder_func;
-<% } %>
-
     <%- inline("./localforage.js") %>
     <%- inline("./loader.js") %>
 
@@ -29,7 +20,7 @@
         "hash_func": hash_func,
         "randomize_urls": <%- randomize_urls %>,
         "decoder_name": "<%- decoder_name %>",
-        "decoder_func": decoder_wrapper,
+        "decoder_func": decoder_func,
     });
 
     <%- inline("./bootstrap.js") %>
@@ -37,7 +28,7 @@
 <% if(passcode_required) { %>
     var oldEvaluationStarted = loader.onEvaluationStarted;
     loader.onEvaluationStarted = function(manifest) {
-        if (passcode !== null) {
+        if (loader.options.password !== null) {
             if(oldEvaluationStarted) {
                 return oldEvaluationStarted(manifest);
             } else {
@@ -49,7 +40,7 @@
             $("#page-pass").removeClass("hide");
             var form = $("#page-pass form");
             form.bind("submit", function(event) {
-                passcode = this.elements["passcode"].value;
+                loader.options.password = this.elements["passcode"].value;
                 loader.load();
                 event.preventDefault();
                 return false;
