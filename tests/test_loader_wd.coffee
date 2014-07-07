@@ -1145,3 +1145,79 @@ describe "WD.js", ->
             .title().should.eventually.become("abd")
             .safeExecute("localforage.clear()")
             .nodeify(done)
+
+    it 'passcode test', (done) ->
+        return @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    build:
+                        placeholder.txt: yo
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        a.js: |
+                            var loader = require("loader");
+                            loader.onApplicationReady = function() 
+                            {
+                                document.title = "version_8";
+                                loader.checkUpdate();
+                            };
+                            loader.onUpdateCompleted = function(event) {
+                                setTimeout(location.reload.bind(location), 0)
+                                return true
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            manifest: "./manifest.json"
+                            index: "./index.html"
+                            randomize_urls: false
+                            hosting:
+                                "./(*.js)": "/build/$1"
+                            copying:
+                                "./(*.js)": "/build/$1"
+                            coding_func:
+                                name: aes-gcm
+                                password: babuka
+                                iter: 1000
+                                ks: 128
+                                ts: 128
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .clearLocalStorage()
+            .then => @urls_log.clear()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3 * DELAY)
+            .elementByCss("input[type=password]").isDisplayed().should.become(true)
+            .elementByCss("input[type=password]")
+                .sendKeys("passpass")
+                .getValue().should.become("passpass");
+            .elementByCss("input[type=submit]")
+                .click()
+            .sleep(DELAY)
+            .elementByCss("input[type=password]").isDisplayed().should.become(false)
+            .elementByCss("input[type=submit]").isDisplayed().should.become(false)
+            .sleep(MALFUNCTION_DELAY)
+            .elementById("btn-retry").isDisplayed().should.become(true)
+            .elementById("btn-retry").click()
+            .sleep(DELAY)
+            .elementByCss("input[type=password]").isDisplayed().should.become(true)
+            .elementByCss("input[type=password]")
+                .sendKeys("babuka")
+                .getValue().should.become("babuka");
+            .elementByCss("input[type=submit]")
+                .click()
+            .sleep(DELAY)
+            .title().should.become("version_8")
+            .safeExecute("localforage.clear()")
+            .nodeify(done)
