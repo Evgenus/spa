@@ -28,7 +28,7 @@
 <% if(passcode_required) { %>
     var oldEvaluationStarted = loader.onEvaluationStarted;
     loader.onEvaluationStarted = function(manifest) {
-        if (loader.options.password !== null) {
+        if (loader.options.password) {
             if(oldEvaluationStarted) {
                 return oldEvaluationStarted(manifest);
             } else {
