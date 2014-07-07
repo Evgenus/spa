@@ -142,14 +142,7 @@ class Builder
 
     encode: (content, module) ->
         encoder = encoders[@coding_func.name]
-        result =
-            iter: @coding_func.iter 
-            ks: @coding_func.ks
-            ts: @coding_func.ts
-            auth: module.url
-        data = encoder(content, @coding_func.password, result)
-        module.decoding = result
-        return data
+        return encoder(content, module, this)
 
     _clear: ->
         @_modules = []

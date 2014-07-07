@@ -116,16 +116,20 @@ describe 'Testing cypher functions from assets', ->
 
         message = gen(5)
 
-        params =
-            iter: 1000
-            ks: 128
-            ts: 128
-            auth: "zzzzzz"
+        builder =
+            coding_func:
+                password: "aaa111"
+                iter: 1000
+                ks: 128
+                ts: 128
 
-        data = encrypt(message, "aaa111", params)
-        expect(params).to.have.property("cipher").that.equals("aes")
-        expect(params).to.have.property("mode").that.equals("ccm")
-        expect(decrypt(data, "aaa111", params)).to.equals(message)
+        module =
+            url: "zzzzzz"
+
+        data = encrypt(message, module, builder)
+        expect(module.decoding).to.have.property("cipher").that.equals("aes")
+        expect(module.decoding).to.have.property("mode").that.equals("ccm")
+        expect(decrypt(data, "aaa111", module.decoding)).to.equals(message)
 
     it "sjcl aes-gcm", ->
         decrypt = eval_file("../lib/assets/decode/aes-gcm.js", esandbox)
@@ -133,16 +137,20 @@ describe 'Testing cypher functions from assets', ->
 
         message = gen(5)
 
-        params =
-            iter: 1000
-            ks: 128
-            ts: 128
-            auth: "zzzzzz"
+        builder =
+            coding_func:
+                password: "aaa111"
+                iter: 1000
+                ks: 128
+                ts: 128
 
-        data = encrypt(message, "aaa111", params)
-        expect(params).to.have.property("cipher").that.equals("aes")
-        expect(params).to.have.property("mode").that.equals("gcm")
-        expect(decrypt(data, "aaa111", params)).to.equals(message)
+        module =
+            url: "zzzzzz"
+
+        data = encrypt(message, module, builder)
+        expect(module.decoding).to.have.property("cipher").that.equals("aes")
+        expect(module.decoding).to.have.property("mode").that.equals("gcm")
+        expect(decrypt(data, "aaa111", module.decoding)).to.equals(message)
 
     it "sjcl aes-ocb2", ->
         decrypt = eval_file("../lib/assets/decode/aes-ocb2.js", esandbox)
@@ -150,13 +158,17 @@ describe 'Testing cypher functions from assets', ->
 
         message = gen(5)
 
-        params =
-            iter: 1000
-            ks: 128
-            ts: 128
-            auth: "zzzzzz"
+        builder =
+            coding_func:
+                password: "aaa111"
+                iter: 1000
+                ks: 128
+                ts: 128
 
-        data = encrypt(message, "aaa111", params)
-        expect(params).to.have.property("cipher").that.equals("aes")
-        expect(params).to.have.property("mode").that.equals("ocb2")
-        expect(decrypt(data, "aaa111", params)).to.equals(message)
+        module =
+            url: "zzzzzz"
+
+        data = encrypt(message, module, builder)
+        expect(module.decoding).to.have.property("cipher").that.equals("aes")
+        expect(module.decoding).to.have.property("mode").that.equals("ocb2")
+        expect(decrypt(data, "aaa111", module.decoding)).to.equals(message)

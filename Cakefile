@@ -295,8 +295,10 @@ task "populate-assets", "prepare assets to be used by builder", ->
                 #{random};
 
                 #{block_mode};
+                var MODE = "#{mode_name}";
 
-                return (function(data, password, p) {
+                var encoder = function(data, password, p) 
+                {
                     var msg;
                     if(data instanceof String || typeof data === "string") 
                     {
@@ -310,10 +312,10 @@ task "populate-assets", "prepare assets to be used by builder", ->
                     else if(data instanceof Buffer)
                     {
                         msg = sjcl.codec.bytes.toBits(data);
-                    } 
+                    }
 
                     p.cipher = "aes";
-                    p.mode = "#{mode_name}";
+                    p.mode = MODE;
                     var iv = sjcl.random.randomWords(4, 0);
                     p.iv = sjcl.codec.hex.fromBits(iv);
                     var salt = sjcl.random.randomWords(2, 0);
@@ -321,8 +323,20 @@ task "populate-assets", "prepare assets to be used by builder", ->
                     var key = sjcl.misc.pbkdf2(password, salt, p.iter).slice(0, p.ks / 32);
                     var auth = sjcl.codec.utf8String.toBits(p.auth);
                     var prp = new sjcl.cipher.aes(key);
-                    var ct = sjcl.mode.#{mode_name}.encrypt(prp, msg, iv, auth, p.ts);
+                    var ct = sjcl.mode[MODE].encrypt(prp, msg, iv, auth, p.ts);
                     return new Buffer(sjcl.codec.bytes.fromBits(ct));
+                }
+
+                return (function(content, module, builder) {
+                    var result = {
+                        iter: builder.coding_func.iter,
+                        ks: builder.coding_func.ks,
+                        ts: builder.coding_func.ts,
+                        auth: module.url,
+                    };
+                    var data = encoder(content, builder.coding_func.password, result);
+                    module.decoding = result;
+                    return data;
                 });
             })();""", /Copyright/)
 
