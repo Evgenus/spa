@@ -129,6 +129,8 @@ task "compile-loader", "compile loader coffee source into javascript", ->
 
 task "populate-assets", "prepare assets to be used by builder", ->
 
+    cryptojs_hash = coffee.compile(fs.readFileSync("./src/assets/cryptojs-hash.coffee", "utf8"), bare: true)
+
     transform "./bower_components/cryptojslib/rollups/(md5|sha224|sha3|sha384|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
 
         console.log("    Combining %s --> %s", input, output)
@@ -137,32 +139,8 @@ task "populate-assets", "prepare assets to be used by builder", ->
         return minify_more("""
             (function() {
                 #{data};
-                var HASH = "#{hash_name.toUpperCase()}";
-
-                return (function(data) {
-                    var wa;
-                    if (data instanceof String || typeof data === "string") {
-                        wa = CryptoJS.enc.Utf8.parse(data);
-                    } else {
-                        var words = [];
-                        var array;
-                        if (data instanceof ArrayBuffer) {
-                            array = new Uint8Array(data);
-                        } else if(data instanceof Buffer) {
-                            array = data;
-                        } else {
-                            throw Error("invalid input type");
-                        }
-                        var len = array.length;
-                        for (var i = 0; i < len; i++) {
-                            words[i >>> 2] |= (array[i] & 0xff) << (24 - (i % 4) * 8);
-                        }
-                        wa = CryptoJS.lib.WordArray.create(words, len);
-                    }
-                    var hash = CryptoJS.algo[HASH].create();
-                    hash.update(wa);
-                    return hash.finalize().toString(CryptoJS.enc.Hex);
-                });
+                var factory = #{cryptojs_hash};
+                return factory("#{hash_name.toUpperCase()}");
             })();""")
 
     sjcl = fs.readFileSync("./bower_components/sjcl/core/sjcl.js", "utf8")
@@ -170,6 +148,8 @@ task "populate-assets", "prepare assets to be used by builder", ->
     codecBytes = fs.readFileSync("./bower_components/sjcl/core/codecBytes.js", "utf8")
     codecString = fs.readFileSync("./bower_components/sjcl/core/codecString.js", "utf8")
     codecHex = fs.readFileSync("./bower_components/sjcl/core/codecHex.js", "utf8")
+
+    sjcl_hash = coffee.compile(fs.readFileSync("./src/assets/sjcl-hash.coffee", "utf8"), bare: true)
 
     transform "./bower_components/sjcl/core/(sha1|sha256|sha512).js", "./lib/assets/hash/$1.js", (input, output, hash_func, match) ->
 
@@ -185,51 +165,23 @@ task "populate-assets", "prepare assets to be used by builder", ->
                 #{codecHex};
 
                 #{hash_func};
-                var HASH = "#{hash_name}";
-
-                return (function(data) {
-                    var input;
-
-                    if(data instanceof String || typeof data === "string") {
-                        input = sjcl.codec.utf8String.toBits(data);
-                    } else if(data instanceof ArrayBuffer) {
-                        var view = new Uint8Array(data);
-                        input = sjcl.codec.bytes.toBits(view);
-                    } else if(data instanceof Buffer) {
-                        input = sjcl.codec.bytes.toBits(data);
-                    } else {
-                        throw Error("invalid input type");
-                    }
-
-                    return sjcl.codec.hex.fromBits(sjcl.hash[HASH].hash(input))
-                });
+                var factory = #{sjcl_hash};
+                return factory("#{hash_name}");
             })();""", /Copyright/)
 
+    sjcl_identity = coffee.compile(fs.readFileSync("./src/assets/sjcl-identity.coffee", "utf8"), bare: true)
+
     console.log("Combining --> %s", "./lib/assets/cypher/identity.js")
-    write_file("./lib/assets/decode/identity.js", """
+    write_file("./lib/assets/decode/identity.js", minify_more("""
             (function() {
                 #{sjcl};
                 #{bitArray};
                 #{codecBytes};
                 #{codecString};
 
-                return (function(data) {
-                    var output;
-
-                    if(data instanceof String || typeof data === "string") {
-                        output = data;
-                    } else if(data instanceof ArrayBuffer) {
-                        var view = new Uint8Array(data);
-                        output = sjcl.codec.utf8String.fromBits(sjcl.codec.bytes.toBits(view));
-                    } else if(data instanceof Buffer) {
-                        output = sjcl.codec.utf8String.fromBits(sjcl.codec.bytes.toBits(data));
-                    } else {
-                        throw Error("invalid input type");
-                    }
-
-                    return output;
-                });
-            })();""")
+                var factory = #{sjcl_identity};
+                return factory();
+            })();""", /Copyright/))
 
     aes = fs.readFileSync("./bower_components/sjcl/core/aes.js", "utf8")
     sha256 = fs.readFileSync("./bower_components/sjcl/core/sha256.js", "utf8")
@@ -237,52 +189,9 @@ task "populate-assets", "prepare assets to be used by builder", ->
     pbkdf2 = fs.readFileSync("./bower_components/sjcl/core/pbkdf2.js", "utf8")
     random = fs.readFileSync("./bower_components/sjcl/core/random.js", "utf8")
 
-    transform "./bower_components/sjcl/core/(ccm|ocb2|gcm).js", "./lib/assets/decode/aes-$1.js", (input, output, block_mode, match) ->
+    #28 ISSUE. Here you could build additional decoders for compression or encryption
 
-        console.log("Combining %s --> %s", input, output)
-        mode_name = match[1]
-
-        return minify_more("""
-            (function() {
-                #{sjcl};
-                #{bitArray};
-                #{codecBytes};
-                #{codecString};
-                #{codecHex};
-
-                #{aes};
-                #{sha256};
-                #{hmac};
-                #{pbkdf2};
-
-                #{block_mode};
-                var MODE = "#{mode_name}";
-
-                var decoder = function(data, password, p) {
-                    var ct;
-                    if(data instanceof ArrayBuffer) 
-                    {
-                        var view = new Uint8Array(data);
-                        ct = sjcl.codec.bytes.toBits(view);
-                    } 
-                    else if(data instanceof Buffer)
-                    {
-                        ct = sjcl.codec.bytes.toBits(data);
-                    } 
-
-                    var salt = sjcl.codec.hex.toBits(p.salt);
-                    var iv = sjcl.codec.hex.toBits(p.iv);
-                    var key = sjcl.misc.pbkdf2(password, salt, p.iter).slice(0, p.ks / 32);
-                    var prp = new sjcl.cipher.aes(key);
-                    var auth = sjcl.codec.utf8String.toBits(p.auth);
-                    var text = sjcl.mode[MODE].decrypt(prp, ct, iv, auth, p.ts);
-                    return sjcl.codec.utf8String.fromBits(text);
-                };
-
-                return (function(content, module, loader) {
-                    return decoder(content, loader.options.password, module.decoding)
-                });
-            })();""", /Copyright/)
+    sjcl_encoder = coffee.compile(fs.readFileSync("./src/assets/sjcl-encoder.coffee", "utf8"), bare: true)
 
     transform "./bower_components/sjcl/core/(ccm|ocb2|gcm).js", "./lib/assets/encode/aes-$1.js", (input, output, block_mode, match) ->
 
@@ -304,52 +213,36 @@ task "populate-assets", "prepare assets to be used by builder", ->
                 #{random};
 
                 #{block_mode};
-                var MODE = "#{mode_name}";
-
-                var encoder = function(data, password, p) 
-                {
-                    var msg;
-                    if(data instanceof String || typeof data === "string") 
-                    {
-                        msg = sjcl.codec.utf8String.toBits(data);
-                    }
-                    else if(data instanceof ArrayBuffer) 
-                    {
-                        var view = new Uint8Array(data);
-                        msg = sjcl.codec.bytes.toBits(view);
-                    } 
-                    else if(data instanceof Buffer)
-                    {
-                        msg = sjcl.codec.bytes.toBits(data);
-                    }
-
-                    p.cipher = "aes";
-                    p.mode = MODE;
-                    var iv = sjcl.random.randomWords(4, 0);
-                    p.iv = sjcl.codec.hex.fromBits(iv);
-                    var salt = sjcl.random.randomWords(2, 0);
-                    p.salt = sjcl.codec.hex.fromBits(salt);
-                    var key = sjcl.misc.pbkdf2(password, salt, p.iter).slice(0, p.ks / 32);
-                    var auth = sjcl.codec.utf8String.toBits(p.auth);
-                    var prp = new sjcl.cipher.aes(key);
-                    var ct = sjcl.mode[MODE].encrypt(prp, msg, iv, auth, p.ts);
-                    return new Buffer(sjcl.codec.bytes.fromBits(ct));
-                }
-
-                return (function(content, module, builder) {
-                    var result = {
-                        iter: builder.coding_func.iter,
-                        ks: builder.coding_func.ks,
-                        ts: builder.coding_func.ts,
-                        auth: module.url,
-                    };
-                    var data = encoder(content, builder.coding_func.password, result);
-                    module.decoding = result;
-                    return data;
-                });
+                var factory = #{sjcl_encoder};
+                return factory("#{mode_name}");
             })();""", /Copyright/)
 
     #28 ISSUE. Here you could build additional decoders for compression or encryption
+
+    sjcl_decoder = coffee.compile(fs.readFileSync("./src/assets/sjcl-decoder.coffee", "utf8"), bare: true)
+
+    transform "./bower_components/sjcl/core/(ccm|ocb2|gcm).js", "./lib/assets/decode/aes-$1.js", (input, output, block_mode, match) ->
+
+        console.log("Combining %s --> %s", input, output)
+        mode_name = match[1]
+
+        return minify_more("""
+            (function() {
+                #{sjcl};
+                #{bitArray};
+                #{codecBytes};
+                #{codecString};
+                #{codecHex};
+
+                #{aes};
+                #{sha256};
+                #{hmac};
+                #{pbkdf2};
+
+                #{block_mode};
+                var factory = #{sjcl_decoder};
+                return factory("#{mode_name}");
+            })();""", /Copyright/)
 
     transform "./bower_components/localforage/dist/(localforage).min.js", "./lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)

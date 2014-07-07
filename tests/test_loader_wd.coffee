@@ -670,7 +670,7 @@ describe "WD.js", ->
             .safeExecute("localforage.clear()")
             .nodeify(done)
 
-    it 'should load big files', (done) ->
+    it.only 'should load big files', (done) ->
         return @browser
             .then =>
                 system = yaml.safeLoad("""
@@ -728,7 +728,7 @@ describe "WD.js", ->
             .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(25 * DELAY)
+            .sleep(30 * DELAY)
             .title()
             .then (title) =>
                 expect(title).to.equal("3934350")
