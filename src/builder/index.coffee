@@ -323,7 +323,7 @@ class Builder
             version: packagejson.version
             hash_func: @hash_func
             modules: modules
-            
+
         if @coding_func?
             manifest.decoder_func = @coding_func.name
 
@@ -353,6 +353,7 @@ class Builder
         namespace["version"] = packagejson.version
         namespace["hash_name"] = @hash_func
         namespace["decoder_name"] = if @coding_func? then @coding_func.name else "identity"
+        namespace["passcode_required"] = @coding_func?
         if @manifest?
             filepath = path.resolve(@root, @manifest)
             relative = @_relativate(path.relative(@root, filepath))
