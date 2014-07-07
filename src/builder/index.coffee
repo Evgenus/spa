@@ -66,6 +66,20 @@ class Logger
     error: (args...) ->
         console.error(clc.bgRed.bold(@prefix), clc.red.bold(args.join(" ")))
 
+class DB
+    constructor: (@filename) ->
+        @_data = JSON.parse(fs.readFileSync(@filename))
+    get: (key) ->
+        return @_data[key]
+    set: (key, value) -> 
+        @_data[key] = JSON.stringify(value)
+    del: (key) ->
+        delete @_data[key]
+    has: (key) ->
+        return data in key
+    flush: 
+        fs.writeFileSync(@filename, JSON.stringify(@_data))
+
 sandbox = -> 
     window = {}
     window.window = window
