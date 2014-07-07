@@ -403,6 +403,7 @@ class Builder
         @_sort()
         for module in @_modules
             source = fs.readFileSync(module.path)
+            module.source_hash = @calc_hash(source)
 
             if @coding_func?
                 destination = @_get_copying(module.relative)
@@ -411,11 +412,11 @@ class Builder
 
                 output = @encode(source, module)
                 @_write_file(destination, output)
+                module.hash = @calc_hash(output)
+                module.size = output.length
             else
-                output = source
-
-            module.hash = @calc_hash(output)
-            module.size = output.length
+                module.hash = module.source_hash
+                module.size = source.length
 
         if @manifest?
             manifest_data = @_create_manifest()

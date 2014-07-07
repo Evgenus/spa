@@ -670,7 +670,7 @@ describe "WD.js", ->
             .safeExecute("localforage.clear()")
             .nodeify(done)
 
-    it.only 'should load big files', (done) ->
+    it 'should load big files', (done) ->
         return @browser
             .then =>
                 system = yaml.safeLoad("""
