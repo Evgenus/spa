@@ -4,6 +4,8 @@
 [![devDependency Status](https://david-dm.org/Evgenus/spa/dev-status.svg)](https://david-dm.org/Evgenus/spa#info=devDependencies)
 [![GitHub version](https://badge.fury.io/gh/Evgenus%2Fspa.svg)](http://badge.fury.io/gh/Evgenus%2Fspa)
 
+![SPA](./artwork/spa.png)
+
 **S** ingle **P** age **A** pplications builder with continuous integration, granular updates and loader.
 
 The general idea is to calculate dependencies offline and then eagerly cache/load modules in predefined order.

@@ -38,13 +38,30 @@ minify = (source) ->
 
     return minified
 
-minify_more = (source) ->
+minify_more = (source, comments) ->
     ast = uglify.parse(source)
     ast.figure_out_scope()
     ast.compute_char_frequency()
     ast.mangle_names()
-    
+
     compressor = uglify.Compressor
+        sequences     : true
+        properties    : true
+        dead_code     : true
+        drop_debugger : true
+        unsafe        : false
+        conditionals  : true
+        comparisons   : true
+        evaluate      : true
+        booleans      : true
+        loops         : true
+        unused        : true
+        hoist_funs    : true
+        hoist_vars    : false
+        if_return     : true
+        join_vars     : true
+        cascade       : true
+        side_effects  : true
         warnings      : false
         negate_iife   : false
         global_defs: {}
@@ -52,7 +69,7 @@ minify_more = (source) ->
     compressed = ast.transform(compressor)
     minified = compressed.print_to_string
         bracketize    : true
-        comments      : /License/
+        comments      : comments ? /License/
 
     return minified
 
@@ -112,48 +129,120 @@ task "compile-loader", "compile loader coffee source into javascript", ->
 
 task "populate-assets", "prepare assets to be used by builder", ->
 
-    transform "./src/cryptojs/encoder.coffee", null, (input, _, data) ->
-        encoder = coffee.compile(data, bare: true)
-        console.log("Compiling %s -->", input)
+    cryptojs_hash = coffee.compile(fs.readFileSync("./src/assets/cryptojs-hash.coffee", "utf8"), bare: true)
 
-        transform "./bower_components/cryptojslib/rollups/(md5|sha1|sha224|sha256|sha3|sha384|sha512|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
+    transform "./bower_components/cryptojslib/rollups/(md5|sha224|sha3|sha384|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
 
-            console.log("    Combining %s --> %s", input, output)
-            hash_name = match[1]
+        console.log("    Combining %s --> %s", input, output)
+        hash_name = match[1]
 
-            return minify_more("""
-                (function() {
-                    #{data};
-                    var encoder = #{encoder}
-                    return (function(data) {
-                        var hash = CryptoJS.algo["#{hash_name.toUpperCase()}"].create();
-                        hash.update(encoder(data));
-                        return hash.finalize().toString(CryptoJS.enc.Hex);
-                    });
-                })();""")
+        return minify_more("""
+            (function() {
+                #{data};
+                var factory = #{cryptojs_hash};
+                return factory("#{hash_name.toUpperCase()}");
+            })();""")
 
-    transform "./src/cryptojs/encoder.coffee", null, (input, _, data) ->
-        encoder = coffee.compile(data, bare: true)
-        console.log("Compiling %s -->", input)
+    sjcl = fs.readFileSync("./bower_components/sjcl/core/sjcl.js", "utf8")
+    bitArray = fs.readFileSync("./bower_components/sjcl/core/bitArray.js", "utf8")
+    codecBytes = fs.readFileSync("./bower_components/sjcl/core/codecBytes.js", "utf8")
+    codecString = fs.readFileSync("./bower_components/sjcl/core/codecString.js", "utf8")
+    codecHex = fs.readFileSync("./bower_components/sjcl/core/codecHex.js", "utf8")
 
-        transform "./src/cryptojs/decoder.coffee", null, (input, _, data) ->
-            decoder = coffee.compile(data, bare: true)
-            console.log("Compiling %s -->", input)
+    sjcl_hash = coffee.compile(fs.readFileSync("./src/assets/sjcl-hash.coffee", "utf8"), bare: true)
 
-            transform "./bower_components/cryptojslib/components/core.js", "./lib/assets/encoding/identity.js", (input, output, data) ->
+    transform "./bower_components/sjcl/core/(sha1|sha256|sha512).js", "./lib/assets/hash/$1.js", (input, output, hash_func, match) ->
 
-                console.log("    Combining --> %s", "./lib/assets/cypher/identity.js")
-                return minify_more("""
-                    (function() {
-                        #{data};
-                        var encoder = #{encoder}
-                        var decoder = #{decoder}
-                        return (function(data, password) {
-                            return decoder(encoder(data));
-                        });
-                    })();""")
+        console.log("Combining %s --> %s", input, output)
+        hash_name = match[1]
 
-            #28 ISSUE. Here you could build additional decoders for compression or encryption
+        return minify_more("""
+            (function() {
+                #{sjcl};
+                #{bitArray};
+                #{codecBytes};
+                #{codecString};
+                #{codecHex};
+
+                #{hash_func};
+                var factory = #{sjcl_hash};
+                return factory("#{hash_name}");
+            })();""", /Copyright/)
+
+    sjcl_identity = coffee.compile(fs.readFileSync("./src/assets/sjcl-identity.coffee", "utf8"), bare: true)
+
+    console.log("Combining --> %s", "./lib/assets/cypher/identity.js")
+    write_file("./lib/assets/decode/identity.js", minify_more("""
+            (function() {
+                #{sjcl};
+                #{bitArray};
+                #{codecBytes};
+                #{codecString};
+
+                var factory = #{sjcl_identity};
+                return factory();
+            })();""", /Copyright/))
+
+    aes = fs.readFileSync("./bower_components/sjcl/core/aes.js", "utf8")
+    sha256 = fs.readFileSync("./bower_components/sjcl/core/sha256.js", "utf8")
+    hmac = fs.readFileSync("./bower_components/sjcl/core/hmac.js", "utf8")
+    pbkdf2 = fs.readFileSync("./bower_components/sjcl/core/pbkdf2.js", "utf8")
+    random = fs.readFileSync("./bower_components/sjcl/core/random.js", "utf8")
+
+    #28 ISSUE. Here you could build additional decoders for compression or encryption
+
+    sjcl_encoder = coffee.compile(fs.readFileSync("./src/assets/sjcl-encoder.coffee", "utf8"), bare: true)
+
+    transform "./bower_components/sjcl/core/(ccm|ocb2|gcm).js", "./lib/assets/encode/aes-$1.js", (input, output, block_mode, match) ->
+
+        console.log("Combining %s --> %s", input, output)
+        mode_name = match[1]
+
+        return minify_more("""
+            (function() {
+                #{sjcl};
+                #{bitArray};
+                #{codecBytes};
+                #{codecString};
+                #{codecHex};
+
+                #{aes};
+                #{sha256};
+                #{hmac};
+                #{pbkdf2};
+                #{random};
+
+                #{block_mode};
+                var factory = #{sjcl_encoder};
+                return factory("#{mode_name}");
+            })();""", /Copyright/)
+
+    #28 ISSUE. Here you could build additional decoders for compression or encryption
+
+    sjcl_decoder = coffee.compile(fs.readFileSync("./src/assets/sjcl-decoder.coffee", "utf8"), bare: true)
+
+    transform "./bower_components/sjcl/core/(ccm|ocb2|gcm).js", "./lib/assets/decode/aes-$1.js", (input, output, block_mode, match) ->
+
+        console.log("Combining %s --> %s", input, output)
+        mode_name = match[1]
+
+        return minify_more("""
+            (function() {
+                #{sjcl};
+                #{bitArray};
+                #{codecBytes};
+                #{codecString};
+                #{codecHex};
+
+                #{aes};
+                #{sha256};
+                #{hmac};
+                #{pbkdf2};
+
+                #{block_mode};
+                var factory = #{sjcl_decoder};
+                return factory("#{mode_name}");
+            })();""", /Copyright/)
 
     transform "./bower_components/localforage/dist/(localforage).min.js", "./lib/assets/$1.js", (input, output, data) ->
         console.log("Copying %s --> %s", input, output)
@@ -190,5 +279,5 @@ task "build", "compile all coffeescript files to javascript", ->
 
 task "sbuild", "build routine for sublime", ->
     invoke 'build'
-    invoke 'test'
+    #invoke 'test'
 

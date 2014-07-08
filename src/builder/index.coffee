@@ -1,4 +1,5 @@
 fs = require('fs')
+vm = require("vm")
 walker = require('fs-walk-glob-rules')
 globrules = require('glob-rules')
 path = require('path')
@@ -6,12 +7,12 @@ clc = require('cli-color')
 detectiveCJS = require('detective')
 detectiveAMD = require('detective-amd')
 definition = require('module-definition').sync
-CryptoJS = require("crypto-js")
 yaml = require('js-yaml')
 ejs = require("ejs")
 _  = require('underscore')
 _.string =  require('underscore.string')
 _.mixin(_.string.exports())
+crypto = require("crypto")
 
 packagejson = ( ->
     packagepath = path.resolve(__dirname, '../package.json')
@@ -65,57 +66,56 @@ class Logger
     error: (args...) ->
         console.error(clc.bgRed.bold(@prefix), clc.red.bold(args.join(" ")))
 
-encode_data = (data) ->
-    if data instanceof Buffer
-        words = []
-        len = data.length
-        i = 0
-        while i < len
-            words[i >>> 2] |= (data[i] & 0xff) << (24 - (i % 4) * 8)
-            i++
-        return CryptoJS.lib.WordArray.create(words, len)
-    
-    if data instanceof String or typeof data is "string"
-        return CryptoJS.enc.Utf8.parse(data)
+class DB
+    constructor: (@filename) ->
+        if @filename? and fs.existsSync(@filename)
+            @_data = JSON.parse(fs.readFileSync(@filename))
+        else
+            @_data = {}
+    get: (key) ->
+        content = @_data[key]
+        if content?
+            return JSON.parse(content)
+    set: (key, value) -> 
+        @_data[key] = JSON.stringify(value)
+    del: (key) ->
+        delete @_data[key]
+    has: (key) ->
+        return @_data.hasOwnProperty(key)
+    flush: ->
+        fs.writeFileSync(@filename, JSON.stringify(@_data))
+
+sandbox = -> 
+    window = {}
+    window.window = window
+
+    result = 
+        ArrayBuffer: Object.freeze(ArrayBuffer)
+        Buffer: Object.freeze(Buffer)
+        Uint8Array: Object.freeze(Uint8Array)
+        console: Object.freeze(console)
+        window: Object.freeze(window)
+        Uint32Array: Object.freeze(Uint32Array)
+
+    return result
+
+eval_file = (p, s) ->
+    return vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, p), "utf8"), sandbox())
 
 hashers = 
-    md5: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.MD5(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    ripemd160: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.RIPEMD160(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha1: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA1(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha224: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA224(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha256: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA256(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha384: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA384(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha512: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA512(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
-    sha3: (data) -> 
-        encoded_data = encode_data(data)
-        hash = CryptoJS.SHA3(encoded_data)
-        return hash.toString(CryptoJS.enc.Hex)
+    md5: (data) -> crypto.createHash("md5").update(data).digest('hex')
+    ripemd160: (data) -> crypto.createHash("ripemd160").update(data).digest('hex')
+    sha1: (data) -> crypto.createHash("sha1").update(data).digest('hex')
+    sha224: (data) -> crypto.createHash("sha224").update(data).digest('hex')
+    sha256: (data) -> crypto.createHash("sha256").update(data).digest('hex')
+    sha384: (data) -> crypto.createHash("sha384").update(data).digest('hex')
+    sha512: (data) -> crypto.createHash("sha512").update(data).digest('hex')
+    sha3: eval_file("./assets/hash/sha3.js")
 
 encoders = 
-    identity: (data, builder) ->
-        return data
-    #28 ISSUE. Additional parameters for encoder could be obtained dirrectly from builder
+    "aes-ccm": eval_file("./assets/encode/aes-ccm.js")
+    "aes-gcm": eval_file("./assets/encode/aes-gcm.js")
+    "aes-ocb2": eval_file("./assets/encode/aes-ocb2.js")
 
 class Builder
     constructor: (options) ->
@@ -148,7 +148,8 @@ class Builder
         @cached = options.cached
         @hash_func = options.hash_func ? "md5"
         @randomize_urls = options.randomize_urls ? true
-        @coding_func = options.coding_func ? "identity"
+        @coding_func = options.coding_func
+        @cache = new DB(path.resolve(@root, options.cache_file ? ".spacache"))
         @_clear()
 
     filter: (filepath) ->
@@ -159,8 +160,9 @@ class Builder
     calc_hash: (content) -> 
         return hashers[@hash_func](content)
 
-    calc_code: (content) ->
-        return encoders[@coding_func](content, this)
+    encode: (content, module) ->
+        encoder = encoders[@coding_func.name]
+        return encoder(content, module, this)
 
     _clear: ->
         @_modules = []
@@ -328,11 +330,15 @@ class Builder
             size: module.size
             type: module.type
             deps: module.deps_ids
+            decoding: module.decoding
 
         manifest = 
             version: packagejson.version
             hash_func: @hash_func
             modules: modules
+
+        if @coding_func?
+            manifest.decoder_func = @coding_func.name
 
         return manifest
 
@@ -359,7 +365,8 @@ class Builder
         namespace["inline"] = (relative) => @_inject_inline(relative)
         namespace["version"] = packagejson.version
         namespace["hash_name"] = @hash_func
-        namespace["decoder_name"] = @coding_func
+        namespace["decoder_name"] = if @coding_func? then @coding_func.name else "identity"
+        namespace["passcode_required"] = @coding_func?
         if @manifest?
             filepath = path.resolve(@root, @manifest)
             relative = @_relativate(path.relative(@root, filepath))
@@ -399,11 +406,15 @@ class Builder
         template = @assets["appcache_template"]
         compiled = ejs.compile(fs.readFileSync(template, encoding: "utf8"))
         content = compiled
-            assets: assets
+            cached: assets
         @_write_file(@appcache, content)
 
     build: ->
         @_enlist(@root)
+        for module in @_modules
+            module.url = @_host(module.relative)
+            unless module.url?
+                @logger.error("No hosting rules for `#{module.relative}`")
         @_set_ids()
         for module in @_modules
             module.type = @_get_type(module)
@@ -411,21 +422,21 @@ class Builder
         @_link()
         @_sort()
         for module in @_modules
-            module.url = @_host(module.relative)
-            unless module.url?
-                @logger.error("No hosting rules for `#{module.relative}`")
-        for module in @_modules
             source = fs.readFileSync(module.path)
-            destination = @_get_copying(module.relative)
-            unless destination? or @coding_func is "identity"
-                throw new NoCopyingRuleError(module.relative)
+            module.source_hash = @calc_hash(source)
 
-            output = @calc_code(source)
-            if destination?
+            if @coding_func?
+                destination = @_get_copying(module.relative)
+                unless destination?
+                    throw new NoCopyingRuleError(module.relative)
+
+                output = @encode(source, module)
                 @_write_file(destination, output)
-                @logger.info("Writing #{destination}.")
-            module.hash = @calc_hash(output)
-            module.size = output.length
+                module.hash = @calc_hash(output)
+                module.size = output.length
+            else
+                module.hash = module.source_hash
+                module.size = source.length
 
         if @manifest?
             manifest_data = @_create_manifest()
@@ -434,6 +445,7 @@ class Builder
         @_write_index() if @index?
         @_write_appcache() if @appcache?
         @_print_stats()
+        @cache.flush()
         return manifest_content
 
     _print_stats: ->
@@ -486,3 +498,5 @@ exports.CyclicDependenciesError = CyclicDependenciesError
 exports.UnresolvedDependencyError = UnresolvedDependencyError
 exports.ExternalDependencyError = ExternalDependencyError
 exports.Loop = Loop
+exports.Logger = Logger
+exports.DB = DB

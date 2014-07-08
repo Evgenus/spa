@@ -424,6 +424,9 @@ describe 'Building renamed manifest', ->
             hash: -> @that.equals("1007f6da5acf8cc2643274276079bc3e")
             url: -> @that.equals("http://127.0.0.1:8010/a.js")
 
+        expect(manifest).not.to.have.property("decoder_func")
+        expect(manifest.modules[0]).not.to.have.property("decoding")
+
 describe 'Building mixed-formats modules', ->
     beforeEach ->
         mock(yaml.safeLoad("""
@@ -508,3 +511,156 @@ describe 'Building module with different hash function', ->
 
     for hash_name, hash_value of hashes
         test(hash_name, hash_value)
+
+describe 'Building with encoder', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            build:
+                placeholder.txt: empty
+            testimonial: 
+                d.js: |
+                    module.exports = function() 
+                    {
+                        return "d";
+                    };
+                c.js: |
+                    var d = require("./d.js"); 
+                    module.exports = function() 
+                    { 
+                        return "c" + d(); 
+                    };
+                b.js: |
+                    var c = require("./c.js");
+                    module.exports = function() 
+                    {
+                        return "b" + c();
+                    };
+                a.js: |
+                    var b = require("./b.js");
+                    module.exports = function() 
+                    {
+                        return "a" + b();
+                    };
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    manifest: "manifest.json"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    coding_func:
+                        name: aes-gcm
+                        password: babuka
+                        iter: 1000
+                        ks: 128
+                        ts: 128
+                    copying:
+                        "./(**/*.*)": "/build/$1"
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    sandbox =
+        ArrayBuffer: Object.freeze(ArrayBuffer)
+        Buffer: Object.freeze(Buffer)
+        Uint8Array: Object.freeze(Uint8Array)
+
+    vm = require("vm")
+    eval_file = (p) ->
+        return vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, p), "utf8"), sandbox)
+
+    decoder = eval_file("../lib/assets/decode/aes-gcm.js")
+
+    it 'should manifest and encrypted files', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+        expect(manifest)
+            .to.have.property("decoder_func")
+            .that.equals("aes-gcm")
+
+        expect(fs.existsSync("/build/a.js")).to.be.true
+        expect(fs.existsSync("/build/b.js")).to.be.true
+        expect(fs.existsSync("/build/c.js")).to.be.true
+        expect(fs.existsSync("/build/d.js")).to.be.true
+
+        expect(manifest.modules[0].decoding).to.have.properties
+            cipher: -> this.to.be.a("String").equals("aes")
+            mode: -> this.to.be.a("String").equals("gcm")
+            iter: -> this.to.be.a("Number").that.equals(1000)
+            ks: -> this.to.be.a("Number").that.equals(128)
+            ts: -> this.to.be.a("Number").that.equals(128)
+            auth: -> this.to.be.a("String")
+            salt: -> this.to.be.a("String").with.length(16)
+            iv: -> this.to.be.a("String").with.length(32)
+
+        loader =
+            options:
+                password: "babuka"
+
+        expect(decoder(fs.readFileSync("/build/d.js"), manifest.modules[0], loader))
+            .to.equal(fs.readFileSync("/testimonial/d.js", encoding: "utf8"))
+        expect(decoder(fs.readFileSync("/build/c.js"), manifest.modules[1], loader))
+            .to.equal(fs.readFileSync("/testimonial/c.js", encoding: "utf8"))
+        expect(decoder(fs.readFileSync("/build/b.js"), manifest.modules[2], loader))
+            .to.equal(fs.readFileSync("/testimonial/b.js", encoding: "utf8"))
+        expect(decoder(fs.readFileSync("/build/a.js"), manifest.modules[3], loader))
+            .to.equal(fs.readFileSync("/testimonial/a.js", encoding: "utf8"))
+
+describe 'Building updates with encoding', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            build:
+                placeholder.txt: empty
+            testimonial: 
+                a.js: module.exports = function() { return "a1"; };
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    manifest: "manifest.json"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    coding_func:
+                        name: aes-gcm
+                        password: babuka
+                        iter: 1000
+                        ks: 128
+                        ts: 128
+                    copying:
+                        "./(**/*.*)": "/build/$1"
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should manifest and encrypted files', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        builder.build()
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        hash1 = manifest.modules[0].hash
+
+        expect(manifest)
+            .to.have.property("decoder_func")
+            .that.equals("aes-gcm")
+
+        expect(fs.existsSync("/build/a.js")).to.be.true
+
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        hash2 = manifest.modules[0].hash
+
+        expect(hash1).to.equal(hash2)
+
+        fs.writeFileSync("/testimonial/a.js",  """module.exports = function() { return "a2"; };""");
+
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        hash3 = manifest.modules[0].hash
+
+        expect(hash3).not.to.equal(hash2)
