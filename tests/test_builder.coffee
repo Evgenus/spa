@@ -609,3 +609,58 @@ describe 'Building with encoder', ->
             .to.equal(fs.readFileSync("/testimonial/b.js", encoding: "utf8"))
         expect(decoder(fs.readFileSync("/build/a.js"), manifest.modules[3], loader))
             .to.equal(fs.readFileSync("/testimonial/a.js", encoding: "utf8"))
+
+describe 'Building updates with encoding', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            build:
+                placeholder.txt: empty
+            testimonial: 
+                a.js: module.exports = function() { return "a1"; };
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    manifest: "manifest.json"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    coding_func:
+                        name: aes-gcm
+                        password: babuka
+                        iter: 1000
+                        ks: 128
+                        ts: 128
+                    copying:
+                        "./(**/*.*)": "/build/$1"
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should manifest and encrypted files', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        builder.build()
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        hash1 = manifest.modules[0].hash
+
+        expect(manifest)
+            .to.have.property("decoder_func")
+            .that.equals("aes-gcm")
+
+        expect(fs.existsSync("/build/a.js")).to.be.true
+
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        hash2 = manifest.modules[0].hash
+
+        expect(hash1).to.equal(hash2)
+
+        fs.writeFileSync("/testimonial/a.js",  """module.exports = function() { return "a2"; };""");
+
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        hash3 = manifest.modules[0].hash
+
+        expect(hash3).not.to.equal(hash2)

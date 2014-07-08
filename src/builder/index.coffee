@@ -68,16 +68,21 @@ class Logger
 
 class DB
     constructor: (@filename) ->
-        @_data = JSON.parse(fs.readFileSync(@filename))
+        if @filename? and fs.existsSync(@filename)
+            @_data = JSON.parse(fs.readFileSync(@filename))
+        else
+            @_data = {}
     get: (key) ->
-        return @_data[key]
+        content = @_data[key]
+        if content?
+            return JSON.parse(content)
     set: (key, value) -> 
         @_data[key] = JSON.stringify(value)
     del: (key) ->
         delete @_data[key]
     has: (key) ->
-        return data in key
-    flush: 
+        return @_data.hasOwnProperty(key)
+    flush: ->
         fs.writeFileSync(@filename, JSON.stringify(@_data))
 
 sandbox = -> 
@@ -144,6 +149,7 @@ class Builder
         @hash_func = options.hash_func ? "md5"
         @randomize_urls = options.randomize_urls ? true
         @coding_func = options.coding_func
+        @cache = new DB(path.resolve(@root, options.cache_file ? ".spacache"))
         @_clear()
 
     filter: (filepath) ->
@@ -439,6 +445,7 @@ class Builder
         @_write_index() if @index?
         @_write_appcache() if @appcache?
         @_print_stats()
+        @cache.flush()
         return manifest_content
 
     _print_stats: ->
@@ -491,3 +498,5 @@ exports.CyclicDependenciesError = CyclicDependenciesError
 exports.UnresolvedDependencyError = UnresolvedDependencyError
 exports.ExternalDependencyError = ExternalDependencyError
 exports.Loop = Loop
+exports.Logger = Logger
+exports.DB = DB

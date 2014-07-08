@@ -3,6 +3,7 @@ fs = require('fs')
 expect = require("chai").expect
 utils = require("./utils")
 vm = require("vm")
+spa = require("../lib")
 
 gen = (size) ->
     result = "-"
@@ -128,6 +129,7 @@ describe 'Testing cypher functions from assets', ->
                 iter: 1000
                 ks: 128
                 ts: 128
+            cache: new spa.DB()
 
         module =
             url: "zzzzzz"
@@ -153,6 +155,7 @@ describe 'Testing cypher functions from assets', ->
                 iter: 1000
                 ks: 128
                 ts: 128
+            cache: new spa.DB()
 
         module =
             url: "zzzzzz"
@@ -178,6 +181,7 @@ describe 'Testing cypher functions from assets', ->
                 iter: 1000
                 ks: 128
                 ts: 128
+            cache: new spa.DB()
 
         module =
             url: "zzzzzz"
