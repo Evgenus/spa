@@ -34,14 +34,14 @@ spa -c spa.yaml
 
 Config file is a `dict` in YAML or JSON format with the following keys:
 
-**root** - path where the file search will start, may be relative to config file itself.
+**root**(required) - path where the file search will start, may be relative to config file itself.
 
-**extensions** - files to consider as modules, `[".js"]` by default.
+**extensions**(optional) - files to consider as modules, `[".js"]` by default.
 
-**excludes** - files to ignore, empty by default.
+**excludes**(optional) - files to ignore, empty by default.
 List may contains wildcards/globs, eg. `./something/**/test/*.js`. Paths are relative to root path.
 
-**paths** - path aliases to use during module name resolution.
+**paths**(optional) - path aliases to use during module name resolution.
 
 Example:
 ```
@@ -51,7 +51,7 @@ paths:
 ```
 This allows to use module `/testimonial/lib/contrib/b.js` from file `/testimonial/src/a.js` as `require('vendor/b.js')`
 
-**hosting** - similar dict which specifies how to remap paths to URLs.
+**hosting**(required for web usage) - similar dict which specifies how to remap paths to URLs.
 Keys - rules as in `excludes`, where you can select path fragments in brackets,
 values - URI format where selected fragments will be substitutes.
 
@@ -65,7 +65,7 @@ hosting:
 
 File `./lib/app/main.js` will be loaded `http://myapp.com/app/main.js`.
 
-**loaders** - rules which describe what module formats JS files use.
+**loaders**(optional) - rules which describe what module formats JS files use.
 
 Keys - rules as in `excludes`, values - format types. Available formats:
 - _cjs_ - `CommonJS`
@@ -73,28 +73,28 @@ Keys - rules as in `excludes`, values - format types. Available formats:
 - _junk_ - module needs to mutate `window`
 - _raw_ - local variables from module needs to be in `global` context (like `<script>`)
 
-**default_loader** - loader for files not matched by loaders
+**default_loader**(optional) - loader for files not matched by loaders. Default value is `cjs`.
 
-**manifest** - relative path to loader manifest. Can be omitted.
+**manifest**(optional) - relative path to loader manifest. Can be omitted.
 
-**hash_func** - has function to be used in `manifest` and `appcache` generation process. Value may be `md5`, `ripemd160`, `sha1`, `sha224`, `sha256`, `sha3`, `sha384`, `sha512`. Default value is `md5`. New hash function could be easily added as assets to builder. Hack into `Cakefile` for mere information.
+**hash_func**(optional) - has function to be used in `manifest` and `appcache` generation process. Value may be `md5`, `ripemd160`, `sha1`, `sha224`, `sha256`, `sha3`, `sha384`, `sha512`. Default value is `md5`. New hash function could be easily added as assets to builder. Hack into `Cakefile` for mere information.
 
-**randomize_urls** - this parameter to be transletad into loader thru `index_template`. If `true` loader will add some random characters to URLs for manifest and application files to suppress caching.
+**randomize_urls**(optional) - this parameter to be transletad into loader thru `index_template`. If `true` loader will add some random characters to URLs for manifest and application files to suppress caching.
 
-**pretty** - pretty-print manifest json
+**pretty**(optional) - pretty-print manifest json
 
-**index** - relative path to bootstrap html file. Loader and its dependencies (but not app dependencies) will be baked into this file. Can be omitted.
+**index**(optional) - relative path to bootstrap html file. Loader and its dependencies (but not app dependencies) will be baked into this file. Can be omitted.
 
-**appcache** - relative path to HTML5 AppCache Manifest. 
+**appcache**(optional) - relative path to HTML5 AppCache Manifest. 
 
-**cached** - paths to other files to include in appcache. URLs are remapped according to **hosting** dict.
+**cached**(optional) - paths to other files to include in appcache. URLs are remapped according to **hosting** dict.
 
-**assets** - path to customizable builder templates
+**assets**(optional) - path to customizable builder templates
 
 - appcache_template - template to generate `appcache`. Can include `cached` list.
 - index_template - template to generate `index`. You can use `assets` to include them, except the `index_template` itself :)
 
-**coding_func** - dictionary that defines parameters of encoding function. Viable parameters depends on particular function. The only necessary parameter is `name` which values may be `aes-ccm`, `aes-gcm`, `aes-ocb2`.
+**coding_func**(optional) - dictionary that defines parameters of encoding function. Viable parameters depends on particular function. The only necessary parameter is `name` which values may be `aes-ccm`, `aes-gcm`, `aes-ocb2`.
 
 Example:
 ```yaml
@@ -105,9 +105,9 @@ coding_func:
     ks: 128
     ts: 128
 ```
-**copying** - same set of rules as in `hosting` but used together with `coding_func` to store encoded files.
+**copying**(required if `coding_func` is used) - same set of rules as in `hosting` but used together with `coding_func` to store encoded files.
 
-**cache_file** - path to cache-file. This option is also necessary for using some of `coding_func`. To preserve incremental updates feature we have to query some data from previous builds. Default value is `.spacache`. This path is relative to `root`
+**cache_file**(required if `coding_func` is used) - path to cache-file. This option is also necessary for using some of `coding_func`. To preserve incremental updates feature we have to query some data from previous builds. Default value is `.spacache`. This path is relative to `root`
 
 Example:
 ```yaml
