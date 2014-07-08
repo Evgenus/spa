@@ -115,11 +115,9 @@ task "compile-loader", "compile loader coffee source into javascript", ->
     out = []
 
     for part in parts
-        transform part, null, (input, _, data) ->
-            console.log("Compiling %s -->", input)
-            result = coffee.compile(data, bare: true)
-            out.push(result)
-            return
+        console.log("Compiling %s -->", part)
+        compiled = coffee.compile(fs.readFileSync(part, "utf8"), bare: true)
+        out.push(compiled)
 
     bootstrap_path = "./lib/assets/bootstrap.js"
     bootstrap_data = out.join("")
@@ -133,7 +131,7 @@ task "populate-assets", "prepare assets to be used by builder", ->
 
     transform "./bower_components/cryptojslib/rollups/(md5|sha224|sha3|sha384|ripemd160).js", "./lib/assets/hash/$1.js", (input, output, data, match) ->
 
-        console.log("    Combining %s --> %s", input, output)
+        console.log("Combining %s --> %s", input, output)
         hash_name = match[1]
 
         return minify_more("""
