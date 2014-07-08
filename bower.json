@@ -15,6 +15,7 @@
   ],
   "dependencies": {
     "localforage": "git+https://github.com/mozilla/localForage.git#master",
-    "sjcl": "~1.0.0"
+    "sjcl": "~1.0.0",
+    "cryptojslib": "~3.1.2"
   }
 }
