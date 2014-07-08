@@ -47,7 +47,7 @@ Example:
 ```
 root: "/testimonial/"
 paths:
-    vendor: "/lib/contrib"
+    vendor: "./lib/contrib"
 ```
 This allows to use module `/testimonial/lib/contrib/b.js` from file `/testimonial/src/a.js` as `require('vendor/b.js')`
 
@@ -60,10 +60,10 @@ If you want files to be included in cache manifest, they need to match at least 
 Example:
 ```
 hosting:
-    "/lib/(**/*.js)": "http://myapp.com/$1"
+    "./lib/(**/*.js)": "http://myapp.com/$1"
 ```
 
-File `/lib/app/main.js` will be loaded `http://myapp.com/app/main.js`.
+File `./lib/app/main.js` will be loaded `http://myapp.com/app/main.js`.
 
 **loaders** - rules which describe what module formats JS files use.
 
@@ -77,9 +77,9 @@ Keys - rules as in `excludes`, values - format types. Available formats:
 
 **manifest** - relative path to loader manifest. Can be omitted.
 
-**hash_func** ─ has function to be used in `manifest` and `appcache` generation process. Value may be `md5`, `ripemd160`, `sha1`, `sha224`, `sha256`, `sha3`, `sha384`, `sha512`. Default value is `md5`.
+**hash_func** - has function to be used in `manifest` and `appcache` generation process. Value may be `md5`, `ripemd160`, `sha1`, `sha224`, `sha256`, `sha3`, `sha384`, `sha512`. Default value is `md5`. New hash function could be easily added as assets to builder. Hack into `Cakefile` for mere information.
 
-**randomize_urls** ─ this parameter to be transletad into loader thru `index_template`. If `true` loader will add some random characters to URLs for manifest and application files to suppress caching.
+**randomize_urls** - this parameter to be transletad into loader thru `index_template`. If `true` loader will add some random characters to URLs for manifest and application files to suppress caching.
 
 **pretty** - pretty-print manifest json
 
@@ -94,14 +94,35 @@ Keys - rules as in `excludes`, values - format types. Available formats:
 - appcache_template - template to generate `appcache`. Can include `cached` list.
 - index_template - template to generate `index`. You can use `assets` to include them, except the `index_template` itself :)
 
+**coding_func** - dictionary that defines parameters of encoding function. Viable parameters depends on particular function. The only necessary parameter is `name` which values may be `aes-ccm`, `aes-gcm`, `aes-ocb2`.
+
+Example:
+```yaml
+coding_func:
+    name: aes-gcm
+    password: babuka
+    iter: 1000
+    ks: 128
+    ts: 128
+```
+**copying** - same set of rules as in `hosting` but used together with `coding_func` to store encoded files.
+
+**cache_file** - path to cache-file. This option is also necessary for using some of `coding_func`. To preserve incremental updates feature we have to query some data from previous builds. Default value is `.spacache`. This path is relative to `root`
+
+Example:
+```yaml
+copying:
+    "./lib/(**/*.js)": "./build/$1"
+```
+
 ## Example
 
 ```yaml
-root: "/testimonial/"
+root: "./testimonial/"
 index: index.html
 appcache: main.appcache
 paths:
-    vendor: "/lib/contrib"
+    vendor: "./lib/contrib"
 assets:
     index_template: /assets/index.tmpl
     appcache_template: /assets/appcache.tmpl
@@ -109,7 +130,15 @@ hash_func: sha256
 cached:
     - /a.js
 hosting:
-    "/(**/*.*)": "http://127.0.0.1:8010/$1"
+    "./(**/*.*)": "http://127.0.0.1:8010/$1"
+coding_func:
+    name: aes-gcm
+    password: babuka
+    iter: 1000
+    ks: 128
+    ts: 128
+copying:
+    "./lib/(**/*.js)": "./build/$1"
 ```
 
 ## Alternatives
