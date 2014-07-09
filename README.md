@@ -91,10 +91,10 @@ Keys - rules as in `excludes`, values - format types. Available formats:
 
 **assets**(optional) - path to customizable builder templates
 
-- appcache_template - template to generate `appcache`. Can include `cached` list.
-- index_template - template to generate `index`. You can use `assets` to include them, except the `index_template` itself :)
+- _appcache_template_ - template to generate `appcache`. Can include `cached` list.
+- _index_template_ - template to generate `index`. You can use `assets` to include them, except the `index_template` itself :)
 
-**coding_func**(optional) - dictionary that defines parameters of encoding function. Viable parameters depends on particular function. The only necessary parameter is `name` which values may be `aes-ccm`, `aes-gcm`, `aes-ocb2`.
+**coding_func**(optional) - dictionary that defines parameters of encoding function. Viable parameters depends on particular function. The only necessary parameter is `name` which value may be `aes-ccm`, `aes-gcm`, `aes-ocb2`.
 
 Example:
 ```yaml
@@ -105,9 +105,9 @@ coding_func:
     ks: 128
     ts: 128
 ```
-**copying**(required if `coding_func` is used) - same set of rules as in `hosting` but used together with `coding_func` to store encoded files.
+**copying**(required for `coding_func`) - same set of rules as in `hosting` but used together with `coding_func` to store encoded files.
 
-**cache_file**(required if `coding_func` is used) - path to cache-file. This option is also necessary for using some of `coding_func`. To preserve incremental updates feature we have to query some data from previous builds. Default value is `.spacache`. This path is relative to `root`
+**cache_file**(optional) - path to cache-file. This option is also necessary for using some of `coding_func`. To preserve incremental updates feature we have to query some data from previous builds. Default value is `.spacache`. This path is relative to `root`
 
 Example:
 ```yaml
@@ -167,9 +167,12 @@ spa
 ├───bower_components                loader dependencies; installs with `bower`
 ├───lib                             compiled builder files
 │   └───assets                      builder assets (templates, compiled loader, loader assets)
+│       ├───decode                  prepared decoding functions for using in loader
+│       ├───encode                  prepared encoding functions for using in builder
 │       └───hash                    wrapped and prepared hash-functions code
 ├───node_modules                    builder dependencies; installs with `npm`
 ├───src                             coffee-script source code
+│   ├───assets                      various assets templates and helpers sources
 │   ├───builder                     source code of builder
 │   ├───bootstrap                   source code of bootstrap code with default callbacks and UI visualization
 │   └───loader                      source code of loader
@@ -196,6 +199,41 @@ Tests require devDependencies to be installed! Tests require `Selenium Standalon
 ```
 npm test
 ```
+
+### Events and API methods 
+
+To subscribe for event you simply need to assign handler into loader instance.
+```javascript
+loader.onEventName = function Handler(param1, param2) { /*....*/ }
+```
+
+**load()** - starts loading current version of hosted application.
+
+Possible generated events:
+
+* `NoManifest()` - this event fires when there is no current version of application. Either the application is being started for the first time or previous download was unsuccessful. Usually `checkUpdate` method should be called in the handler.
+* `EvaluationStarted(manifest)` - event fires when current version was found and about to be loaded. If handler returns `false` then loaded will not perform any further actions and halts. Parameters: `manifest` - manifest of current version as an object.
+* `ModuleEvaluated(module)` - event fires for each successfully loaded module. Parameters: `module` - loaded module descriptor (as inside of manifest).
+* `EvaluationError(module, error)` - fires if there was an error during module loading. All further loading could not be performed and loader halts. Event `ApplicationReady` will not be fired. Parameters: `module` - problem module descriptor (some fields may be absent); `error` - occurred error(some frequent errors are strictly typed).
+* `ApplicationReady(manifest)` - event notifies host application about its successfully loading. Inside handler application could start working and intercept control. Parameters: `manifest` - current manifest.
+
+**checkUpdate()** - checks server for newer version of application
+
+* `UpToDate()` - event fires if latest version of application was already downloaded. Parameters: `manifest` - cuurent manifest.
+* `UpdateFound(event, manifest)` - event occurs if a newer version of the application was found. Usually `startUpdate` should be called inside handler or user asked for confirmation before downloading new version files. Current version is assumed to be working at this time. Parameters: `event` - the event object passed by browser as a result of the request; `manifest` - the manifest of a new version.
+* `UpdateFailed(event, error)` - event occurs if for some of the reason a newer version could not be found or manifest of newer version is incorrect. It also occurs if current loader is outdated and not compatible with the new format of the manifest. Parameters: `event` - the event object passed by browser as a result of the query (you can obtain network errors fro it); `error` - error arose during the analysis of the manifest of the newer version (may be `null`).
+
+
+**startUpdate()** - initialize downloading of the newer version of the application accordingly to previously downloaded manifest.
+
+* `ModuleBeginDownload(module)` - event fires each time next module is about to be downloaded. Parameters: `module` - module descriptor object from newer version manifest.
+* `ModuleDownloadProgress(event, module)` - event describes downloading progress of each module. Parameters: `event` - browser event (from which you can obtain downloaded bytes count); `module` - descriptor of module being downloaded(with total module length).
+* `TotalDownloadProgress(progress)` - event describes total downloading progress. `progress` is a hash with next fields: `loaded_count` - number of modules already downloaded, `total_count` - modules total count, `loaded_size` - amount of bytes downloaded, `total_size` - total size of modules in bytes.
+* `ModuleDownloadFailed(event, module)` - event fires when module downloading was aborted or interrupted. Also it occurs if data checksum mismatched. Parameters: `event` - browser event, `module` - failed to download module.
+* `ModuleDownloaded(module)` - event occurs when module was successfully downloaded. Parameters: `event` - browser event, `module` - downloaded module.
+* `UpdateCompleted(manifest)` - event occurs when all modules of new version was successfully downloaded. The handler __must return__ `true`, if loader should accept new version, or `false` if update should be postponed. The handler also could inform user about update and request application restart. If update is accepted it will be loaded at next application run (next `load` call). Parameters: `manifest` - new version manifest.
+
+**dropData** - removes current version and force data to be downloaded again. Useful in case of critical failures.
 
 ## Copyright and license
 
