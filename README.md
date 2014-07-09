@@ -223,19 +223,19 @@ Possible generated events:
 
 * `UpToDate()` - event fires if latest version of application was already downloaded. Parameters: `manifest` - cuurent manifest.
 * `UpdateFound(event, manifest)` - event occurs if a newer version of the application was found. Usually `startUpdate` should be called inside handler or user asked for confirmation before downloading new version files. Current version is assumed to be working at this time. Parameters: `event` - the event object passed by browser as a result of the request; `manifest` - the manifest of a new version.
-* `UpdateFailed(event, error)` - event occurs if for some of the reason a newer version could not be found or manifest of newer version is incorrect. It also occurs if current loader is outdated and not compatible with the new format of the manifest. Parameters: `event` - the event object passed by browser as a result of the query (you can obtain network errors fro it); `error` - error arose during the analysis of the manifest of the newer version (may be `null`).
+* `UpdateFailed(event, error)` - event occurs if for some of the reason a newer version could not be found or manifest of newer version is incorrect. It also occurs if current loader is outdated and not compatible with the new format of the manifest. Parameters: `event` - the event object passed by browser as a result of the query (you can obtain network errors from it); `error` - error arose during the analysis of the manifest of the newer version (may be `null`).
 
 
 **startUpdate()** - initialize downloading of the newer version of the application accordingly to previously downloaded manifest.
 
-* `ModuleBeginDownload(module)` - event fires each time next module is about to be downloaded. Parameters: `module` - module descriptor object from newer version manifest.
-* `ModuleDownloadProgress(event, module)` - event describes downloading progress of each module. Parameters: `event` - browser event (from which you can obtain downloaded bytes count); `module` - descriptor of module being downloaded(with total module length).
-* `TotalDownloadProgress(progress)` - event describes total downloading progress. `progress` is a hash with next fields: `loaded_count` - number of modules already downloaded, `total_count` - modules total count, `loaded_size` - amount of bytes downloaded, `total_size` - total size of modules in bytes.
-* `ModuleDownloadFailed(event, module)` - event fires when module downloading was aborted or interrupted. Also it occurs if data checksum mismatched. Parameters: `event` - browser event, `module` - failed to download module.
-* `ModuleDownloaded(module)` - event occurs when module was successfully downloaded. Parameters: `event` - browser event, `module` - downloaded module.
-* `UpdateCompleted(manifest)` - event occurs when all modules of new version was successfully downloaded. The handler __must return__ `true`, if loader should accept new version, or `false` if update should be postponed. The handler also could inform user about update and request application restart. If update is accepted it will be loaded at next application run (next `load` call). Parameters: `manifest` - new version manifest.
+* `ModuleBeginDownload(module)` - event fires when each module is about to be downloaded. Parameters: `module` - module descriptor object from newer version manifest.
+* `ModuleDownloadProgress(event, module)` - fires when individual module download progress changed. Parameters: `event` - browser event (downloaded bytes, etc); `module` - descriptor of module being downloaded (contains total length).
+* `TotalDownloadProgress(progress)` - total download progress. `progress` is a hash with these fields: `loaded_count` - number of modules already downloaded, `total_count` - total number of modules, `loaded_size` - amount of bytes downloaded, `total_size` - total size of modules in bytes.
+* `ModuleDownloadFailed(event, module)` - event fires when module downloading was aborted, interrupted, or data checksum did not match. Parameters: `event` - browser event, `module` - module which failed to download.
+* `ModuleDownloaded(module)` - occurs when module was successfully downloaded. Parameters: `event` - browser event, `module` - downloaded module.
+* `UpdateCompleted(manifest)` - occurs when all modules of the new version were successfully downloaded. The handler __must return__ `true`, if loader should accept new version, or `false` if update should be postponed. You can inform user about update and request application restart at this point. If update is accepted it will be loaded at next application run (next `load` call). Parameters: `manifest` - new version manifest.
 
-**dropData** - removes current version and force data to be downloaded again. Useful in case of critical failures.
+**dropData** - remove current version and force data to be downloaded again. Useful in case of critical failures.
 
 ## Copyright and license
 
