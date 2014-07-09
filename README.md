@@ -143,6 +143,8 @@ copying:
 
 ## Alternatives
 
+Read this book [Single page apps in depth](http://singlepageappbook.com)!
+
 Other modules you should definitely look at:
 
  * [gluejs](http://mixu.net/gluejs/)
