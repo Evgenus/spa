@@ -147,9 +147,11 @@ Read this book [Single page apps in depth](http://singlepageappbook.com)!
 
 Other modules you should definitely look at:
 
+ * [browserify](http://browserify.org/)
  * [gluejs](http://mixu.net/gluejs/)
  * [browserbuild](https://github.com/learnboost/browserbuild/)
- * [browserify](http://browserify.org/)
+ * [stitch](https://github.com/sstephenson/stitch)
+ * [wrapup](https://github.com/kamicane/wrapup)
 
 ## Development
 
