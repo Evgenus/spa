@@ -664,3 +664,24 @@ describe 'Building updates with encoding', ->
         hash3 = manifest.modules[0].hash
 
         expect(hash3).not.to.equal(hash2)
+
+describe 'Building modules with syntax errors', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial: 
+                a.js: var 55;
+                spa.yaml: |
+                    root: "/testimonial/"
+                    extensions: 
+                        - .js
+                    manifest: "manifest.json"
+                    default_loader: junk
+            """))
+
+    it 'should successfully build', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        expect(builder.build.bind(builder))
+            .to.throw(spa.ModuleTypeError)
+            .that.has.property("path")
+            .that.equals(path.resolve("/testimonial/a.js"))
