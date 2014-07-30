@@ -41,6 +41,11 @@ class NoCopyingRuleError extends Error
         @name = @constructor.name
         @message = "No copying rule for module to be crypter at path `#{@path}`"
 
+class ModuleTypeError extends Error
+    constructor: (@path, @error) ->
+        @name = @constructor.name
+        @message = "Can't determine type of module at `#{@path}`: #{@error?.toString()}"
+
 class Loop
     constructor: () ->
         @_parts = []
@@ -230,9 +235,12 @@ class Builder
         for rule in @loaders
             continue unless rule.test(module.relative)
             return rule.type
-        switch definition(module.path)
-            when "commonjs" then return "cjs"
-            when "amd" then return "amd"
+        try
+            switch definition(module.path)
+                when "commonjs" then return "cjs"
+                when "amd" then return "amd"
+        catch error
+            throw new ModuleTypeError(module.path, error)
         return @default_loader
 
     _resolve: (module, dep) ->
@@ -497,6 +505,7 @@ exports.Builder = Builder
 exports.CyclicDependenciesError = CyclicDependenciesError
 exports.UnresolvedDependencyError = UnresolvedDependencyError
 exports.ExternalDependencyError = ExternalDependencyError
+exports.ModuleTypeError = ModuleTypeError
 exports.Loop = Loop
 exports.Logger = Logger
 exports.DB = DB
