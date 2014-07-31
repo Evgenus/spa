@@ -41,17 +41,17 @@
     "node": "0.10.x"
   },
   "dependencies": {
-    "optimist": ">=0.6.1",
-    "js-yaml": ">=3.0.0",
+    "cli-color": "^0.3.2",
     "detective": "^3.1.0",
-    "underscore": "~1.6.0",
-    "underscore.string": "~2.3.3",
+    "detective-amd": "^2.1.4",
     "ejs": "^1.0.0",
-    "detective-amd": "^2.1.0",
-    "module-definition": ">=1.1.0",
     "fs-walk-glob-rules": "^0.1.0",
     "glob-rules": "^0.1.0",
-    "cli-color": "^0.3.2"
+    "js-yaml": "^3.1.0",
+    "module-definition": ">=1.1.0",
+    "optimist": ">=0.6.1",
+    "underscore": "~1.6.0",
+    "underscore.string": "~2.3.3"
   },
   "devDependencies": {
     "node-sass": "^0.9.3",
