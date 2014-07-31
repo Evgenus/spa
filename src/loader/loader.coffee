@@ -271,18 +271,10 @@ class Loader
         return localforage.setItem(key, content, cb)
 
     get_contents_keys: (cb) ->
-        localforage.length (length) =>
-            c = 0
-            buf = []
-            receive = (num, key) ->
-                c++
-                buf[num] = key
-                return if c < length
-                for key in buf
-                    cb(key)
-                return
-            for i in [0..length-1]
-                localforage.key(i, receive.bind(this, i))
+        localforage.keys (keys) =>
+            for key in keys
+                cb(key)
+            return
         return
 
     del_content: (key, cb) ->
