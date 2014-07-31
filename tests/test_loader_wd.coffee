@@ -230,6 +230,7 @@ describe "WD.js", ->
                                 "./(*.js)": "/app/$1"
                     """)
                 utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                utils.mount(system, path.resolve(__dirname, "../tests"))
                 mock(system)
                 spa.Builder.from_config("/app/spa.yaml").build()
             .get('http://127.0.0.1:3332/')
@@ -252,6 +253,16 @@ describe "WD.js", ->
                     ])
                 expect(urls[6]).to.equal("/app/")
                 expect(urls[7]).to.equal("/app/manifest.json")
+            .safeExecute("localforage.keys( function(keys) { window.forage_keys = keys; } )")
+            .sleep(DELAY)
+            .safeEval("window.forage_keys")
+            .then (keys) =>
+                expect(keys.map((key) => key.split(":")[2])).to.consist([
+                    "/app/a.js",
+                    "/app/b.js",
+                    "/app/c.js",
+                    "/app/d.js",
+                    ])
             .then ->
                 content = """
                     var d = require("./d.js");
@@ -276,6 +287,15 @@ describe "WD.js", ->
                 expect(urls[2]).to.equal("/app/b.js")
                 expect(urls[3]).to.equal("/app/")
                 expect(urls[4]).to.equal("/app/manifest.json")
+            .safeExecute("localforage.keys( function(keys) { window.forage_keys = keys; } )")
+            .sleep(DELAY)
+            .safeEval("window.forage_keys")
+            .then (keys) =>
+                expect(keys.map((key) => key.split(":")[2])).to.consist([
+                    "/app/a.js",
+                    "/app/b.js",
+                    "/app/d.js",
+                    ])
             .safeExecute("localforage.clear()")
             .nodeify(done)
 
