@@ -13,6 +13,7 @@ _  = require('underscore')
 _.string =  require('underscore.string')
 _.mixin(_.string.exports())
 crypto = require("crypto")
+resolve = require("resolve")
 
 packagejson = ( ->
     packagepath = path.resolve(__dirname, '../package.json')
@@ -254,6 +255,10 @@ class Builder
         else if _(dep).startsWith("./") or _(dep).startsWith("../")
             basedir = path.dirname(module.path)
             dep = path.resolve(basedir, dep)
+        else
+            return resolve.sync dep,
+                basedir: path.dirname(module.path)
+                extensions: @extensions
 
         return @_resolve_to_file(dep) ? 
                @_resolve_to_file(dep + ".js") ? 

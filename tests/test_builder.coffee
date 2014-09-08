@@ -685,3 +685,74 @@ describe 'Building modules with syntax errors', ->
             .to.throw(spa.ModuleTypeError)
             .that.has.property("path")
             .that.equals(path.resolve("/testimonial/a.js"))
+
+describe 'Building modules with dependency from node_modules', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial: 
+                a.js: 
+                    var m1 = require("m1");
+                    var m2 = require("m2");
+                    console.log(m1() + m2());
+                node_modules:
+                    m1:
+                        lib:
+                            main.js:
+                                module.export = function() {
+                                    return "m1";
+                                }
+                        package.json: |
+                            {
+                                "name": "m1",
+                                "main": "lib/main.js"
+                            }
+                    m2:
+                        lib:
+                            main.js:
+                                module.export = function() {
+                                    return "m2";
+                                }
+                        package.json: |
+                            {
+                                "name": "m2",
+                                "main": "lib/main.js"
+                            }
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    extensions: 
+                        - .js
+                    manifest: "manifest.json"
+                    default_loader: junk
+                    copying:
+                        "./(**/*.*)": "/build/$1"
+            """))
+
+    it 'should successfully build', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        builder.build()
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        
+        expect(manifest.modules[0]).to.have.properties
+            id: -> @that.equals("main")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/m1/lib/main.js")
+        
+        expect(manifest.modules[1]).to.have.properties
+            id: -> @that.equals("lib_main")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/m2/lib/main.js")
+        
+        expect(manifest.modules[2]).to.have.properties
+            id: -> @that.equals("a")
+            deps: -> @that.deep.equals
+                "m1": "main"
+                "m2": "lib_main"
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/a.js")
