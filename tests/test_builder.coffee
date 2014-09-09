@@ -819,3 +819,127 @@ describe 'Remaping standart-like modules inside dependencies from node_modules',
         builder.build()
         expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+describe 'Hosting output', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial: 
+                a.js: 
+                    var m1 = require("m1");
+                    var m2 = require("m2");
+                    console.log(m1() + m2());
+                node_modules:
+                    m1:
+                        node_modules:
+                            m11:
+                                other.js: //empty
+                                index.js:
+                                    module.exports = function() {
+                                        return "m2";
+                                    }
+                        lib:
+                            other.js: //empty
+                            main.js:
+                                var m11 = require("m11");
+                                module.exports = function() {
+                                    return "m1";
+                                }
+                        package.json: |
+                            {
+                                "name": "m1",
+                                "main": "lib/main.js"
+                            }
+                    m2:
+                        lib:
+                            other.js: //empty
+                            main.js:
+                                module.exports = function() {
+                                    return "m2";
+                                }
+                        package.json: |
+                            {
+                                "name": "m2",
+                                "main": "lib/main.js"
+                            }
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    hosting:
+                        "./(**/*.*)": "$1"
+
+                    extensions: 
+                        - .js
+                    excludes:
+                        - "./node_modules/**"
+                    grab: true
+                    default_loader: junk
+            """))
+
+    it 'should output hosting structure', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        expect(builder.host()).to.have.properties
+            version: -> this.to.be.a("String")
+            files: -> this.to.deep.equal
+                "node_modules/m2/lib/main.js": "./node_modules/m2/lib/main.js"
+                "node_modules/m1/node_modules/m11/index.js": "./node_modules/m1/node_modules/m11/index.js"
+                "node_modules/m1/lib/main.js": "./node_modules/m1/lib/main.js"
+                "a.js": "./a.js"
+
+describe 'Hosting output with encoder', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            build:
+                placeholder.txt: empty
+            testimonial: 
+                d.js: |
+                    module.exports = function() 
+                    {
+                        return "d";
+                    };
+                c.js: |
+                    var d = require("./d.js"); 
+                    module.exports = function() 
+                    { 
+                        return "c" + d(); 
+                    };
+                b.js: |
+                    var c = require("./c.js");
+                    module.exports = function() 
+                    {
+                        return "b" + c();
+                    };
+                a.js: |
+                    var b = require("./b.js");
+                    module.exports = function() 
+                    {
+                        return "a" + b();
+                    };
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    manifest: "manifest.json"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    coding_func:
+                        name: aes-gcm
+                        password: babuka
+                        iter: 1000
+                        ks: 128
+                        ts: 128
+                    copying:
+                        "./(**/*.*)": "/build/$1"
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should output hosting structure', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        expect(builder.host(false)).to.have.properties
+            version: -> this.to.be.a("String")
+            files: -> this.to.deep.equal
+                "http://127.0.0.1:8010/a.js": "./a.js"
+                "http://127.0.0.1:8010/b.js": "./b.js"
+                "http://127.0.0.1:8010/c.js": "./c.js"
+                "http://127.0.0.1:8010/d.js": "./d.js"

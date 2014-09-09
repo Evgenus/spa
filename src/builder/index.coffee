@@ -157,7 +157,6 @@ class Builder
         @randomize_urls = options.randomize_urls ? true
         @coding_func = options.coding_func
         @cache = new DB(path.resolve(@root, options.cache_file ? ".spacache"))
-        @_clear()
 
     filter: (filepath) ->
         expected = path.extname(filepath)
@@ -437,7 +436,25 @@ class Builder
             cached: assets
         @_write_file(@appcache, content)
 
+    host: ->
+        @_clear()
+        @_enlist(@root)
+        for module in @_modules
+            module.type = @_get_type(module)
+        @_analyze()
+        files = {}
+        for module in @_modules
+            module.url = @_host(module.relative)
+            unless module.url?
+                @logger.error("No hosting rules for `#{module.relative}`")
+            files[module.url] = module.relative
+        result =
+            version: packagejson.version
+            files: files
+        return result
+
     build: ->
+        @_clear()
         @_enlist(@root)
         for module in @_modules
             module.type = @_get_type(module)
