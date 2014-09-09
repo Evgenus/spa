@@ -65,6 +65,18 @@ hosting:
 
 File `./lib/app/main.js` will be loaded `http://myapp.com/app/main.js`.
 
+**hosting_map**(optional) - relative path to output hosting map file. Can be omitted. 
+
+Hosting map format:
+```json
+{
+    version: 1,
+    files: {
+        "relative/hosting/path1.js": "node_modules/source/path1.js",
+    }
+}
+```
+
 **loaders**(optional) - rules which describe what module formats JS files use.
 
 Keys - rules as in `excludes`, values - format types. Available formats:
@@ -131,6 +143,7 @@ cached:
     - /a.js
 hosting:
     "./(**/*.*)": "http://127.0.0.1:8010/$1"
+hosting_map: hosting.json
 coding_func:
     name: aes-gcm
     password: babuka

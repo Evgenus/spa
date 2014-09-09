@@ -134,6 +134,7 @@ class Builder
         @hosting = for pattern, template of options.hosting ? {}
             test: globrules.tester(pattern)
             transform: globrules.transformer(pattern, template)
+        @hosting_map = options.hosting_map
         @copying = for pattern, template of options.copying ? {}
             test: globrules.tester(pattern)
             transform: globrules.transformer(pattern, template)
@@ -369,10 +370,22 @@ class Builder
 
         return manifest
 
+    _create_hosting_map: ->
+        files = {}
+        for module in @_modules
+            files[module.url] = module.relative
+        map =
+            version: packagejson.version
+            files: files
+        return map
+
     _write_file: (destination, content) ->
         filepath = path.resolve(@root, destination)
         @logger.info("Writing #{filepath}. #{content.length} bytes.")
         fs.writeFileSync(filepath, content)
+
+    _stringify_json: (data) ->
+        return JSON.stringify(data, null, if @pretty then "  ")
 
     _inject_inline: (relative) ->
         filepath = path.resolve(__dirname, "assets", relative)
@@ -436,23 +449,6 @@ class Builder
             cached: assets
         @_write_file(@appcache, content)
 
-    host: ->
-        @_clear()
-        @_enlist(@root)
-        for module in @_modules
-            module.type = @_get_type(module)
-        @_analyze()
-        files = {}
-        for module in @_modules
-            module.url = @_host(module.relative)
-            unless module.url?
-                @logger.error("No hosting rules for `#{module.relative}`")
-            files[module.url] = module.relative
-        result =
-            version: packagejson.version
-            files: files
-        return result
-
     build: ->
         @_clear()
         @_enlist(@root)
@@ -485,8 +481,14 @@ class Builder
 
         if @manifest?
             manifest_data = @_create_manifest()
-            manifest_content = JSON.stringify(manifest_data, null, if @pretty then "  ")
+            manifest_content = @_stringify_json(manifest_data)
             @_write_file(@manifest, manifest_content)
+
+        if @hosting_map?
+            hosting_map_data = @_create_hosting_map()
+            hosting_map_content = @_stringify_json(hosting_map_data)
+            @_write_file(@hosting_map, hosting_map_content)
+
         @_write_index() if @index?
         @_write_appcache() if @appcache?
         @_print_stats()

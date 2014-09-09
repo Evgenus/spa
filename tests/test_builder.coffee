@@ -866,6 +866,7 @@ describe 'Hosting output', ->
                     root: "/testimonial/"
                     hosting:
                         "./(**/*.*)": "$1"
+                    hosting_map: "hosting.json"
 
                     extensions: 
                         - .js
@@ -878,7 +879,11 @@ describe 'Hosting output', ->
     it 'should output hosting structure', ->
         builder = spa.Builder.from_config("/testimonial/spa.yaml")
 
-        expect(builder.host()).to.have.properties
+        builder.build()
+        expect(fs.existsSync("/testimonial/hosting.json")).to.be.true
+        hosting = JSON.parse(fs.readFileSync("/testimonial/hosting.json", encoding: "utf8"))
+
+        expect(hosting).to.have.properties
             version: -> this.to.be.a("String")
             files: -> this.to.deep.equal
                 "node_modules/m2/lib/main.js": "./node_modules/m2/lib/main.js"
@@ -918,9 +923,9 @@ describe 'Hosting output with encoder', ->
                 spa.yaml: |
                     pretty: true
                     root: "/testimonial/"
-                    manifest: "manifest.json"
                     hosting:
                         "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    hosting_map: "hosting.json"
                     coding_func:
                         name: aes-gcm
                         password: babuka
@@ -936,7 +941,11 @@ describe 'Hosting output with encoder', ->
     it 'should output hosting structure', ->
         builder = spa.Builder.from_config("/testimonial/spa.yaml")
 
-        expect(builder.host(false)).to.have.properties
+        builder.build()
+        expect(fs.existsSync("/testimonial/hosting.json")).to.be.true
+        hosting = JSON.parse(fs.readFileSync("/testimonial/hosting.json", encoding: "utf8"))
+
+        expect(hosting).to.have.properties
             version: -> this.to.be.a("String")
             files: -> this.to.deep.equal
                 "http://127.0.0.1:8010/a.js": "./a.js"
