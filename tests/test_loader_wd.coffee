@@ -4,17 +4,21 @@ wd = require('wd')
 chai = require('chai')
 chaiAsPromised = require("chai-as-promised")
 chai.use(chaiAsPromised);
-chai.should();
+chai.should()
 expect = chai.expect
 assert = chai.assert
 
 chaiAsPromised.transferPromiseness = wd.transferPromiseness
 
+http = require('http')
+connect = require("connect")
+morgan = require('morgan')
+serveStatic = require('serve-static')
+
 mock = require("mock-fs")
 fs = require("fs")
 path = require("path")
 yaml = require("js-yaml")
-connect = require("connect")
 spa = require("../lib")
 utils = require("./utils")
 
@@ -42,7 +46,7 @@ describe "WD.js", ->
         @server = selenium()
 
         @app = connect()
-            .use connect.logger()
+            .use morgan("dev")
             .use (req, res, next) ->
                 if req.url == "/favicon.ico"
                     res.statusCode = 404
@@ -52,8 +56,11 @@ describe "WD.js", ->
             .use (req, res, next) ->
                 urls_log.add(req.url)
                 next()
-            .use connect.static("/", redirect: true)
-        connect.createServer(@app).listen(3332)
+            .use serveStatic "/", 
+                redirect: true
+                etag: false
+
+        http.createServer(@app).listen(3332)
 
         @browser = wd.promiseChainRemote()
             .init
