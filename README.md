@@ -51,6 +51,9 @@ paths:
 ```
 This allows to use module `/testimonial/lib/contrib/b.js` from file `/testimonial/src/a.js` as `require('vendor/b.js')`
 
+**grab**(optional) - do try grab all dependencies suppressing ExternalDependencyErrors. 
+Can walk inside `node_modules` with `commonjs` rules recursively.  Default value is `false`.
+
 **hosting**(required for web usage) - similar dict which specifies how to remap paths to URLs.
 Keys - rules as in `excludes`, where you can select path fragments in brackets,
 values - URI format where selected fragments will be substitutes.
@@ -133,6 +136,7 @@ copying:
 root: "./testimonial/"
 index: index.html
 appcache: main.appcache
+manifest: manifest.json
 paths:
     vendor: "./lib/contrib"
 assets:
@@ -152,6 +156,7 @@ coding_func:
     ts: 128
 copying:
     "./lib/(**/*.js)": "./build/$1"
+grab: true
 ```
 
 ## Alternatives
