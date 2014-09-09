@@ -700,14 +700,14 @@ describe 'Building modules with dependency from node_modules', ->
                             m11:
                                 other.js: //empty
                                 index.js:
-                                    module.export = function() {
+                                    module.exports = function() {
                                         return "m2";
                                     }
                         lib:
                             other.js: //empty
                             main.js:
                                 var m11 = require("m11");
-                                module.export = function() {
+                                module.exports = function() {
                                     return "m1";
                                 }
                         package.json: |
@@ -719,7 +719,7 @@ describe 'Building modules with dependency from node_modules', ->
                         lib:
                             other.js: //empty
                             main.js:
-                                module.export = function() {
+                                module.exports = function() {
                                     return "m2";
                                 }
                         package.json: |
@@ -747,8 +747,6 @@ describe 'Building modules with dependency from node_modules', ->
         builder.build()
         expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
-
-        console.log(manifest)
         
         expect(manifest.modules[0]).to.have.properties
             id: -> @that.equals("lib_main")
@@ -776,3 +774,48 @@ describe 'Building modules with dependency from node_modules', ->
                 "m2": "lib_main"
             type: -> @that.equals("cjs")
             url: -> @that.equals("http://127.0.0.1:8010/a.js")
+
+describe 'Remaping standart-like modules inside dependencies from node_modules', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial: 
+                a.js:
+                    var uuid = require("node-uuid");
+                    console.log(uuid.v4());
+                node_modules:
+                    node-uuid:
+                        uuid.js:
+                            var crypto = require("crypto");
+                            module.exports.v4 = function(data) {
+                                return "blah";
+                            }                            
+                        package.json: |
+                            {
+                                "name": "node-uuid",
+                                "main": "./uuid.js"
+                            }
+                    crypto-replacement:
+                        index.js: // blah
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    extensions: 
+                        - .js
+                    excludes:
+                        - "./node_modules/**"
+                    manifest: "manifest.json"
+                    grab: true
+                    default_loader: junk
+                    paths:
+                        crypto: "crypto-replacement"
+            """))
+
+
+    it 'should successfully build', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        builder.build()
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
