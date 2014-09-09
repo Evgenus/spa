@@ -698,11 +698,13 @@ describe 'Building modules with dependency from node_modules', ->
                     m1:
                         node_modules:
                             m11:
+                                other.js: //empty
                                 index.js:
                                     module.export = function() {
                                         return "m2";
                                     }
                         lib:
+                            other.js: //empty
                             main.js:
                                 var m11 = require("m11");
                                 module.export = function() {
@@ -715,6 +717,7 @@ describe 'Building modules with dependency from node_modules', ->
                             }
                     m2:
                         lib:
+                            other.js: //empty
                             main.js:
                                 module.export = function() {
                                     return "m2";
@@ -744,20 +747,29 @@ describe 'Building modules with dependency from node_modules', ->
         builder.build()
         expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+        console.log(manifest)
         
         expect(manifest.modules[0]).to.have.properties
-            id: -> @that.equals("main")
-            deps: -> @that.deep.equals({})
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/m1/lib/main.js")
-        
-        expect(manifest.modules[1]).to.have.properties
             id: -> @that.equals("lib_main")
             deps: -> @that.deep.equals({})
             type: -> @that.equals("cjs")
             url: -> @that.equals("http://127.0.0.1:8010/node_modules/m2/lib/main.js")
+
+        expect(manifest.modules[1]).to.have.properties
+            id: -> @that.equals("m11")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/m1/node_modules/m11/index.js")
         
         expect(manifest.modules[2]).to.have.properties
+            id: -> @that.equals("main")
+            deps: -> @that.deep.equals
+                "m11": "m11"
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/m1/lib/main.js")
+        
+        expect(manifest.modules[3]).to.have.properties
             id: -> @that.equals("a")
             deps: -> @that.deep.equals
                 "m1": "main"
