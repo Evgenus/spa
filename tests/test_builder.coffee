@@ -696,8 +696,15 @@ describe 'Building modules with dependency from node_modules', ->
                     console.log(m1() + m2());
                 node_modules:
                     m1:
+                        node_modules:
+                            m11:
+                                index.js:
+                                    module.export = function() {
+                                        return "m2";
+                                    }
                         lib:
                             main.js:
+                                var m11 = require("m11");
                                 module.export = function() {
                                     return "m1";
                                 }
@@ -724,10 +731,11 @@ describe 'Building modules with dependency from node_modules', ->
                         "./(**/*.*)": "http://127.0.0.1:8010/$1"
                     extensions: 
                         - .js
+                    excludes:
+                        - "./node_modules/**"
                     manifest: "manifest.json"
+                    grab: true
                     default_loader: junk
-                    copying:
-                        "./(**/*.*)": "/build/$1"
             """))
 
     it 'should successfully build', ->

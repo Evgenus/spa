@@ -140,11 +140,12 @@ class Builder
         @default_loader = options.default_loader ? "cjs"
         @loaders = for pattern, type of options.loaders ? {}
             test: globrules.tester(pattern)
-            type: type            
+            type: type
         @manifest = options.manifest
         @index = options.index
         @_built_ins = ["loader"]
         @pretty = options.pretty ? false
+        @grab = options.grab ? false
         @assets = 
             appcache_template: path.join(__dirname, "assets/appcache.tmpl")
             index_template: path.join(__dirname, "assets/index.tmpl")
@@ -178,12 +179,12 @@ class Builder
     _relativate: (filepath) -> 
         return './' + filepath.split(path.sep).join('/')
 
-    _enlist: (root) ->
-        walked = walker.walkSync 
-            root: root
+    _enlist: () ->
+        @walker = new walker.SyncWalker
+            root: @root
             excludes: @excludes
 
-        for data in walked
+        for data in @walker.walk() 
             continue unless @filter(data.relative)
             module =
                 path: data.path
@@ -264,23 +265,37 @@ class Builder
                @_resolve_to_file(dep + ".js") ? 
                @_resolve_to_directory(dep)
 
-    _analyze: (module) ->
-        source = fs.readFileSync(module.path)
-        module.deps_paths = {}
+    _analyze: ->
+        modules = @_modules.concat()
+        while modules.length > 0
+            module = modules.shift()
+            source = fs.readFileSync(module.path)
+            module.deps_paths = {}
 
-        deps = switch module.type
-            when "cjs" then detectiveCJS(source)
-            when "amd" then detectiveAMD(source)
-            else []
+            deps = switch module.type
+                when "cjs" then detectiveCJS(source)
+                when "amd" then detectiveAMD(source)
+                else []
 
-        #3 ISSUE. Add hardcoded dependencies from config here
+            #3 ISSUE. Add hardcoded dependencies from config here
 
-        for dep in deps
-            continue if dep in @_built_ins
-            resolved = @_resolve(module, dep)
-            unless resolved?
-                throw new UnresolvedDependencyError(module.relative, dep)
-            module.deps_paths[dep] = resolved
+            for dep in deps
+                continue if dep in @_built_ins
+                resolved = @_resolve(module, dep)
+                unless resolved?
+                    throw new UnresolvedDependencyError(module.relative, dep)
+                module.deps_paths[dep] = resolved
+
+                if @grab and not @_by_path[resolved]
+                    submodule =
+                        path: resolved
+                        relative: @walker.normalize(resolved)
+
+                    submodule.type = @_get_type(submodule)
+
+                    @_by_path[resolved] = submodule
+                    @_modules.push(submodule)
+                    modules.push(submodule)
     
     _find_loop: (candidates) ->
         for candidate in candidates
@@ -425,13 +440,13 @@ class Builder
     build: ->
         @_enlist(@root)
         for module in @_modules
+            module.type = @_get_type(module)
+        @_analyze()
+        for module in @_modules
             module.url = @_host(module.relative)
             unless module.url?
                 @logger.error("No hosting rules for `#{module.relative}`")
         @_set_ids()
-        for module in @_modules
-            module.type = @_get_type(module)
-            @_analyze(module)
         @_link()
         @_sort()
         for module in @_modules
