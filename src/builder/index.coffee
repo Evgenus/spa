@@ -124,6 +124,7 @@ encoders =
     "aes-ocb2": eval_file("./assets/encode/aes-ocb2.js")
 
 class Builder
+
     constructor: (options) ->
         @options = options
         @logger = options.logger ? new Logger("SPA")
@@ -157,7 +158,10 @@ class Builder
         @hash_func = options.hash_func ? "md5"
         @randomize_urls = options.randomize_urls ? true
         @coding_func = options.coding_func
-        @cache = new DB(path.resolve(@root, options.cache_file ? ".spacache"))
+        @cache = @_create_db(path.resolve(@root, options.cache_file ? ".spacache"))
+
+    _create_db: (path) ->
+        return new DB(path)
 
     filter: (filepath) ->
         expected = path.extname(filepath)
