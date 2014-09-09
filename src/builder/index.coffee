@@ -126,8 +126,10 @@ encoders =
 class Builder
 
     constructor: (options) ->
+        @_built_ins = ["loader"]
+
         @options = options
-        @logger = options.logger ? new Logger("SPA")
+        @logger = @_create_logger(options.logger ? "SPA")
         @root = path.resolve(process.cwd(), options.root) + "/"
         @extensions = options.extensions ? [".js"]
         @excludes = options.excludes ? []
@@ -145,7 +147,6 @@ class Builder
             type: type
         @manifest = options.manifest
         @index = options.index
-        @_built_ins = ["loader"]
         @pretty = options.pretty ? false
         @grab = options.grab ? false
         @assets = 
@@ -160,10 +161,10 @@ class Builder
         @coding_func = options.coding_func
         @cache = @_create_db(path.resolve(@root, options.cache_file ? ".spacache"))
 
-    _create_db: (path) ->
-        return new DB(path)
+    _create_db: (path) -> return new DB(path)
+    _create_logger: (name) -> return new Logger(name)
 
-    filter: (filepath) ->
+    _filter: (filepath) ->
         expected = path.extname(filepath)
         return false unless _(@extensions).any (ext) -> expected is ext
         return true
@@ -189,7 +190,7 @@ class Builder
             excludes: @excludes
 
         for data in @walker.walk() 
-            continue unless @filter(data.relative)
+            continue unless @_filter(data.relative)
             module =
                 path: data.path
                 relative: data.relative
