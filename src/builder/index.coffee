@@ -124,7 +124,6 @@ encoders =
     "aes-ocb2": eval_file("./assets/encode/aes-ocb2.js")
 
 class Builder
-
     constructor: (options) ->
         @_built_ins = ["loader"]
 
@@ -564,6 +563,8 @@ get_config_content = (filepath) ->
         when ".json"
             return load_json(filepath)
 
+# ________________________________ EXPORTS ___________________________________ #
+
 Builder.from_config = (config_path) ->
     logger = new Logger("SPA")
     logger.info("Reading config from #{config_path}")
@@ -582,3 +583,5 @@ exports.ModuleTypeError = ModuleTypeError
 exports.Loop = Loop
 exports.Logger = Logger
 exports.DB = DB
+exports.hashers = hashers
+exports.encoders = encoders
