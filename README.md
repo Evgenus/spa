@@ -44,7 +44,7 @@ List may contains wildcards/globs, eg. `./something/**/test/*.js`. Paths are rel
 **paths**(optional) - path aliases to use during module name resolution.
 
 Example:
-```
+```yaml
 root: "/testimonial/"
 paths:
     vendor: "./lib/contrib"
@@ -61,7 +61,7 @@ values - URI format where selected fragments will be substitutes.
 If you want files to be included in cache manifest, they need to match at least one pattern in `hosting` as well.
 
 Example:
-```
+```yaml
 hosting:
     "./lib/(**/*.js)": "http://myapp.com/$1"
 ```
@@ -73,8 +73,8 @@ File `./lib/app/main.js` will be loaded `http://myapp.com/app/main.js`.
 Hosting map format:
 ```json
 {
-    version: 1,
-    files: {
+    "version": 1,
+    "files": {
         "relative/hosting/path1.js": "node_modules/source/path1.js",
     }
 }
