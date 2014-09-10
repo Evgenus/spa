@@ -108,38 +108,22 @@ sandbox = ->
 eval_file = (p, s) ->
     return vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, p), "utf8"), sandbox())
 
+hashers = 
+    md5: (data) -> crypto.createHash("md5").update(data).digest('hex')
+    ripemd160: (data) -> crypto.createHash("ripemd160").update(data).digest('hex')
+    sha1: (data) -> crypto.createHash("sha1").update(data).digest('hex')
+    sha224: (data) -> crypto.createHash("sha224").update(data).digest('hex')
+    sha256: (data) -> crypto.createHash("sha256").update(data).digest('hex')
+    sha384: (data) -> crypto.createHash("sha384").update(data).digest('hex')
+    sha512: (data) -> crypto.createHash("sha512").update(data).digest('hex')
+    sha3: eval_file("./assets/hash/sha3.js")
+
+encoders = 
+    "aes-ccm": eval_file("./assets/encode/aes-ccm.js")
+    "aes-gcm": eval_file("./assets/encode/aes-gcm.js")
+    "aes-ocb2": eval_file("./assets/encode/aes-ocb2.js")
+
 class Builder
-    _modules = []
-    _by_path = {}
-    _by_id = {}
-    _manifest_content = null
-    _index_content = null
-
-    @from_config = (config_path) ->
-        logger = new Logger("SPA")
-        logger.info("Reading config from #{config_path}")
-        basedir = path.dirname(config_path)
-        config = get_config_content(config_path)
-        config.root ?= "."
-        config.root = path.resolve(basedir, config.root)
-        config.logger = logger
-        return new Builder(config)
-
-    @hashers = 
-        md5: (data) -> crypto.createHash("md5").update(data).digest('hex')
-        ripemd160: (data) -> crypto.createHash("ripemd160").update(data).digest('hex')
-        sha1: (data) -> crypto.createHash("sha1").update(data).digest('hex')
-        sha224: (data) -> crypto.createHash("sha224").update(data).digest('hex')
-        sha256: (data) -> crypto.createHash("sha256").update(data).digest('hex')
-        sha384: (data) -> crypto.createHash("sha384").update(data).digest('hex')
-        sha512: (data) -> crypto.createHash("sha512").update(data).digest('hex')
-        sha3: eval_file("./assets/hash/sha3.js")
-
-    @encoders = 
-        "aes-ccm": eval_file("./assets/encode/aes-ccm.js")
-        "aes-gcm": eval_file("./assets/encode/aes-gcm.js")
-        "aes-ocb2": eval_file("./assets/encode/aes-ocb2.js")
-
     constructor: (options) ->
         @_built_ins = ["loader"]
 
@@ -192,11 +176,10 @@ class Builder
         return true
 
     calc_hash: (content) -> 
-        hasher = @constructor.hashers[@hash_func]
-        return hasher(content)
+        return hashers[@hash_func](content)
 
     encode: (content, module) ->
-        encoder = @constructor.encoders[@coding_func.name]
+        encoder = encoders[@coding_func.name]
         return encoder(content, module, this)
 
     _relativate: (filepath) -> 
@@ -258,7 +241,7 @@ class Builder
         for candidate in candidates
             walked = []
             _go_deep = (current) =>
-                module = _by_path[current]
+                module = @_by_path[current]
                 relative = module.relative
                 deps = module.deps_paths
                 for alias, dep of deps
@@ -287,11 +270,11 @@ class Builder
     # _______________________________ STAGES _________________________________ #
 
     _clear: ->
-        _modules = []
-        _by_path = {}
-        _by_id = {}
-        _manifest_content = null
-        _index_content = null
+        @_modules = []
+        @_by_path = {}
+        @_by_id = {}
+        @_manifest_content = undefined
+        @_index_content = undefined
 
     _enlist: () ->
         @walker = new walker.SyncWalker
@@ -304,12 +287,12 @@ class Builder
                 path: data.path
                 relative: data.relative
 
-            _by_path[data.path] = module
-            _modules.push(module)
+            @_by_path[data.path] = module
+            @_modules.push(module)
         return
 
     _analyze: ->
-        modules = _modules.concat()
+        modules = @_modules.concat()
         while modules.length > 0
             module = modules.shift()
             source = fs.readFileSync(module.path)
@@ -332,17 +315,17 @@ class Builder
                     throw new UnresolvedDependencyError(module.relative, dep)
                 module.deps_paths[dep] = resolved
 
-                if @grab and not _by_path[resolved]
+                if @grab and not @_by_path[resolved]
                     submodule =
                         path: resolved
                         relative: @_relativate(resolved)
 
-                    _by_path[resolved] = submodule
-                    _modules.push(submodule)
+                    @_by_path[resolved] = submodule
+                    @_modules.push(submodule)
                     modules.push(submodule)
 
     _host: ->
-        for module in _modules
+        for module in @_modules
             for rule in @hosting
                 continue unless rule.test(module.relative)
                 module.url = rule.transform(module.relative)
@@ -351,7 +334,7 @@ class Builder
                 @logger.error("No hosting rules for `#{module.relative}`")
 
     _set_ids: ->
-        for module in _modules
+        for module in @_modules
             ext = path.extname(module.path)
             root = path.dirname(module.path)
             id = path.basename(module.path, ext)
@@ -360,7 +343,7 @@ class Builder
                 id = path.basename(root)
                 root = path.dirname(root)
 
-            while id of _by_id
+            while id of @_by_id
                 id = path.basename(root) + "/" + id
                 newroot = path.dirname(root)
                 break if newroot is root
@@ -368,39 +351,39 @@ class Builder
 
             id = id.split(/[^a-zA-Z0-9]/g).join("_")
 
-            while id of _by_id
+            while id of @_by_id
                 id = "_" + id
 
-            _by_id[id] = module
+            @_by_id[id] = module
             module.id = id
         return
 
     _link: ->
-        for module in _modules
+        for module in @_modules
             module.deps_ids = {}
             for dep, resolved of module.deps_paths
-                if _by_path[resolved]?
-                    module.deps_ids[dep] = _by_path[resolved].id
+                if @_by_path[resolved]?
+                    module.deps_ids[dep] = @_by_path[resolved].id
                 else
                     throw new ExternalDependencyError(module.relative, dep, resolved)
 
     _sort: ->
-        left = (module.path for module in _modules)
+        left = (module.path for module in @_modules)
         order = []
         while left.length > 0
             use = []
             for mpath in left
-                deps = _by_path[mpath].deps_paths
+                deps = @_by_path[mpath].deps_paths
                 use.push(mpath) unless _(deps).any((dep) -> dep not in order)
             if use.length == 0
                 throw new CyclicDependenciesError(@_find_loop(left))
             order.push(use...)
             left = left.filter((mpath) -> mpath not in use)
-        _modules = (_by_path[mpath] for mpath in order)
+        @_modules = (@_by_path[mpath] for mpath in order)
 
     _encode: ->
         if @coding_func?
-            for module in _modules
+            for module in @_modules
                 destination = @_get_copying(module.relative)
                 unless destination?
                     throw new NoCopyingRuleError(module.relative)
@@ -411,13 +394,13 @@ class Builder
                 module.hash = @calc_hash(output)
                 module.size = output.length
         else
-            for module in _modules
+            for module in @_modules
                 module.hash = module.source_hash
                 module.size = module.source_length
         return 
 
     _create_manifest: ->
-        modules = for module in _modules
+        modules = for module in @_modules
             id: module.id
             url: module.url
             hash: module.hash
@@ -426,19 +409,19 @@ class Builder
             deps: module.deps_ids
             decoding: module.decoding
 
-        _manifest_content = 
+        @_manifest_content = 
             version: packagejson.version
             hash_func: @hash_func
             modules: modules
 
         if @coding_func?
-            _manifest_content.decoder_func = @coding_func.name
+            @_manifest_content.decoder_func = @coding_func.name
 
-        return _manifest_content
+        return @_manifest_content
 
     _create_hosting_map: ->
         files = {}
-        for module in _modules
+        for module in @_modules
             files[module.url] = module.relative
         map =
             version: packagejson.version
@@ -471,8 +454,8 @@ class Builder
                 @logger.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
             
         compiled = ejs.compile(assets["index_template"])
-        _index_content = compiled(namespace)
-        return _index_content
+        @_index_content = compiled(namespace)
+        return @_index_content
 
     _create_appcache: ->
         assets = {}
@@ -489,7 +472,7 @@ class Builder
             url = @_host(relative)
             if url?
                 filename = path.resolve(@root, @index)
-                assets[url] = @calc_hash(_index_content)
+                assets[url] = @calc_hash(@_index_content)
         
         if Object.keys(assets).length == 0
             if @index?
@@ -505,12 +488,12 @@ class Builder
 
     _print_roots: ->
         all_deps = []
-        for module in _modules
+        for module in @_modules
             for dep_path, dep of module.deps_ids
                 all_deps.push(dep)
 
         roots = []
-        for module in _modules
+        for module in @_modules
             continue if module.id in all_deps
             roots.push(module)
 
@@ -525,13 +508,13 @@ class Builder
     _print_stats: ->
         @logger.info("Statistics: ")
         total = 0
-        for num, module of _modules
+        for num, module of @_modules
             total += module.size
             message = _.sprintf "%(num)3s %(module.relative)-20s %(module.size)7s %(module.type)4s %(module.hash)s",
                 num: parseInt(num) + 1
                 module: module
             @logger.info(message)
-        @logger.info("Total #{total} bytes in #{_modules.length} files")
+        @logger.info("Total #{total} bytes in #{@_modules.length} files")
 
     build: ->
         @_clear()
@@ -553,7 +536,7 @@ class Builder
 
         @_print_stats() if @print_stats
         @cache.flush()
-        return _manifest_content
+        return @_manifest_content
 
 hasBOM = (data) ->
     return false if data.length < 3
@@ -582,6 +565,16 @@ get_config_content = (filepath) ->
 
 # ________________________________ EXPORTS ___________________________________ #
 
+Builder.from_config = (config_path) ->
+    logger = new Logger("SPA")
+    logger.info("Reading config from #{config_path}")
+    basedir = path.dirname(config_path)
+    config = get_config_content(config_path)
+    config.root ?= "."
+    config.root = path.resolve(basedir, config.root)
+    config.logger = logger
+    return new Builder(config)
+
 exports.Builder = Builder
 exports.CyclicDependenciesError = CyclicDependenciesError
 exports.UnresolvedDependencyError = UnresolvedDependencyError
@@ -590,3 +583,5 @@ exports.ModuleTypeError = ModuleTypeError
 exports.Loop = Loop
 exports.Logger = Logger
 exports.DB = DB
+exports.hashers = hashers
+exports.encoders = encoders
