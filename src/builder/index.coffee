@@ -129,7 +129,10 @@ class Builder
         @_built_ins = ["loader"]
 
         @options = options
-        @logger = @_create_logger(options.logger ? "SPA")
+        if _.isString(options.logger)
+            @logger = @_create_logger(options.logger ? "SPA")
+        else 
+            @logger = options.logger
         @root = path.resolve(process.cwd(), options.root) + "/"
         @extensions = options.extensions ? [".js"]
         @excludes = options.excludes ? []
@@ -150,6 +153,7 @@ class Builder
         @pretty = options.pretty ? false
         @grab = options.grab ? false
         @print_stats = options.print_stats ? true
+        @print_roots = options.print_roots ? true
         @assets = 
             appcache_template: path.join(__dirname, "assets/appcache.tmpl")
             index_template: path.join(__dirname, "assets/index.tmpl")
@@ -320,7 +324,7 @@ class Builder
                     @_by_path[resolved] = submodule
                     @_modules.push(submodule)
                     modules.push(submodule)
-    
+
     _host: ->
         for module in @_modules
             for rule in @hosting
@@ -483,7 +487,27 @@ class Builder
             cached: assets
         return content
 
+    _print_roots: ->
+        all_deps = []
+        for module in @_modules
+            for dep_path, dep of module.deps_ids
+                all_deps.push(dep)
+
+        roots = []
+        for module in @_modules
+            continue if module.id in all_deps
+            roots.push(module)
+
+        return if roots.length == 0
+        @logger.info("Possible roots: ")
+        for num, module of roots
+            message = _.sprintf "%(num)3s %(module.relative)s",
+                num: parseInt(num) + 1
+                module: module
+            @logger.info(message)
+
     _print_stats: ->
+        @logger.info("Statistics: ")
         total = 0
         for num, module of @_modules
             total += module.size
@@ -500,6 +524,9 @@ class Builder
         @_host()
         @_set_ids()
         @_link()
+
+        @_print_roots() if @print_roots
+
         @_sort()
         @_encode()
 
