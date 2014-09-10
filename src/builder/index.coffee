@@ -149,6 +149,7 @@ class Builder
         @index = options.index
         @pretty = options.pretty ? false
         @grab = options.grab ? false
+        @print_stats = options.print_stats ? true
         @assets = 
             appcache_template: path.join(__dirname, "assets/appcache.tmpl")
             index_template: path.join(__dirname, "assets/index.tmpl")
@@ -507,9 +508,9 @@ class Builder
         @_write_file(@index, @_create_index()) if @index?
         @_write_file(@appcache, @_create_appcache()) if @appcache?
 
-        @_print_stats()
+        @_print_stats() if @print_stats
         @cache.flush()
-        return @manifest_content
+        return @_manifest_content
 
 hasBOM = (data) ->
     return false if data.length < 3
