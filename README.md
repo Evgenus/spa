@@ -96,7 +96,11 @@ Keys - rules as in `excludes`, values - format types. Available formats:
 
 **randomize_urls**(optional) - this parameter to be transletad into loader thru `index_template`. If `true` loader will add some random characters to URLs for manifest and application files to suppress caching.
 
-**pretty**(optional) - pretty-print manifest json
+**pretty**(optional) - pretty-print manifest and other json files. Default is `false`.
+
+**print_roots**(optional) - output list of root modules no one depends on. Default is `true`.
+
+**print_stats**(optional) - output statistics about analyzed modules. Default is `true`.
 
 **index**(optional) - relative path to bootstrap html file. Loader and its dependencies (but not app dependencies) will be baked into this file. Can be omitted.
 
