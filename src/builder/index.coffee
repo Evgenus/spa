@@ -187,25 +187,6 @@ class Builder
             return rule.transform(filepath)
         return
 
-    _write_file: (destination, content) ->
-        filepath = path.resolve(@root, destination)
-        @logger.info("Writing #{filepath}. #{content.length} bytes.")
-        fs.writeFileSync(filepath, content)
-
-    _stringify_json: (data) ->
-        return JSON.stringify(data, null, if @pretty then "  ")
-
-    _inject_inline: (relative) ->
-        filepath = path.resolve(__dirname, "assets", relative)
-        return fs.readFileSync(filepath, encoding: "utf8")
-
-    # _______________________________ STAGES _________________________________ #
-
-    _clear: ->
-        @_modules = []
-        @_by_path = {}
-        @_by_id = {}
-
     _resolve_to_file: (filepath) ->
         if fs.existsSync(filepath)
             stats = fs.statSync(filepath)
@@ -269,6 +250,27 @@ class Builder
                     return deep.prepend(relative, alias) if deep?
             has_loop = _go_deep(candidate)
             return has_loop if has_loop?
+
+    _write_file: (destination, content) ->
+        filepath = path.resolve(@root, destination)
+        @logger.info("Writing #{filepath}. #{content.length} bytes.")
+        fs.writeFileSync(filepath, content)
+
+    _stringify_json: (data) ->
+        return JSON.stringify(data, null, if @pretty then "  ")
+
+    _inject_inline: (relative) ->
+        filepath = path.resolve(__dirname, "assets", relative)
+        return fs.readFileSync(filepath, encoding: "utf8")
+
+    # _______________________________ STAGES _________________________________ #
+
+    _clear: ->
+        @_modules = []
+        @_by_path = {}
+        @_by_id = {}
+        @_manifest_content = undefined
+        @_index_content = undefined
 
     _enlist: () ->
         @walker = new walker.SyncWalker
@@ -403,15 +405,15 @@ class Builder
             deps: module.deps_ids
             decoding: module.decoding
 
-        @manifest_content = 
+        @_manifest_content = 
             version: packagejson.version
             hash_func: @hash_func
             modules: modules
 
         if @coding_func?
-            @manifest_content.decoder_func = @coding_func.name
+            @_manifest_content.decoder_func = @coding_func.name
 
-        return @manifest_content
+        return @_manifest_content
 
     _create_hosting_map: ->
         files = {}
