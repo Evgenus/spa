@@ -161,6 +161,8 @@ class Builder
         @coding_func = options.coding_func
         @cache = @_create_db(path.resolve(@root, options.cache_file ? ".spacache"))
 
+    # ________________________________ UTILS _________________________________ #
+
     _create_db: (path) -> return new DB(path)
     _create_logger: (name) -> return new Logger(name)
 
@@ -176,53 +178,33 @@ class Builder
         encoder = encoders[@coding_func.name]
         return encoder(content, module, this)
 
+    _relativate: (filepath) -> 
+        return @walker.normalize(filepath)
+
+    _get_copying: (filepath) ->
+        for rule in @copying
+            continue unless rule.test(filepath)
+            return rule.transform(filepath)
+        return
+
+    _write_file: (destination, content) ->
+        filepath = path.resolve(@root, destination)
+        @logger.info("Writing #{filepath}. #{content.length} bytes.")
+        fs.writeFileSync(filepath, content)
+
+    _stringify_json: (data) ->
+        return JSON.stringify(data, null, if @pretty then "  ")
+
+    _inject_inline: (relative) ->
+        filepath = path.resolve(__dirname, "assets", relative)
+        return fs.readFileSync(filepath, encoding: "utf8")
+
+    # _______________________________ STAGES _________________________________ #
+
     _clear: ->
         @_modules = []
         @_by_path = {}
         @_by_id = {}
-
-    _relativate: (filepath) -> 
-        return './' + filepath.split(path.sep).join('/')
-
-    _enlist: () ->
-        @walker = new walker.SyncWalker
-            root: @root
-            excludes: @excludes
-
-        for data in @walker.walk() 
-            continue unless @_filter(data.relative)
-            module =
-                path: data.path
-                relative: data.relative
-
-            @_by_path[data.path] = module
-            @_modules.push(module)
-        return
-
-    _set_ids: ->
-        for module in @_modules
-            ext = path.extname(module.path)
-            root = path.dirname(module.path)
-            id = path.basename(module.path, ext)
-
-            if id is "index"
-                id = path.basename(root)
-                root = path.dirname(root)
-
-            while id of @_by_id
-                id = path.basename(root) + "/" + id
-                newroot = path.dirname(root)
-                break if newroot is root
-                root = newroot 
-
-            id = id.split(/[^a-zA-Z0-9]/g).join("_")
-
-            while id of @_by_id
-                id = "_" + id
-
-            @_by_id[id] = module
-            module.id = id
-        return
 
     _resolve_to_file: (filepath) ->
         if fs.existsSync(filepath)
@@ -270,38 +252,6 @@ class Builder
                @_resolve_to_file(dep + ".js") ? 
                @_resolve_to_directory(dep)
 
-    _analyze: ->
-        modules = @_modules.concat()
-        while modules.length > 0
-            module = modules.shift()
-            source = fs.readFileSync(module.path)
-            module.deps_paths = {}
-
-            deps = switch module.type
-                when "cjs" then detectiveCJS(source)
-                when "amd" then detectiveAMD(source)
-                else []
-
-            #3 ISSUE. Add hardcoded dependencies from config here
-
-            for dep in deps
-                continue if dep in @_built_ins
-                resolved = @_resolve(module, dep)
-                unless resolved?
-                    throw new UnresolvedDependencyError(module.relative, dep)
-                module.deps_paths[dep] = resolved
-
-                if @grab and not @_by_path[resolved]
-                    submodule =
-                        path: resolved
-                        relative: @walker.normalize(resolved)
-
-                    submodule.type = @_get_type(submodule)
-
-                    @_by_path[resolved] = submodule
-                    @_modules.push(submodule)
-                    modules.push(submodule)
-    
     _find_loop: (candidates) ->
         for candidate in candidates
             walked = []
@@ -320,6 +270,97 @@ class Builder
             has_loop = _go_deep(candidate)
             return has_loop if has_loop?
 
+    _enlist: () ->
+        @walker = new walker.SyncWalker
+            root: @root
+            excludes: @excludes
+
+        for data in @walker.walk() 
+            continue unless @_filter(data.relative)
+            module =
+                path: data.path
+                relative: data.relative
+
+            @_by_path[data.path] = module
+            @_modules.push(module)
+        return
+
+    _analyze: ->
+        modules = @_modules.concat()
+        while modules.length > 0
+            module = modules.shift()
+            source = fs.readFileSync(module.path)
+            module.deps_paths = {}
+            module.type = @_get_type(module)
+            module.source_hash = @calc_hash(source)
+            module.source_length = source.length
+
+            deps = switch module.type
+                when "cjs" then detectiveCJS(source)
+                when "amd" then detectiveAMD(source)
+                else []
+
+            #3 ISSUE. Add hardcoded dependencies from config here
+
+            for dep in deps
+                continue if dep in @_built_ins
+                resolved = @_resolve(module, dep)
+                unless resolved?
+                    throw new UnresolvedDependencyError(module.relative, dep)
+                module.deps_paths[dep] = resolved
+
+                if @grab and not @_by_path[resolved]
+                    submodule =
+                        path: resolved
+                        relative: @_relativate(resolved)
+
+                    @_by_path[resolved] = submodule
+                    @_modules.push(submodule)
+                    modules.push(submodule)
+    
+    _host: ->
+        for module in @_modules
+            for rule in @hosting
+                continue unless rule.test(module.relative)
+                module.url = rule.transform(module.relative)
+
+            unless module.url?
+                @logger.error("No hosting rules for `#{module.relative}`")
+
+    _set_ids: ->
+        for module in @_modules
+            ext = path.extname(module.path)
+            root = path.dirname(module.path)
+            id = path.basename(module.path, ext)
+
+            if id is "index"
+                id = path.basename(root)
+                root = path.dirname(root)
+
+            while id of @_by_id
+                id = path.basename(root) + "/" + id
+                newroot = path.dirname(root)
+                break if newroot is root
+                root = newroot 
+
+            id = id.split(/[^a-zA-Z0-9]/g).join("_")
+
+            while id of @_by_id
+                id = "_" + id
+
+            @_by_id[id] = module
+            module.id = id
+        return
+
+    _link: ->
+        for module in @_modules
+            module.deps_ids = {}
+            for dep, resolved of module.deps_paths
+                if @_by_path[resolved]?
+                    module.deps_ids[dep] = @_by_path[resolved].id
+                else
+                    throw new ExternalDependencyError(module.relative, dep, resolved)
+
     _sort: ->
         left = (module.path for module in @_modules)
         order = []
@@ -334,26 +375,23 @@ class Builder
             left = left.filter((mpath) -> mpath not in use)
         @_modules = (@_by_path[mpath] for mpath in order)
 
-    _link: ->
-        for module in @_modules
-            module.deps_ids = {}
-            for dep, resolved of module.deps_paths
-                if @_by_path[resolved]?
-                    module.deps_ids[dep] = @_by_path[resolved].id
-                else
-                    throw new ExternalDependencyError(module.relative, dep, resolved)
+    _encode: ->
+        if @coding_func?
+            for module in @_modules
+                destination = @_get_copying(module.relative)
+                unless destination?
+                    throw new NoCopyingRuleError(module.relative)
 
-    _host: (filepath) ->
-        for rule in @hosting
-            continue unless rule.test(filepath)
-            return rule.transform(filepath)
-        return
-
-    _get_copying: (filepath) ->
-        for rule in @copying
-            continue unless rule.test(filepath)
-            return rule.transform(filepath)
-        return
+                source = fs.readFileSync(module.path)
+                output = @encode(source, module)
+                @_write_file(destination, output)
+                module.hash = @calc_hash(output)
+                module.size = output.length
+        else
+            for module in @_modules
+                module.hash = module.source_hash
+                module.size = module.source_length
+        return 
 
     _create_manifest: ->
         modules = for module in @_modules
@@ -365,15 +403,15 @@ class Builder
             deps: module.deps_ids
             decoding: module.decoding
 
-        manifest = 
+        @manifest_content = 
             version: packagejson.version
             hash_func: @hash_func
             modules: modules
 
         if @coding_func?
-            manifest.decoder_func = @coding_func.name
+            @manifest_content.decoder_func = @coding_func.name
 
-        return manifest
+        return @manifest_content
 
     _create_hosting_map: ->
         files = {}
@@ -384,19 +422,7 @@ class Builder
             files: files
         return map
 
-    _write_file: (destination, content) ->
-        filepath = path.resolve(@root, destination)
-        @logger.info("Writing #{filepath}. #{content.length} bytes.")
-        fs.writeFileSync(filepath, content)
-
-    _stringify_json: (data) ->
-        return JSON.stringify(data, null, if @pretty then "  ")
-
-    _inject_inline: (relative) ->
-        filepath = path.resolve(__dirname, "assets", relative)
-        return fs.readFileSync(filepath, encoding: "utf8")
-
-    _write_index: ->
+    _create_index: ->
         assets = {}
         namespace =
             assets: assets
@@ -414,7 +440,7 @@ class Builder
         namespace["passcode_required"] = @coding_func?
         if @manifest?
             filepath = path.resolve(@root, @manifest)
-            relative = @_relativate(path.relative(@root, filepath))
+            relative = @_relativate(filepath)
             url = @_host(relative)
             if url?
                 namespace["manifest_location"] = url
@@ -423,20 +449,20 @@ class Builder
             
         compiled = ejs.compile(assets["index_template"])
         @_index_content = compiled(namespace)
-        @_write_file(@index, @_index_content)
+        return @_index_content
 
-    _write_appcache: ->
+    _create_appcache: ->
         assets = {}
         for filename in @cached
             filepath = path.resolve(@root, filename)
-            relative = @_relativate(path.relative(@root, filepath))
+            relative = @_relativate(filepath)
             url = @_host(relative)
             continue unless url?
             content = fs.readFileSync(filepath, encoding: "utf8")
             assets[url] = @calc_hash(content)
         if @index?
             filepath = path.resolve(@root, @index)
-            relative = @_relativate(path.relative(@root, filepath))
+            relative = @_relativate(filepath)
             url = @_host(relative)
             if url?
                 filename = path.resolve(@root, @index)
@@ -452,53 +478,7 @@ class Builder
         compiled = ejs.compile(fs.readFileSync(template, encoding: "utf8"))
         content = compiled
             cached: assets
-        @_write_file(@appcache, content)
-
-    build: ->
-        @_clear()
-        @_enlist(@root)
-        for module in @_modules
-            module.type = @_get_type(module)
-        @_analyze()
-        for module in @_modules
-            module.url = @_host(module.relative)
-            unless module.url?
-                @logger.error("No hosting rules for `#{module.relative}`")
-        @_set_ids()
-        @_link()
-        @_sort()
-        for module in @_modules
-            source = fs.readFileSync(module.path)
-            module.source_hash = @calc_hash(source)
-
-            if @coding_func?
-                destination = @_get_copying(module.relative)
-                unless destination?
-                    throw new NoCopyingRuleError(module.relative)
-
-                output = @encode(source, module)
-                @_write_file(destination, output)
-                module.hash = @calc_hash(output)
-                module.size = output.length
-            else
-                module.hash = module.source_hash
-                module.size = source.length
-
-        if @manifest?
-            manifest_data = @_create_manifest()
-            manifest_content = @_stringify_json(manifest_data)
-            @_write_file(@manifest, manifest_content)
-
-        if @hosting_map?
-            hosting_map_data = @_create_hosting_map()
-            hosting_map_content = @_stringify_json(hosting_map_data)
-            @_write_file(@hosting_map, hosting_map_content)
-
-        @_write_index() if @index?
-        @_write_appcache() if @appcache?
-        @_print_stats()
-        @cache.flush()
-        return manifest_content
+        return content
 
     _print_stats: ->
         total = 0
@@ -509,6 +489,25 @@ class Builder
                 module: module
             @logger.info(message)
         @logger.info("Total #{total} bytes in #{@_modules.length} files")
+
+    build: ->
+        @_clear()
+        @_enlist()
+        @_analyze()
+        @_host()
+        @_set_ids()
+        @_link()
+        @_sort()
+        @_encode()
+
+        @_write_file(@manifest, @_stringify_json(@_create_manifest())) if @manifest?
+        @_write_file(@hosting_map, @_stringify_json(@_create_hosting_map())) if @hosting_map?
+        @_write_file(@index, @_create_index()) if @index?
+        @_write_file(@appcache, @_create_appcache()) if @appcache?
+
+        @_print_stats()
+        @cache.flush()
+        return @manifest_content
 
 hasBOM = (data) ->
     return false if data.length < 3
