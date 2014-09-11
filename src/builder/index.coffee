@@ -52,6 +52,11 @@ class ModuleFileOverwritingError extends Error
         @name = @constructor.name
         @message = "Several modules are about to be wrote into `#{@path}`. Please revisit your `copying` rules."
 
+class HostingUrlOverwritingError extends Error
+    constructor: (@url) ->
+        @name = @constructor.name
+        @message = "Several modules are about to be hosted `#{@url}`. Please revisit your `hosting` rules."
+
 class Loop
     constructor: () ->
         @_parts = []
@@ -330,10 +335,18 @@ class Builder
                     modules.push(submodule)
 
     _host: ->
+        urls = {}
         for module in @_modules
             for rule in @hosting
                 continue unless rule.test(module.relative)
-                module.url = rule.transform(module.relative)
+                url = rule.transform(module.relative)
+
+                if url of urls #TODO: maybe better comparison will be needed
+                    throw new HostingUrlOverwritingError(url)
+
+                urls[url] = module
+                module.url = url
+                break
 
             unless module.url?
                 @logger.error("No hosting rules for `#{module.relative}`")
@@ -394,7 +407,7 @@ class Builder
                 
                 unless destination?
                     throw new NoCopyingRuleError(module.relative)
-
+                
                 if destination of paths #TODO: maybe better comparison will be needed
                     throw new ModuleFileOverwritingError(destination)
 
@@ -593,6 +606,7 @@ exports.UnresolvedDependencyError = UnresolvedDependencyError
 exports.ExternalDependencyError = ExternalDependencyError
 exports.ModuleTypeError = ModuleTypeError
 exports.ModuleFileOverwritingError = ModuleFileOverwritingError
+exports.HostingUrlOverwritingError = HostingUrlOverwritingError
 exports.Loop = Loop
 exports.Logger = Logger
 exports.DB = DB

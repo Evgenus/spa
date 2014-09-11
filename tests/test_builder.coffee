@@ -986,3 +986,27 @@ describe 'Building updates with encoding and ambiguous copying', ->
         expect(builder.build.bind(builder))
             .to.throw(spa.ModuleFileOverwritingError)
             .that.deep.equals(new spa.ModuleFileOverwritingError("/build/file.js"))
+
+describe 'Building modules with ambiguous hosting', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            testimonial: 
+                a.js: // empty
+                b.js: // empty
+                spa.yaml: |
+                    root: "/testimonial/"
+                    index: index.html
+                    appcache: main.appcache
+                    hosting:
+                        "./a.js": "http://127.0.0.1:8010/file.js"
+                        "./b.js": "http://127.0.0.1:8010/file.js"
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should produce appcache and index files', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        expect(builder.build.bind(builder))
+            .to.throw(spa.HostingUrlOverwritingError)
+            .that.deep.equals(new spa.HostingUrlOverwritingError("http://127.0.0.1:8010/file.js"))
