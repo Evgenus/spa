@@ -47,6 +47,11 @@ class ModuleTypeError extends Error
         @name = @constructor.name
         @message = "Can't determine type of module at `#{@path}`: #{@error?.toString()}"
 
+class ModuleFileOverwritingError extends Error
+    constructor: (@path) ->
+        @name = @constructor.name
+        @message = "Several modules are about to be wrote into `#{@path}`. Please revisit your `copying` rules."
+
 class Loop
     constructor: () ->
         @_parts = []
@@ -383,10 +388,17 @@ class Builder
 
     _encode: ->
         if @coding_func?
+            paths = {}
             for module in @_modules
                 destination = @_get_copying(module.relative)
+                
                 unless destination?
                     throw new NoCopyingRuleError(module.relative)
+
+                if destination of paths #TODO: maybe better comparison will be needed
+                    throw new ModuleFileOverwritingError(destination)
+
+                paths[destination] = module
 
                 source = fs.readFileSync(module.path)
                 output = @encode(source, module)
@@ -580,6 +592,7 @@ exports.CyclicDependenciesError = CyclicDependenciesError
 exports.UnresolvedDependencyError = UnresolvedDependencyError
 exports.ExternalDependencyError = ExternalDependencyError
 exports.ModuleTypeError = ModuleTypeError
+exports.ModuleFileOverwritingError = ModuleFileOverwritingError
 exports.Loop = Loop
 exports.Logger = Logger
 exports.DB = DB

@@ -952,3 +952,37 @@ describe 'Hosting output with encoder', ->
                 "http://127.0.0.1:8010/b.js": "./b.js"
                 "http://127.0.0.1:8010/c.js": "./c.js"
                 "http://127.0.0.1:8010/d.js": "./d.js"
+
+describe 'Building updates with encoding and ambiguous copying', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            build:
+                placeholder.txt: empty
+            testimonial: 
+                a.js: module.exports = function() { return "a1"; };
+                b.js: module.exports = function() { return "b1"; };
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    manifest: "manifest.json"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    coding_func:
+                        name: aes-gcm
+                        password: babuka
+                        iter: 1000
+                        ks: 128
+                        ts: 128
+                    copying:
+                        "./a.js": "/build/file.js"
+                        "./b.js": "/build/file.js"
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should manifest and encrypted files', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        expect(builder.build.bind(builder))
+            .to.throw(spa.ModuleFileOverwritingError)
+            .that.deep.equals(new spa.ModuleFileOverwritingError("/build/file.js"))
