@@ -5,6 +5,7 @@ path = require("path")
 expect = require("chai").expect
 spa = require("../lib")
 utils = require("./utils")
+crypto = require("crypto")
 
 beforeEach ->
     @old_cwd = process.cwd()
@@ -366,11 +367,12 @@ describe 'Building module with appcache and index', ->
     beforeEach ->
         system = yaml.safeLoad("""
             testimonial: 
-                a.js: // empty
-                b.js: /// empty
+                a.js: "//empty"
+                b.js: "///empty"
                 spa.yaml: |
                     root: "/testimonial/"
                     index: index.html
+                    hash_func: md5
                     appcache: main.appcache
                     cached:
                         - a.js
@@ -391,11 +393,10 @@ describe 'Building module with appcache and index', ->
 
         expect(fs.existsSync("/testimonial/main.appcache")).to.be.true
         expect(fs.readFileSync("/testimonial/main.appcache", "utf8"))
-            .to.include.string('1007f6da5acf8cc2643274276079bc3e')
+            .to.include.string(crypto.createHash('md5').update("//empty").digest("hex"))
             .to.include.string('http://127.0.0.1:8010/a.js')
-            .to.include.string('b5a945189b3164501323f5dcedfca307')
+            .to.include.string(crypto.createHash('md5').update("///empty").digest("hex"))
             .to.include.string('http://127.0.0.1:8010/b.js')
-            .to.include.string('835a5867495ba5fdf17929690be45ec6')
             .to.include.string('http://127.0.0.1:8010/index.html')
 
 describe 'Building renamed manifest', ->
