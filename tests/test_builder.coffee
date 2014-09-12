@@ -367,12 +367,14 @@ describe 'Building module with appcache and index', ->
         system = yaml.safeLoad("""
             testimonial: 
                 a.js: // empty
+                b.js: /// empty
                 spa.yaml: |
                     root: "/testimonial/"
                     index: index.html
                     appcache: main.appcache
                     cached:
                         - a.js
+                        - b.js
                     hosting:
                         "./(**/*.*)": "http://127.0.0.1:8010/$1"
             """)
@@ -384,7 +386,17 @@ describe 'Building module with appcache and index', ->
         builder.build()
 
         expect(fs.existsSync("/testimonial/index.html")).to.be.true
+        expect(fs.readFileSync("/testimonial/index.html", "utf8"))
+            .to.include.string('manifest.json')
+
         expect(fs.existsSync("/testimonial/main.appcache")).to.be.true
+        expect(fs.readFileSync("/testimonial/main.appcache", "utf8"))
+            .to.include.string('1007f6da5acf8cc2643274276079bc3e')
+            .to.include.string('http://127.0.0.1:8010/a.js')
+            .to.include.string('b5a945189b3164501323f5dcedfca307')
+            .to.include.string('http://127.0.0.1:8010/b.js')
+            .to.include.string('835a5867495ba5fdf17929690be45ec6')
+            .to.include.string('http://127.0.0.1:8010/index.html')
 
 describe 'Building renamed manifest', ->
     beforeEach ->

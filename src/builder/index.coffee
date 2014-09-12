@@ -201,6 +201,13 @@ class Builder
             return rule.transform(filepath)
         return
 
+    _host_path: (relative)->
+        for rule in @hosting
+            continue unless rule.test(relative)
+            return rule.transform(relative)
+
+        @logger.error("No hosting rules for `#{relative}`")
+
     _resolve_to_file: (filepath) ->
         if fs.existsSync(filepath)
             stats = fs.statSync(filepath)
@@ -333,23 +340,19 @@ class Builder
                     @_by_path[resolved] = submodule
                     @_modules.push(submodule)
                     modules.push(submodule)
+        return
 
     _host: ->
         urls = {}
         for module in @_modules
-            for rule in @hosting
-                continue unless rule.test(module.relative)
-                url = rule.transform(module.relative)
+            url = @_host_path(module.relative)
+            continue unless url
+            if url of urls #TODO: maybe better comparison will be needed
+                throw new HostingUrlOverwritingError(url)
 
-                if url of urls #TODO: maybe better comparison will be needed
-                    throw new HostingUrlOverwritingError(url)
-
-                urls[url] = module
-                module.url = url
-                break
-
-            unless module.url?
-                @logger.error("No hosting rules for `#{module.relative}`")
+            urls[url] = module
+            module.url = url
+        return
 
     _set_ids: ->
         for module in @_modules
@@ -472,7 +475,7 @@ class Builder
         if @manifest?
             filepath = path.resolve(@root, @manifest)
             relative = @_relativate(filepath)
-            url = @_host(relative)
+            url = @_host_path(relative)
             if url?
                 namespace["manifest_location"] = url
             else
@@ -487,14 +490,14 @@ class Builder
         for filename in @cached
             filepath = path.resolve(@root, filename)
             relative = @_relativate(filepath)
-            url = @_host(relative)
+            url = @_host_path(relative)
             continue unless url?
             content = fs.readFileSync(filepath, encoding: "utf8")
             assets[url] = @calc_hash(content)
         if @index?
             filepath = path.resolve(@root, @index)
             relative = @_relativate(filepath)
-            url = @_host(relative)
+            url = @_host_path(relative)
             if url?
                 filename = path.resolve(@root, @index)
                 assets[url] = @calc_hash(@_index_content)
