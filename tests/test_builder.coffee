@@ -760,7 +760,11 @@ describe 'Building modules with dependency from node_modules', ->
         builder.build()
         expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
-        
+
+        expect(manifest)
+            .to.have.property('modules')
+            .to.be.an("Array").with.length(4)
+
         expect(manifest.modules[0]).to.have.properties
             id: -> @that.equals("lib_main")
             deps: -> @that.deep.equals({})
@@ -787,6 +791,64 @@ describe 'Building modules with dependency from node_modules', ->
                 "m2": "lib_main"
             type: -> @that.equals("cjs")
             url: -> @that.equals("http://127.0.0.1:8010/a.js")
+
+describe 'Building modules with dependency from node_modules (multifile module)', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial:
+                lib: 
+                    a.js: 
+                        var b = require("b");
+                node_modules:
+                    b:
+                        index.js:
+                            var c = require("./c");
+                        c.js: 
+                            module.exports = 1;
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    extensions: 
+                        - .js
+                    excludes:
+                        - "./node_modules/**"
+                    manifest: "manifest.json"
+                    grab: true
+                    default_loader: junk
+            """))
+
+    it 'should successfully build', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        builder.build()
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        
+        expect(manifest)
+            .to.have.property('modules')
+            .to.be.an("Array").with.length(3)
+
+        expect(manifest.modules[0]).to.have.properties
+            id: -> @that.equals("c")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/c.js")
+
+        expect(manifest.modules[1]).to.have.properties
+            id: -> @that.equals("b")
+            deps: -> @that.deep.equals
+                "./c": "c"
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/index.js")
+        
+        expect(manifest.modules[2]).to.have.properties
+            id: -> @that.equals("a")
+            deps: -> @that.deep.equals
+                "b": "b"
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/lib/a.js")
 
 describe 'Remaping standart-like modules inside dependencies from node_modules', ->
     beforeEach ->
