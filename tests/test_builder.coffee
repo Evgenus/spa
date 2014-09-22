@@ -797,13 +797,13 @@ describe 'Building modules with dependency from node_modules (multifile module)'
         mock(yaml.safeLoad("""
             testimonial:
                 lib: 
-                    a.js: 
+                    a.js: |
                         var b = require("b");
                 node_modules:
                     b:
-                        index.js:
+                        index.js: |
                             var c = require("./c");
-                        c.js: 
+                        c.js: |
                             module.exports = 1;
                 spa.yaml: |
                     pretty: true
@@ -844,6 +844,88 @@ describe 'Building modules with dependency from node_modules (multifile module)'
             url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/index.js")
         
         expect(manifest.modules[2]).to.have.properties
+            id: -> @that.equals("a")
+            deps: -> @that.deep.equals
+                "b": "b"
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/lib/a.js")
+
+
+describe 'Building modules with dependency from node_modules (import from the deep)', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial:
+                lib: 
+                    a.js: |
+                        var b = require("b");
+                node_modules:
+                    b:
+                        index.js: |
+                            var c = require("c");
+                        node_modules:
+                            c:
+                                index.js: |
+                                    var d = require("d");
+                                node_modules:
+                                    d:
+                                        index.js: |
+                                            var e = require("e");
+                    e:
+                        index.js: |
+                            module.exports = 1;
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    extensions: 
+                        - .js
+                    excludes:
+                        - "./node_modules/**"
+                    manifest: "manifest.json"
+                    grab: true
+                    default_loader: junk
+            """))
+
+    it 'should successfully build', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        builder.build()
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        
+        expect(manifest)
+            .to.have.property('modules')
+            .to.be.an("Array").with.length(5)
+
+        expect(manifest.modules[0]).to.have.properties
+            id: -> @that.equals("e")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/e/index.js")
+
+        expect(manifest.modules[1]).to.have.properties
+            id: -> @that.equals("d")
+            deps: -> @that.deep.equals
+                "e": "e"
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/node_modules/c/node_modules/d/index.js")
+        
+        expect(manifest.modules[2]).to.have.properties
+            id: -> @that.equals("c")
+            deps: -> @that.deep.equals
+                "d": "d"
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/node_modules/c/index.js")
+        
+        expect(manifest.modules[3]).to.have.properties
+            id: -> @that.equals("b")
+            deps: -> @that.deep.equals
+                "c": "c"
+            type: -> @that.equals("cjs")
+            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/index.js")
+        
+        expect(manifest.modules[4]).to.have.properties
             id: -> @that.equals("a")
             deps: -> @that.deep.equals
                 "b": "b"
