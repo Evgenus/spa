@@ -691,10 +691,9 @@ describe "WD.js", ->
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(30*DELAY)
-            .title()
-            .then (title) =>
-                expect(title).to.equal("5050")
+            .title().should.eventually.become("5050")
             .safeExecute("localforage.clear()")
+            .sleep(5 * DELAY)
             .nodeify(done)
 
     it 'should load big files', (done) ->
@@ -755,11 +754,10 @@ describe "WD.js", ->
             .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(30 * DELAY)
-            .title()
-            .then (title) =>
-                expect(title).to.equal("3934350")
+            .sleep(35 * DELAY)
+            .title().should.eventually.become("3934350")
             .safeExecute("localforage.clear()")
+            .sleep(5 * DELAY)
             .nodeify(done)
 
     it 'building files with wierd names', (done) ->
