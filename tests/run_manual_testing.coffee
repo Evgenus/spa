@@ -13,6 +13,14 @@ utils = require("./utils")
 
 spa = require("../lib")
 
+snapshot_0 = ->
+    system = {}
+    utils.mount(system, path.resolve(__dirname, "./testing_assets"))
+    utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+    utils.mount(system, path.resolve(__dirname, "../node_modules/serve-index/public"))
+
+    return system    
+
 snapshot_1 = ->
     system = yaml.safeLoad("""
         /app:
@@ -49,12 +57,54 @@ snapshot_1 = ->
                 root: "./"
                 manifest: "./manifest.json"
                 index: "./index.html"
-                randomize_urls: false
+                randomize_urls: true
                 hosting:
                     "./(*.js)": "/app/$1"
         """)
+    utils.mount(system, path.resolve(__dirname, "./testing_assets"))
     utils.mount(system, path.resolve(__dirname, "../lib/assets"))
     utils.mount(system, path.resolve(__dirname, "../node_modules/serve-index/public"))
+
+    return system
+
+snapshot_2 = ->
+    system = yaml.safeLoad("""
+        /app:
+            d.js: |
+                module.exports = function() 
+                {
+                    return "d";
+                };
+            b.js: |
+                var d = require("./d.js");
+                module.exports = function() 
+                {
+                    return "B" + d();
+                };
+            a.js: |
+                var loader = require("loader");
+                var b = require("./b.js");
+                loader.onApplicationReady = function() 
+                {
+                    document.title = "a" + b();
+                    loader.checkUpdate();
+                };
+                loader.onUpdateCompleted = function(event) {
+                    setTimeout(location.reload.bind(location), 0)
+                    return true
+                };
+            spa.yaml: |
+                root: "./"
+                manifest: "./manifest.json"
+                index: "./index.html"
+                randomize_urls: true
+                hosting:
+                    "./(*.js)": "/app/$1"
+        """)
+    utils.mount(system, path.resolve(__dirname, "./testing_assets"))
+    utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+    utils.mount(system, path.resolve(__dirname, "../node_modules/serve-index/public"))
+
     return system
 
 app = connect()
@@ -74,6 +124,10 @@ app = connect()
                     mock(snapshot_1())
                     res.statusCode = 303;
                     res.setHeader('Location', '/');
+                when "2"
+                    mock(snapshot_2())
+                    res.statusCode = 303;
+                    res.setHeader('Location', '/');
                 else 
                     res.statusCode = 404
 
@@ -90,5 +144,8 @@ app = connect()
         etag: false
     .use serveIndex "/",
         icons: true
+        stylesheet: path.join(__dirname, 'testing_assets', 'style.css')
+        template: path.join(__dirname, 'testing_assets', 'directory.html')
 
+mock(snapshot_0())
 http.createServer(app).listen(3332)
