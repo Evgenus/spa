@@ -102,7 +102,7 @@ loader.onNoManifest = ->
         log("onUpdateCompleted", manifest)
 
         malfunction.reset()
-        setTimeout(location.reload.bind(location), 0)
+        setTimeout(( -> location.reload() ), 0)
         return true
 
     loader.checkUpdate()
