@@ -236,13 +236,13 @@ class Builder
 
     _resolve: (module, dep) ->
         for alias, prefix of @paths
-            if _(dep).startsWith(alias)
+            if _.startsWith(dep, alias)
                 dep = dep.replace(alias, prefix)
                 break
 
-        if _(dep).startsWith("/")
+        if _.startsWith(dep, "/")
             dep = path.join(@root, dep)
-        else if _(dep).startsWith("./") or _(dep).startsWith("../")
+        else if _.startsWith(dep, "./") or _.startsWith(dep, "../")
             basedir = path.dirname(module.path)
             dep = path.resolve(basedir, dep)
         else
