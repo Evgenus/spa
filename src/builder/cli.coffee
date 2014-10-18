@@ -12,37 +12,33 @@ exists = (filepath) ->
 
 get_config_path = (arg) ->
     cwd = process.cwd()
-    if arg?
-        return exists(path.resolve(cwd, arg)) ?
-               exists(path.resolve(cwd, arg, "spa.json")) ?
-               exists(path.resolve(cwd, arg, "spa.yaml")) ?
-               exists(path.resolve(cwd, arg, "spa.yml"))
-    return exists(path.join(cwd, "spa.json")) ?
-           exists(path.join(cwd, "spa.yaml")) ?
-           exists(path.join(cwd, "spa.yml"))
+    return exists(path.resolve(cwd, arg)) ?
+           exists(path.resolve(cwd, arg, "spa.json")) ?
+           exists(path.resolve(cwd, arg, "spa.yaml")) ?
+           exists(path.resolve(cwd, arg, "spa.yml"))
+
+get_options_parser = ->
+    return require("nomnom")
+        .script 'spa'
+        .options 
+            config:
+                abbr: 'c'
+                type: 'string'
+                metavar: 'FILE'
+                help: 'Path to build config file'
+                default: '.'
 
 exports.run = ->
-    opts = require('optimist')
-        .usage('Usage: $0 <build-config-file>')
-        .options
-            config:
-                describe: "path to build config file"
-            help:
-                boolean: true
-            debug: 
-                boolean: true
-
-    argv = opts.parse(process.argv)
-
-    if argv.help
-        console.log(opts.help())
-        process.exit()
-
+    options_parser = get_options_parser()
+    argv = options_parser.parse(process.argv)
     path = get_config_path(argv.config)
+
     unless path?
         console.log("Can't locate config file")
-        return 
+        return
+
     builder = Builder.from_config(path)
+
     try
         builder.build()
     catch error
