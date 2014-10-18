@@ -50,6 +50,7 @@
     "glob-rules": "^0.1.0",
     "js-yaml": "^3.2.2",
     "module-definition": ">=1.1.0",
+    "nomnom": "^1.8.0",
     "optimist": ">=0.6.1",
     "resolve": "^1.0.0",
     "underscore": "^1.7.0",
