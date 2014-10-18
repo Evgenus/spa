@@ -9,7 +9,7 @@ detectiveAMD = require('detective-amd')
 definition = require('module-definition').sync
 yaml = require('js-yaml')
 ejs = require("ejs")
-_  = require('underscore')
+_  = require('lodash')
 _.string =  require('underscore.string')
 _.mixin(_.string.exports())
 crypto = require("crypto")
