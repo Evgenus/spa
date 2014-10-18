@@ -264,9 +264,9 @@ ul#files.view-details li.header {
 }
 
 #controls a {
-  display: inline-block;
-  width: 100%;
-  padding: 0px 10px;
+  display: block;
+  text-align: center;
+  padding: 3px 10px;
   margin: 1px 0px;
   background: #ccc;
   border: 1px solid #888;

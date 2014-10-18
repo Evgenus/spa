@@ -19,7 +19,7 @@ snapshot_0 = ->
     utils.mount(system, path.resolve(__dirname, "../lib/assets"))
     utils.mount(system, path.resolve(__dirname, "../node_modules/serve-index/public"))
 
-    return system    
+    mock(system)
 
 snapshot_1 = ->
     system = yaml.safeLoad("""
@@ -65,7 +65,7 @@ snapshot_1 = ->
     utils.mount(system, path.resolve(__dirname, "../lib/assets"))
     utils.mount(system, path.resolve(__dirname, "../node_modules/serve-index/public"))
 
-    return system
+    mock(system)
 
 snapshot_2 = ->
     system = yaml.safeLoad("""
@@ -105,7 +105,7 @@ snapshot_2 = ->
     utils.mount(system, path.resolve(__dirname, "../lib/assets"))
     utils.mount(system, path.resolve(__dirname, "../node_modules/serve-index/public"))
 
-    return system
+    mock(system)
 
 app = connect()
     .use morgan("dev")
@@ -121,16 +121,16 @@ app = connect()
         router.get '/activate/:snapshot', (req, res) ->
             switch req.params.snapshot
                 when "1"
-                    mock(snapshot_1())
-                    res.statusCode = 303;
-                    res.setHeader('Location', '/');
+                    snapshot_1()
                 when "2"
-                    mock(snapshot_2())
-                    res.statusCode = 303;
-                    res.setHeader('Location', '/');
+                    snapshot_2()
                 else 
                     res.statusCode = 404
+                    res.end()
+                    return
 
+            res.statusCode = 303;
+            res.setHeader('Location', '/');
             res.end()
 
         router.get '/build', (req, res) ->
@@ -147,5 +147,5 @@ app = connect()
         stylesheet: path.join(__dirname, 'testing_assets', 'style.css')
         template: path.join(__dirname, 'testing_assets', 'directory.html')
 
-mock(snapshot_0())
+snapshot_0()
 http.createServer(app).listen(3332)
