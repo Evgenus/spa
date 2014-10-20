@@ -1246,3 +1246,43 @@ describe "WD.js", ->
             .title().should.become("version_8")
             .safeExecute("localforage.clear()")
             .nodeify(done)
+
+    it.only 'fix for #59: cjs evaluator missing process from node environment', (done) ->
+        return @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        a.js: |
+                            if ("production" !== process.env.NODE_ENV) {
+                            }
+                            var loader = require("loader");
+                            loader.onApplicationReady = function() {
+                                document.title = "version_1";
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            manifest: "./manifest.json"
+                            index: "./index.html"
+                            hosting:
+                                "./a.js": "/app/a.js"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(DELAY)
+            .title().should.eventually.become("version_1")
+            .safeExecute("localforage.clear()")
+            .nodeify(done)

@@ -87,10 +87,12 @@ class CJSEvaluator extends BasicEvaluator
         @exports = {}
         @module.exports = @exports
         @require = @get_require()
+        @process = 
+            env: {}
     render: -> return """
-        return (function(module, exports, require, window) { 
+        return (function(module, exports, require, window, process) { 
             #{@source}; 
-        }).call(this.this, this.module, this.exports, this.require, this.window);
+        }).call(this.this, this.module, this.exports, this.require, this.window, this.process);
         """
     get_require: ->
         require = (name) -> 
