@@ -24,7 +24,7 @@ setEnabled = (enabled) ->
         @trace = silent
         @assert = silent
 
-setEnabled(true)
+setEnabled.call(context, true)
 
 exports.isEnabled = -> return context.enabled
 exports.disable = -> setEnabled.call(context, false)
