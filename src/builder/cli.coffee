@@ -1,5 +1,6 @@
 path = require("path")
 fs = require("fs")
+console = require("./console")
 Builder = require("./").Builder
 
 exists = (filepath) ->
@@ -27,19 +28,27 @@ get_options_parser = ->
                 metavar: 'FILE'
                 help: 'Path to build config file'
                 default: '.'
+            silent:
+                abbr: 's'
+                flag: true
+                default: false
+                help: 'Suppress all console output.'
 
 exports.run = ->
     options_parser = get_options_parser()
     argv = options_parser.parse(process.argv)
+    console.setEnabled(!argv.silent)
+
     path = get_config_path(argv.config)
 
     unless path?
         console.log("Can't locate config file")
         return
 
+    console.log("Reading config from #{path}")
     builder = Builder.from_config(path)
 
     try
         builder.build()
     catch error
-        console.log(error.toString())
+        console.error(error.toString())

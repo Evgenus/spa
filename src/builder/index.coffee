@@ -14,6 +14,7 @@ _.string =  require('underscore.string')
 _.mixin(_.string.exports())
 crypto = require("crypto")
 resolve = require("resolve")
+console = require("./console")
 
 packagejson = ( ->
     packagepath = path.resolve(__dirname, '../package.json')
@@ -138,8 +139,9 @@ class Builder
         @_built_ins = ["loader"]
 
         @options = options
+        @options.logger ?= "SPA"
         if _.isString(options.logger)
-            @logger = @_create_logger(options.logger ? "SPA")
+            @logger = @_create_logger()
         else 
             @logger = options.logger
         @root = path.resolve(process.cwd(), options.root) + "/"
@@ -593,14 +595,15 @@ get_config_content = (filepath) ->
 
 # ________________________________ EXPORTS ___________________________________ #
 
-Builder.from_config = (config_path) ->
-    logger = new Logger("SPA")
-    logger.info("Reading config from #{config_path}")
+Builder.from_config = (config_path, options) ->
     basedir = path.dirname(config_path)
     config = get_config_content(config_path)
+
+    for own name, value of options ? {}
+        config[name] = value
+
     config.root ?= "."
     config.root = path.resolve(basedir, config.root)
-    config.logger = logger
     return new Builder(config)
 
 exports.Builder = Builder
