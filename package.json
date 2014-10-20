@@ -44,13 +44,13 @@
   "dependencies": {
     "cli-color": "^0.3.2",
     "detective": "^3.1.0",
-    "detective-amd": "^2.1.4",
+    "detective-amd": "^2.1.5",
     "ejs": "^1.0.0",
     "fs-walk-glob-rules": "^0.1.0",
     "glob-rules": "^0.1.0",
     "js-yaml": "^3.2.2",
     "lodash": "^2.4.1",
-    "module-definition": ">=1.1.0",
+    "module-definition": "^1.2.4",
     "nomnom": "^1.8.0",
     "resolve": "^1.0.0",
     "underscore.string": "~2.3.3"
