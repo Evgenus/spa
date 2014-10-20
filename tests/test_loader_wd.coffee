@@ -140,7 +140,7 @@ describe "WD.js", ->
             .then ->
                 spa.Builder.from_config("/app/spa.yaml").build()
             .refresh()
-            .sleep(2 * DELAY)
+            .sleep(3 * DELAY)
             .title().should.eventually.become("version_2")
             .safeExecute("localforage.clear()")
             .nodeify(done)
