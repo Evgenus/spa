@@ -121,10 +121,10 @@ describe "WD.js", ->
             .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(DELAY)
+            .sleep(3 * DELAY)
             .title().should.eventually.become("version_1")
             .refresh()
-            .sleep(DELAY)
+            .sleep(2 * DELAY)
             .title().should.eventually.become("version_1")
             .then ->
                 content = """
@@ -135,7 +135,7 @@ describe "WD.js", ->
                     """
                 fs.writeFileSync("/app/a.js", content)
             .refresh()
-            .sleep(DELAY)
+            .sleep(2 * DELAY)
             .title().should.eventually.become("version_1")
             .then ->
                 spa.Builder.from_config("/app/spa.yaml").build()
@@ -1247,7 +1247,7 @@ describe "WD.js", ->
             .safeExecute("localforage.clear()")
             .nodeify(done)
 
-    it.only 'fix for #59: cjs evaluator missing process from node environment', (done) ->
+    it 'fix for #59: cjs evaluator missing process from node environment', (done) ->
         return @browser
             .then ->
                 system = yaml.safeLoad("""
