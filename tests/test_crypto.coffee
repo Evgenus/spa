@@ -10,7 +10,11 @@ gen = (size) ->
     return result
 
 describe.skip 'Dev test for sjcl hashing', ->
-    sjcl = require("../bower_components/sjcl/all.js")
+    sjcl = null
+    
+    before ->
+        sjcl = require("../bower_components/sjcl/all.js")
+
     hashfunc = (data) ->
         return sjcl.codec.hex.fromBits(sjcl.hash.sha256.hash(data))
 
@@ -39,7 +43,10 @@ describe.skip 'Dev test for openssl hashing', ->
     test(gen(20), "d2069169ee236ff4538eade428eeb0adafec9e8398ea6626bf3b8211c708cb2d")
 
 describe.skip 'Dev test for sjcl encryption', ->
-    sjcl = require("../bower_components/sjcl/all.js")
+    sjcl = null
+    
+    before ->
+        sjcl = require("../bower_components/sjcl/all.js")
 
     test = (data, length) ->
         it "encrypt #{data.length} bytes long input using `gcm`", ->
