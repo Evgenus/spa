@@ -61,7 +61,7 @@ snapshot_1 = ->
                 hosting:
                     "./(*.js)": "/app/$1"
         """)
-    utils.mount(system, path.resolve(__dirname, "./testing_assets"))
+    utils.mount(system, path.resolve(__dirname, "."))
     utils.mount(system, path.resolve(__dirname, "../lib/assets"))
     utils.mount(system, path.resolve(__dirname, "../node_modules/serve-index/public"))
 
@@ -101,11 +101,50 @@ snapshot_2 = ->
                 hosting:
                     "./(*.js)": "/app/$1"
         """)
-    utils.mount(system, path.resolve(__dirname, "./testing_assets"))
+    utils.mount(system, path.resolve(__dirname, "."))
     utils.mount(system, path.resolve(__dirname, "../lib/assets"))
     utils.mount(system, path.resolve(__dirname, "../node_modules/serve-index/public"))
 
     mock(system)
+
+snapshot_3 = ->
+    system = yaml.safeLoad("""
+        /app:
+            spa.yaml: |
+                root: "./"
+                index: "./index.html"
+                manifest: "./manifest.json"
+                hosting:
+                    "./(*.js)": "/app/$1"
+        """)
+
+    utils.mount(system, path.resolve(__dirname, "."))
+    utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+    utils.mount(system, path.resolve(__dirname, "../node_modules/serve-index/public"))
+
+    mock(system)
+
+    NUM = 500
+
+    for i in [1..NUM]
+        fs.writeFileSync("/app/module_#{i}.js", """
+            var next = require("./module_#{i+1}");
+            module.exports = function() {
+                return next() + #{i};
+            };
+            """)
+    fs.writeFileSync("/app/module_#{NUM}.js", """
+            module.exports = function() {
+                return #{NUM};
+            };
+            """)
+    fs.writeFileSync("/app/module_0.js", """
+            var loader = require("loader");
+            var next = require("./module_1");
+            loader.onApplicationReady = function() {
+                document.title = next();
+            };
+            """)
 
 app = connect()
     .use morgan("dev")
@@ -119,15 +158,23 @@ app = connect()
     .use "/", route (router) ->
 
         router.get '/activate/:snapshot', (req, res) ->
-            switch req.params.snapshot
-                when "1"
-                    snapshot_1()
-                when "2"
-                    snapshot_2()
-                else 
-                    res.statusCode = 404
-                    res.end()
-                    return
+            try
+                switch req.params.snapshot
+                    when "1"
+                        snapshot_1()
+                    when "2"
+                        snapshot_2()
+                    when "3"
+                        snapshot_3()
+                    else 
+                        res.statusCode = 404
+                        res.end()
+                        return
+            catch error
+                console.log(error)
+                res.statusCode = 200
+                res.send(error)
+                return
 
             res.statusCode = 303;
             res.setHeader('Location', '/');
