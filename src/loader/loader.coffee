@@ -96,10 +96,9 @@ class CJSEvaluator extends BasicEvaluator
         """
     get_require: ->
         require = (name) -> 
-            value = @deps[name]
-            if not value?
+            if name not of @deps
                 @_fail(new UndeclaredRequireError(@id, name)) 
-            return value
+            return @deps[name]
         return require.bind(this);
     _check: (result) ->
         window_keys = Object.keys(@window)
