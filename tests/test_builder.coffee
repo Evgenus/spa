@@ -792,6 +792,36 @@ describe 'Building modules with dependency from node_modules', ->
             type: -> @that.equals("cjs")
             url: -> @that.equals("http://127.0.0.1:8010/a.js")
 
+describe 'Building modules with inexistent dependency from node_modules', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial: 
+                a.js: 
+                    var m1 = require("m1");
+                node_modules:
+                    m1:
+                        empty.txt: placeholder
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    extensions: 
+                        - .js
+                    excludes:
+                        - "./node_modules/**"
+                    manifest: "manifest.json"
+                    grab: true
+                    default_loader: junk
+            """))
+
+    it 'should report unresolved dependency', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+            
+        expect(builder.build.bind(builder))
+            .to.throw(spa.UnresolvedDependencyError)
+            .that.deep.equals(new spa.UnresolvedDependencyError("./a.js", "m1"))
+
 describe 'Building modules with dependency from node_modules (multifile module)', ->
     beforeEach ->
         mock(yaml.safeLoad("""

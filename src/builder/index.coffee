@@ -248,9 +248,12 @@ class Builder
             basedir = path.dirname(module.path)
             dep = path.resolve(basedir, dep)
         else
-            return resolve.sync dep,
-                basedir: path.dirname(module.path)
-                extensions: @extensions
+            try
+                return resolve.sync dep,
+                    basedir: path.dirname(module.path)
+                    extensions: @extensions
+            catch
+                return null
 
         return @_resolve_to_file(dep) ? 
                @_resolve_to_file(dep + ".js") ? 
