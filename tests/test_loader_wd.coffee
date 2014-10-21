@@ -666,7 +666,7 @@ describe "WD.js", ->
 
                 NUM = 100
 
-                for i in [1..100]
+                for i in [1..NUM]
                     fs.writeFileSync("/app/module_#{i}.js", """
                         var next = require("./module_#{i+1}");
                         module.exports = function() {
