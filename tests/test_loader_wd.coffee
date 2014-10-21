@@ -260,7 +260,7 @@ describe "WD.js", ->
                     ])
                 expect(urls[6]).to.equal("/app/")
                 expect(urls[7]).to.equal("/app/manifest.json")
-            .safeExecute("localforage.keys( function(keys) { window.forage_keys = keys; } )")
+            .safeExecute("localforage.keys( function(err, keys) { window.forage_keys = keys; } )")
             .sleep(DELAY)
             .safeEval("window.forage_keys")
             .then (keys) =>
@@ -294,7 +294,7 @@ describe "WD.js", ->
                 expect(urls[2]).to.equal("/app/b.js")
                 expect(urls[3]).to.equal("/app/")
                 expect(urls[4]).to.equal("/app/manifest.json")
-            .safeExecute("localforage.keys( function(keys) { window.forage_keys = keys; } )")
+            .safeExecute("localforage.keys( function(err, keys) { window.forage_keys = keys; } )")
             .sleep(DELAY)
             .safeEval("window.forage_keys")
             .then (keys) =>
@@ -693,7 +693,7 @@ describe "WD.js", ->
             .sleep(30*DELAY)
             .title().should.eventually.become("5050")
             .safeExecute("localforage.clear()")
-            .sleep(5 * DELAY)
+            .sleep(10 * DELAY)
             .nodeify(done)
 
     it 'should load big files', (done) ->
@@ -754,10 +754,10 @@ describe "WD.js", ->
             .sleep(DELAY)
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
-            .sleep(35 * DELAY)
+            .sleep(40 * DELAY)
             .title().should.eventually.become("3934350")
             .safeExecute("localforage.clear()")
-            .sleep(5 * DELAY)
+            .sleep(10 * DELAY)
             .nodeify(done)
 
     it 'building files with wierd names', (done) ->

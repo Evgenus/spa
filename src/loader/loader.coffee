@@ -13,6 +13,11 @@ class ChangesInWindowError extends Error
         @name = "ChangesInWindowError"
         @message = "During `#{@self_name}` loading window object was polluted with: #{props}"
 
+class DBError extends Error
+    constructor: (@url, @error) ->
+        @name = "DBError"
+        @message = "Error #{@error} occured during loading of module #{@url}."
+
 class NoSourceError extends Error
     constructor: (@url) ->
         @name = "NoSourceError"
@@ -224,7 +229,8 @@ class Loader
         @logger = options.logger ? new Logger("LOADER:#{@prefix}") 
 
         @manifest_key = @prefix + "::manifest"
-        localforage.config()
+        localforage.config
+            name: @prefix + "-db"
 
     _prepare_url: (url) ->
         return escape(url) unless @randomize_urls
@@ -272,7 +278,8 @@ class Loader
         return localforage.setItem(key, content, cb)
 
     get_contents_keys: (cb) ->
-        localforage.keys (keys) =>
+        localforage.keys (err, keys) =>            
+            return console.error(err) if err?
             for key in keys
                 cb(key)
             return
@@ -327,7 +334,11 @@ class Loader
 
         module = queue.shift()
         key = @make_key(module)
-        @get_content key, (module_source) =>
+        @get_content key, (err, module_source) =>
+            if err?
+                @emit("EvaluationError", module, new DBError(module.url, err))
+                return
+
             unless module_source?
                 @emit("EvaluationError", module, new NoSourceError(module.url))
                 return
@@ -409,18 +420,18 @@ class Loader
 
     _updateModule: (module) ->
         key = @make_key(module)
-        @get_content key, (module_source) =>
-            if module_source?
-                if @hash_func(module_source) != module.hash
-                    @emit("ModuleDownloadFailed", null, module)
-                    return
-                module.source = module_source
-                module.loaded = module.size
-                @emit("ModuleDownloaded", module)
-                @_reportTotalProgress()
-                @_checkAllUpdated()
-            else
-                @_downloadModule(module)
+        @get_content key, (err, module_source) =>
+            return @_downloadModule(module) if err?
+            return @_downloadModule(module) unless module_source?
+           
+            if @hash_func(module_source) != module.hash
+                @emit("ModuleDownloadFailed", null, module)
+                return
+            module.source = module_source
+            module.loaded = module.size
+            @emit("ModuleDownloaded", module)
+            @_reportTotalProgress()
+            @_checkAllUpdated()
             return
         return
 
@@ -452,7 +463,10 @@ class Loader
             if @hash_func(module_source) != module.hash
                 @emit("ModuleDownloadFailed", event, module)
                 return
-            @set_content @make_key(module), module_source, =>
+            @set_content @make_key(module), module_source, (err, content) =>
+                if err?
+                    @emit("ModuleDownloadFailed", new DBError(module.url, err), module)
+                    return
                 module.source = module_source
                 module.loaded = module.size
                 @emit("ModuleDownloaded", module)
