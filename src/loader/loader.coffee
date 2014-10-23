@@ -211,6 +211,13 @@ class Loader
         @_new_manifest = null
         @_total_size = 0
 
+        @_stats = 
+            evaluate_module_start: []
+            evaluate_module_loaded_from_db: []
+            update_module_start: []
+            update_module_loaded_from_db: []
+            evaluate_module_decoded: []
+
         @_evaluators =
             cjs: CJSEvaluator
             amd: AMDEvaluator
@@ -329,6 +336,8 @@ class Loader
         return
 
     evaluate: (queue) ->
+        @_stats.evaluate_module_start.push(new Date().getTime())
+        
         queue = queue.concat()
         if queue.length is 0
             @emit("ApplicationReady", @_current_manifest)
@@ -338,6 +347,7 @@ class Loader
         key = @make_key(module)
         return @get_content(key)
             .then (module_source) =>
+                @_stats.evaluate_module_loaded_from_db.push(new Date().getTime())
 
             unless module_source?
                 @emit("EvaluationError", module, new NoSourceError(module.url))
@@ -349,6 +359,8 @@ class Loader
             catch error
                 @emit("EvaluationError", module, error)
                 return
+
+                @_stats.evaluate_module_decoded.push(new Date().getTime())
 
             deps = {}
             for alias, dep of module.deps
@@ -422,9 +434,11 @@ class Loader
         @del_manifest()
 
     _updateModule: (module) ->
+        @_stats.update_module_start.push(new Date().getTime())
         key = @make_key(module)
         @get_content(key)
             .then (module_source) =>
+                @_stats.update_module_loaded_from_db.push(new Date().getTime())
             return @_downloadModule(module) unless module_source?
            
             if @hash_func(module_source) != module.hash
