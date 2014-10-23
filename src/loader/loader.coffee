@@ -278,11 +278,13 @@ class Loader
         return localforage.setItem(key, content, cb)
 
     get_contents_keys: (cb) ->
-        localforage.keys (err, keys) =>            
-            return console.error(err) if err?
+        localforage.keys()
+            .then (keys) =>            
             for key in keys
                 cb(key)
             return
+            .catch (err) =>
+                return console.error(err)
         return
 
     del_content: (key, cb) ->
@@ -322,7 +324,7 @@ class Loader
 
         unless @emit("EvaluationStarted", @_current_manifest) is false
             @evaluate(@_current_manifest.modules)
-            @_cleanUp()
+                .then => @_cleanUp()
 
         return
 
@@ -334,10 +336,8 @@ class Loader
 
         module = queue.shift()
         key = @make_key(module)
-        @get_content key, (err, module_source) =>
-            if err?
-                @emit("EvaluationError", module, new DBError(module.url, err))
-                return
+        return @get_content(key)
+            .then (module_source) =>
 
             unless module_source?
                 @emit("EvaluationError", module, new NoSourceError(module.url))
@@ -371,7 +371,10 @@ class Loader
 
             @emit("ModuleEvaluated", module)
 
-            @evaluate(queue)
+                return @evaluate(queue)
+            .catch (err) =>
+                @emit("EvaluationError", module, new DBError(module.url, err))
+                return
 
     checkUpdate: () ->
         return if @_update_started
@@ -420,8 +423,8 @@ class Loader
 
     _updateModule: (module) ->
         key = @make_key(module)
-        @get_content key, (err, module_source) =>
-            return @_downloadModule(module) if err?
+        @get_content(key)
+            .then (module_source) =>
             return @_downloadModule(module) unless module_source?
            
             if @hash_func(module_source) != module.hash
@@ -433,6 +436,8 @@ class Loader
             @_reportTotalProgress()
             @_checkAllUpdated()
             return
+            .catch (err) =>
+                return @_downloadModule(module)
         return
 
     _reportTotalProgress: ->
@@ -463,15 +468,18 @@ class Loader
             if @hash_func(module_source) != module.hash
                 @emit("ModuleDownloadFailed", event, module)
                 return
-            @set_content @make_key(module), module_source, (err, content) =>
-                if err?
-                    @emit("ModuleDownloadFailed", null, module, new DBError(module.url, err))
-                    return
+            @set_content(@make_key(module), module_source)
+                .then (content) =>
                 module.source = module_source
                 module.loaded = module.size
                 @emit("ModuleDownloaded", module)
                 @_reportTotalProgress()
                 @_checkAllUpdated()
+                    return
+                .catch (err) =>
+                    @emit("ModuleDownloadFailed", null, module, new DBError(module.url, err))
+                    return
+
         module_request.onprogress = (event) =>
             module.loaded = event.loaded
             @emit("ModuleDownloadProgress", event, module)
@@ -506,7 +514,7 @@ class Loader
             return unless key? # wierd error
             return unless key.indexOf(@prefix) is 0
             return if key in useful
-            @del_content key, (error) =>
-                @logger.error(error) 
+            @del_content(key)
+                .catch (error) => @logger.error(error) 
             return
         return
