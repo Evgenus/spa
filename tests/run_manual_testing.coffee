@@ -14,6 +14,7 @@ utils = require("./utils")
 spa = require("../lib")
 
 snapshot_0 = ->
+    mock.restore()
     system = {}
     utils.mount(system, path.resolve(__dirname, "./testing_assets"))
     utils.mount(system, path.resolve(__dirname, "../lib/assets"))
@@ -22,6 +23,7 @@ snapshot_0 = ->
     mock(system)
 
 snapshot_1 = ->
+    mock.restore()
     system = yaml.safeLoad("""
         /app:
             d.js: |
@@ -68,6 +70,7 @@ snapshot_1 = ->
     mock(system)
 
 snapshot_2 = ->
+    mock.restore()
     system = yaml.safeLoad("""
         /app:
             d.js: |
@@ -108,6 +111,7 @@ snapshot_2 = ->
     mock(system)
 
 snapshot_3 = ->
+    mock.restore()
     system = yaml.safeLoad("""
         /app:
             spa.yaml: |
