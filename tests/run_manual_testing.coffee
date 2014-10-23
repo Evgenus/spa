@@ -130,25 +130,25 @@ snapshot_3 = ->
 
     mock(system)
 
+    c = "/"
+    while c.length < 4000
+        c = c + c
+
     NUM = 500
 
     for i in [1..NUM]
         fs.writeFileSync("/app/module_#{i}.js", """
-            var next = require("./module_#{i+1}");
-            module.exports = function() {
-                return next() + #{i};
-            };
+            require("./module_#{i+1}");
+            //#{c}
             """)
     fs.writeFileSync("/app/module_#{NUM}.js", """
-            module.exports = function() {
-                return #{NUM};
-            };
+            //#{c}
             """)
     fs.writeFileSync("/app/module_0.js", """
             var loader = require("loader");
-            var next = require("./module_1");
+            require("./module_1");
             loader.onApplicationReady = function() {
-                document.title = next();
+                document.title = loader._stats.evaluate_module_start[501] - loader._stats.evaluate_module_start[0];
             };
             """)
 
