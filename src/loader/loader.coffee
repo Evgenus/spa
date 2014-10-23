@@ -295,7 +295,7 @@ class Loader
     onUpdateFailed: (event, error)-> 
     onUpdateCompleted: (manifest) -> return true
     onModuleBeginDownload: (module) -> 
-    onModuleDownloadFailed: (event, module) -> 
+    onModuleDownloadFailed: (event, module, error) -> 
     onModuleDownloadProgress: (event, module) -> 
     onTotalDownloadProgress: (progress) -> 
     onModuleDownloaded: (module) -> 
@@ -465,7 +465,7 @@ class Loader
                 return
             @set_content @make_key(module), module_source, (err, content) =>
                 if err?
-                    @emit("ModuleDownloadFailed", new DBError(module.url, err), module)
+                    @emit("ModuleDownloadFailed", null, module, new DBError(module.url, err))
                     return
                 module.source = module_source
                 module.loaded = module.size
@@ -506,6 +506,7 @@ class Loader
             return unless key? # wierd error
             return unless key.indexOf(@prefix) is 0
             return if key in useful
-            @del_content(key)
+            @del_content key, (error) =>
+                @logger.error(error) 
             return
         return
