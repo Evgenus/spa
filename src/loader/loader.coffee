@@ -287,9 +287,9 @@ class Loader
     get_contents_keys: (cb) ->
         localforage.keys()
             .then (keys) =>            
-            for key in keys
-                cb(key)
-            return
+                for key in keys
+                    cb(key)
+                return
             .catch (err) =>
                 return console.error(err)
         return
@@ -348,40 +348,40 @@ class Loader
         return @get_content(key)
             .then (module_source) =>
                 @_stats.evaluate_module_loaded_from_db.push(new Date().getTime())
+                
+                unless module_source?
+                    @emit("EvaluationError", module, new NoSourceError(module.url))
+                    return
 
-            unless module_source?
-                @emit("EvaluationError", module, new NoSourceError(module.url))
-                return
-
-            try
-                #28 ISSUE. Decoder function could take module specific parameters, manifest specific parameters or ask for some cooperation
-                module.source = @decoder_func(module_source, module, this)
-            catch error
-                @emit("EvaluationError", module, error)
-                return
-
+                try
+                    #28 ISSUE. Decoder function could take module specific parameters, manifest specific parameters or ask for some cooperation
+                    module.source = @decoder_func(module_source, module, this)
+                catch error
+                    @emit("EvaluationError", module, error)
+                    return
+                
                 @_stats.evaluate_module_decoded.push(new Date().getTime())
 
-            deps = {}
-            for alias, dep of module.deps
-                deps[alias] = @_all_modules[dep]
-            deps["loader"] = this
+                deps = {}
+                for alias, dep of module.deps
+                    deps[alias] = @_all_modules[dep]
+                deps["loader"] = this
 
-            evaluator = new @_evaluators[module.type ? "cjs"]
-                id: module.id
-                source: module.source
-                dependencies: deps
+                evaluator = new @_evaluators[module.type ? "cjs"]
+                    id: module.id
+                    source: module.source
+                    dependencies: deps
 
-            try
-                namespace = evaluator.run()
-            catch error
-                @emit("EvaluationError", module, error)
-                return
+                try
+                    namespace = evaluator.run()
+                catch error
+                    @emit("EvaluationError", module, error)
+                    return
 
-            @_all_modules[module.id] = namespace
-            module.namespace = namespace
+                @_all_modules[module.id] = namespace
+                module.namespace = namespace
 
-            @emit("ModuleEvaluated", module)
+                @emit("ModuleEvaluated", module)
 
                 return @evaluate(queue)
             .catch (err) =>
@@ -439,17 +439,17 @@ class Loader
         @get_content(key)
             .then (module_source) =>
                 @_stats.update_module_loaded_from_db.push(new Date().getTime())
-            return @_downloadModule(module) unless module_source?
-           
-            if @hash_func(module_source) != module.hash
-                @emit("ModuleDownloadFailed", null, module)
+                return @_downloadModule(module) unless module_source?
+               
+                if @hash_func(module_source) != module.hash
+                    @emit("ModuleDownloadFailed", null, module)
+                    return
+                module.source = module_source
+                module.loaded = module.size
+                @emit("ModuleDownloaded", module)
+                @_reportTotalProgress()
+                @_checkAllUpdated()
                 return
-            module.source = module_source
-            module.loaded = module.size
-            @emit("ModuleDownloaded", module)
-            @_reportTotalProgress()
-            @_checkAllUpdated()
-            return
             .catch (err) =>
                 return @_downloadModule(module)
         return
@@ -484,11 +484,11 @@ class Loader
                 return
             @set_content(@make_key(module), module_source)
                 .then (content) =>
-                module.source = module_source
-                module.loaded = module.size
-                @emit("ModuleDownloaded", module)
-                @_reportTotalProgress()
-                @_checkAllUpdated()
+                    module.source = module_source
+                    module.loaded = module.size
+                    @emit("ModuleDownloaded", module)
+                    @_reportTotalProgress()
+                    @_checkAllUpdated()
                     return
                 .catch (err) =>
                     @emit("ModuleDownloadFailed", null, module, new DBError(module.url, err))
