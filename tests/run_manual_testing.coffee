@@ -117,6 +117,8 @@ snapshot_3 = ->
             spa.yaml: |
                 root: "./"
                 index: "./index.html"
+                assets:
+                    index_template: /spa/tests/testing_assets/index.tmpl
                 manifest: "./manifest.json"
                 hosting:
                     "./(*.js)": "/app/$1"
