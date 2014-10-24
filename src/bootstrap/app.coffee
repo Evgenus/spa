@@ -35,6 +35,11 @@ loader.onNoManifest = (error) ->
     loader.onUpdateFailed = (event, error) -> 
         log("onUpdateFailed", event, error)
 
+        switch error.name
+            when "VersionMismatchedError", "HashFuncMismatchedError"
+                setTimeout(( -> location.reload() ), 0)
+                return
+
         malfunction.report(error ? ("Error while downloading manifest file: " + event.target.statusText))
         $("#loader .page").addClass("hide")
 
