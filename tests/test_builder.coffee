@@ -1197,3 +1197,71 @@ describe 'Building modules with ambiguous hosting', ->
         expect(builder.build.bind(builder))
             .to.throw(spa.HostingUrlOverwritingError)
             .that.deep.equals(new spa.HostingUrlOverwritingError("http://127.0.0.1:8010/file.js"))
+
+describe 'fix for #65: remapping modules should not affect modules which are extensions to this module', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            testimonial: 
+                k.js: |
+                    require("a");
+                    require("a/b");
+                    require("ac");
+                    require("ac/b");
+                node_modules:
+                    ac:
+                        index.js: // empty
+                        b.js: //empty
+                    ab:
+                        index.js: // empty 
+                        b.js: //empty
+                spa.yaml: |
+                    root: "/testimonial/"
+                    manifest: "manifest.json"
+                    grab: true
+                    excludes:
+                        - "./node_modules/**"
+                    paths:
+                        a: ab
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should successfully build', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        builder.build()
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+        
+        expect(manifest)
+            .to.have.property('modules')
+            .to.be.an("Array").with.length(5)
+
+        expect(manifest.modules[0]).to.have.properties
+            id: -> @that.equals("ab")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+
+        expect(manifest.modules[1]).to.have.properties
+            id: -> @that.equals("b")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+
+        expect(manifest.modules[2]).to.have.properties
+            id: -> @that.equals("ac")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+
+        expect(manifest.modules[3]).to.have.properties
+            id: -> @that.equals("ac_b")
+            deps: -> @that.deep.equals({})
+            type: -> @that.equals("cjs")
+
+        expect(manifest.modules[4]).to.have.properties
+            id: -> @that.equals("k")
+            deps: -> @that.deep.equals
+                "a": "ab"
+                "a/b": "b"
+                "ac": "ac"
+                "ac/b": "ac_b"            
+            type: -> @that.equals("cjs")
