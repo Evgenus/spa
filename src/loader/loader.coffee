@@ -74,6 +74,7 @@ XHR = -> new XMLHttpRequest()
 class BasicEvaluator
     constructor: (options) ->
         @id = options.id
+        @url = options.url
         @source = options.source
         @deps = options.dependencies
         @this = {}
@@ -149,6 +150,7 @@ class CJSEvaluator extends BasicEvaluator
         return (function(module, exports, require, window, process) { 
             #{@source}; 
         }).call(this.this, this.module, this.exports, this.require, this.window, this.process);
+        \n//# sourceURL=#{@url}\n
         """
     get_require: ->
         require = (name) -> 
@@ -176,6 +178,7 @@ class AMDEvaluator extends BasicEvaluator
         return (function(define, window) { 
             #{@source}; 
         }).call(this.this, this.define, this.window);
+        \n//# sourceURL=#{@url}\n
         """
     get_define: ->
         define = (names, func) ->
@@ -208,6 +211,7 @@ class PollutionEvaluator extends BasicEvaluator
             return (function(#{names}) {
                 #{@source};
             }).call(#{args});
+            \n//# sourceURL=#{@url}\n
         """
     _check: (result) ->
         if result?
@@ -226,7 +230,10 @@ class PollutionEvaluator extends BasicEvaluator
         return result
 
 class RawEvaluator extends BasicEvaluator
-    render: -> return @source
+    render: -> return """
+        #{@source}
+        \n//# sourceURL=#{@url}\n
+    """
     _check: (result) ->
     get_window: -> return window
     _make: -> return {}
@@ -417,6 +424,7 @@ class Loader
                     id: module.id
                     source: module.source
                     dependencies: deps
+                    url: module.url
 
                 try
                     namespace = evaluator.run()
