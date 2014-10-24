@@ -1337,3 +1337,49 @@ describe "WD.js", ->
             .title().should.eventually.become("version_1")
             .safeExecute("localforage.clear()")
             .nodeify(done)
+
+    it 'fix for #64: test windows wrapper', (done) ->
+        return @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        a.js: |
+                            var loader = require("loader");
+                            loader.onApplicationReady = function() {
+                                var buff = new ArrayBuffer(5);
+                                var view = new Uint8Array(buff);
+                                window.crypto.getRandomValues(view);
+                                window.addEventListener("click", function() {
+                                    document.title = "fixed_64";
+                                });
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            manifest: "./manifest.json"
+                            hash_func: sha256
+                            hosting:
+                                "./a.js": "/app/a.js"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3*DELAY)
+            .elementByCss("body").click()
+            .sleep(DELAY)
+            .title().should.eventually.become("fixed_64")
+            .safeExecute("localforage.clear()")
+            .nodeify(done)
