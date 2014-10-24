@@ -77,6 +77,7 @@ class BasicEvaluator
         @source = options.source
         @deps = options.dependencies
         @this = {}
+        @window_props = []
         @window = @get_window()
         @errors = []
     render: ->  throw new AbstractMethodError("render")
@@ -87,12 +88,52 @@ class BasicEvaluator
         @_check(result)
         return null if @errors.length > 0
         return @_make()
-    get_window: -> return __proto__: window
+    get_window: -> 
+        wrapper = {}
+        @window_props = []
+        for prop of window
+            @window_props.push(prop)
+            define_property = (prop) ->
+                if typeof window[prop] is 'function'
+                    wrapper[prop] = -> window[prop].apply(window, arguments)
+                else
+                    Object.defineProperty wrapper, prop,
+                        get: ->
+                            return wrapper if window[prop] is window
+                            return window[prop]
+                        set: (value) ->
+                            wrapper[prop] = value
+                return
+            define_property(prop)
+        wrapper.addEventListener = (type, listener, useCapture) ->
+            if 'message' is type
+                wrap_listener = (originalListener) ->
+                    return (event) ->
+                        newEvent = document.createEvent('MessageEvent')
+                        newEvent.initMessageEvent(
+                            'message',
+                            event.bubbles,
+                            event.cancelable,
+                            event.data,
+                            event.origin,
+                            event.lastEventId,
+                            wrapper,
+                            event.ports
+                        )
+                        originalListener(newEvent)
+                listener = wrap_listener(listener)
+            return window.addEventListener.call(window, type, listener, useCapture)
+        return wrapper
     get_require: -> throw new AbstractMethodError("get_require")
     _fail: (reason) ->
         @errors.push(reason)
         throw reason
     _check: (result) -> throw new AbstractMethodError("_check")
+    _check_window: (wrapper) ->
+        added_props = (prop for prop of wrapper when prop not in @window_props)
+        unless added_props.length == 0
+            throw new ChangesInWindowError(@id, added_props)
+        return
     _make: -> throw new AbstractMethodError("_make")
 
 class CJSEvaluator extends BasicEvaluator
@@ -116,9 +157,7 @@ class CJSEvaluator extends BasicEvaluator
             return @deps[name]
         return require.bind(this);
     _check: (result) ->
-        window_keys = Object.keys(@window)
-        unless window_keys.length == 0
-            throw new ChangesInWindowError(@id, window_keys) 
+        @_check_window(@window)
         unless @exports is @module.exports or Object.keys(@exports).length == 0
             throw new ExportsViolationError(@id) 
         if result?
@@ -144,9 +183,7 @@ class AMDEvaluator extends BasicEvaluator
             @result = func.apply(this.this, deps)
         return define.bind(this);
     _check: (result) ->
-        window_keys = Object.keys(@window)
-        unless window_keys.length == 0
-            throw new ChangesInWindowError(@id, window_keys) 
+        @_check_window(@window)
         if result?
             throw new ReturnPollutionError(@id, Object.keys(result)) 
         this_keys = Object.keys(@this)
@@ -176,11 +213,10 @@ class PollutionEvaluator extends BasicEvaluator
         if result?
             throw new ReturnPollutionError(@id, Object.keys(result)) 
     get_window: -> 
-        result = 
-            __proto__: super()
+        result = super()
         for name, value of @deps
             result[name] = value
-        return __proto__: result
+        return result
     _make: ->
         result = {}
         for own name, value of @window
