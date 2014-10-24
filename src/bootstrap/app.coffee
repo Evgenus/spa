@@ -29,8 +29,8 @@ malfunction =
 
 malfunction.start()
 
-loader.onNoManifest = ->
-    log("onNoManifest")
+loader.onNoManifest = (error) ->
+    log("onNoManifest", error)
 
     loader.onUpdateFailed = (event, error) -> 
         log("onUpdateFailed", event, error)

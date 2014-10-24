@@ -43,6 +43,16 @@ class AMDReturnsNothingError extends Error
         @name = "AMDReturnsNothingError"
         @message = "AMD module `#{@self_name}` returns nothing. Should return empty object!"
 
+class VersionMismatchedError extends Error 
+    constructor: (@got, @expected) ->
+        @name = "VersionMismatchedError"
+        @message = "Invalid manifest version. Got: #{@got}. Expected: #{@expected}"
+
+class HashFuncMismatchedError extends Error 
+    constructor: (@got, @expected) ->
+        @name = "HashFuncMismatchedError"
+        @message = "Invalid manifest hash function. Got: #{@got}. Expected: #{@expected}"
+
 waitAll = (array, reduce, map) ->
     items = array.concat()
     results = []
@@ -251,8 +261,8 @@ class Loader
         raw = JSON.parse(content)
         throw TypeError("Invalid manifest format") unless raw instanceof Object
         throw TypeError("Invalid manifest format") unless raw.modules?
-        throw TypeError("Invalid manifest version. Got: #{raw.version}. Expected: #{@version}") unless raw.version is @version
-        throw TypeError("Invalid manifest hash function. Got: #{raw.hash_func}. Expected: #{@hash_name}") unless raw.hash_func is @hash_name
+        throw new VersionMismatchedError(raw.version, @version) unless raw.version is @version
+        throw new HashFuncMismatchedError(raw.hash_func, @hash_name) unless raw.hash_func is @hash_name
 
         manifest = 
             content: content
@@ -298,7 +308,7 @@ class Loader
         @logger.warn("removing", key)
         return localforage.removeItem(key, cb)
 
-    onNoManifest: ->
+    onNoManifest: (error) ->
     onUpToDate: (event) ->
     onUpdateFound: (event, manifest) -> @startUpdate()
     onUpdateFailed: (event, error)-> 
@@ -324,7 +334,7 @@ class Loader
         try
             @_current_manifest = @get_manifest()
         catch error
-            @emit("NoManifest")
+            @emit("NoManifest", error)
             return
 
         @logger.info("Current manifest", @_current_manifest)
