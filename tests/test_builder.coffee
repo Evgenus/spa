@@ -1148,6 +1148,70 @@ describe 'Hosting output with encoder', ->
                 "http://127.0.0.1:8010/c.js": "./c.js"
                 "http://127.0.0.1:8010/d.js": "./d.js"
 
+describe.only 'Hosting output with bundle', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            testimonial: 
+                d.js: |
+                    module.exports = function() 
+                    {
+                        return "d";
+                    };
+                c.js: |
+                    var d = require("./d.js"); 
+                    module.exports = function() 
+                    { 
+                        return "c" + d(); 
+                    };
+                b.js: |
+                    var c = require("./c.js");
+                    module.exports = function() 
+                    {
+                        return "b" + c();
+                    };
+                a.js: |
+                    var b = require("./b.js");
+                    module.exports = function() 
+                    {
+                        return "a" + b();
+                    };
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    hosting_map: "hosting.json"
+                    manifest: "manifest.json"
+                    index: "index.html"
+                    bundle: "bundle.js"
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should output hosting structure', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        builder.build()
+        expect(fs.existsSync("/testimonial/hosting.json")).to.be.true
+        hosting = JSON.parse(fs.readFileSync("/testimonial/hosting.json", encoding: "utf8"))
+
+        expect(hosting).to.have.properties
+            version: -> this.to.be.a("String")
+            files: -> this.to.deep.equal
+                "http://127.0.0.1:8010/a.js": "./a.js"
+                "http://127.0.0.1:8010/b.js": "./b.js"
+                "http://127.0.0.1:8010/c.js": "./c.js"
+                "http://127.0.0.1:8010/d.js": "./d.js"
+            bundle: -> this.to.deep.equal
+                url: "http://127.0.0.1:8010/bundle.js"
+                path: "./bundle.js"
+            manifest: -> this.to.deep.equal
+                url: "http://127.0.0.1:8010/manifest.json"
+                path: "./manifest.json"
+            index: -> this.to.deep.equal
+                url: "http://127.0.0.1:8010/index.html"
+                path: "./index.html"
+
 describe 'Building updates with encoding and ambiguous copying', ->
     beforeEach ->
         system = yaml.safeLoad("""
