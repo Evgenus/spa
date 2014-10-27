@@ -159,6 +159,7 @@ class Builder
         @loaders = for pattern, type of options.loaders ? {}
             test: globrules.tester(pattern)
             type: type
+        @bundle = options.bundle
         @manifest = options.manifest
         @index = options.index
         @pretty = options.pretty ? false
@@ -409,6 +410,7 @@ class Builder
         @_modules = (@_by_path[mpath] for mpath in order)
 
     _encode: ->
+        @_bundle_content = []
         if @coding_func?
             paths = {}
             for module in @_modules
@@ -424,6 +426,8 @@ class Builder
 
                 source = fs.readFileSync(module.path)
                 output = @encode(source, module)
+                if @bundle
+                    @_bundle_content.push(output)
                 @_write_file(destination, output)
                 module.hash = @calc_hash(output)
                 module.size = output.length
@@ -431,6 +435,9 @@ class Builder
             for module in @_modules
                 module.hash = module.source_hash
                 module.size = module.source_length
+                if @bundle
+                    source = fs.readFileSync(module.path)
+                    @_bundle_content.push(source)
         return 
 
     _create_manifest: ->
@@ -567,6 +574,7 @@ class Builder
         @_write_file(@hosting_map, @_stringify_json(@_create_hosting_map())) if @hosting_map?
         @_write_file(@index, @_create_index()) if @index?
         @_write_file(@appcache, @_create_appcache()) if @appcache?
+        @_write_file(@bundle, @_bundle_content.join("")) if @bundle?
 
         @_print_stats() if @print_stats
         @cache.flush()
