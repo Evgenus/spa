@@ -606,17 +606,17 @@ describe 'Building with encoder', ->
         expect(fs.existsSync("/build/d.js")).to.be.true
 
         expect(manifest.bundle).to.have.properties
-            url: -> this.to.be.a("String").equals("http://127.0.0.1:8010/bundle.js")
+            url: -> @that.to.be.a("String").equals("http://127.0.0.1:8010/bundle.js")
 
         expect(manifest.modules[0].decoding).to.have.properties
-            cipher: -> this.to.be.a("String").equals("aes")
-            mode: -> this.to.be.a("String").equals("gcm")
-            iter: -> this.to.be.a("Number").that.equals(1000)
-            ks: -> this.to.be.a("Number").that.equals(128)
-            ts: -> this.to.be.a("Number").that.equals(128)
-            auth: -> this.to.be.a("String")
-            salt: -> this.to.be.a("String").with.length(16)
-            iv: -> this.to.be.a("String").with.length(32)
+            cipher: -> @that.to.be.a("String").equals("aes")
+            mode: -> @that.to.be.a("String").equals("gcm")
+            iter: -> @that.to.be.a("Number").that.equals(1000)
+            ks: -> @that.to.be.a("Number").that.equals(128)
+            ts: -> @that.to.be.a("Number").that.equals(128)
+            auth: -> @that.to.be.a("String")
+            salt: -> @that.to.be.a("String").with.length(16)
+            iv: -> @that.to.be.a("String").with.length(32)
 
         loader =
             options:
@@ -1079,8 +1079,8 @@ describe 'Hosting output', ->
         hosting = JSON.parse(fs.readFileSync("/testimonial/hosting.json", encoding: "utf8"))
 
         expect(hosting).to.have.properties
-            version: -> this.to.be.a("String")
-            files: -> this.to.deep.equal
+            version: -> @that.to.be.a("String")
+            files: -> @that.to.deep.equal
                 "node_modules/m2/lib/main.js": "./node_modules/m2/lib/main.js"
                 "node_modules/m1/node_modules/m11/index.js": "./node_modules/m1/node_modules/m11/index.js"
                 "node_modules/m1/lib/main.js": "./node_modules/m1/lib/main.js"
@@ -1141,8 +1141,8 @@ describe 'Hosting output with encoder', ->
         hosting = JSON.parse(fs.readFileSync("/testimonial/hosting.json", encoding: "utf8"))
 
         expect(hosting).to.have.properties
-            version: -> this.to.be.a("String")
-            files: -> this.to.deep.equal
+            version: -> @that.to.be.a("String")
+            files: -> @that.to.deep.equal
                 "http://127.0.0.1:8010/a.js": "./a.js"
                 "http://127.0.0.1:8010/b.js": "./b.js"
                 "http://127.0.0.1:8010/c.js": "./c.js"
@@ -1229,19 +1229,19 @@ describe.only 'Hosting output with bundle', ->
         hosting = JSON.parse(fs.readFileSync("/testimonial/hosting.json", encoding: "utf8"))
 
         expect(hosting).to.have.properties
-            version: -> this.to.be.a("String")
-            files: -> this.to.deep.equal
+            version: -> @that.to.be.a("String")
+            files: -> @that.to.deep.equal
                 "http://127.0.0.1:8010/a.js": "./a.js"
                 "http://127.0.0.1:8010/b.js": "./b.js"
                 "http://127.0.0.1:8010/c.js": "./c.js"
                 "http://127.0.0.1:8010/d.js": "./d.js"
-            bundle: -> this.to.deep.equal
+            bundle: -> @that.to.deep.equal
                 url: "http://127.0.0.1:8010/bundle.js"
                 path: "./bundle.js"
-            manifest: -> this.to.deep.equal
+            manifest: -> @that.to.deep.equal
                 url: "http://127.0.0.1:8010/manifest.json"
                 path: "./manifest.json"
-            index: -> this.to.deep.equal
+            index: -> @that.to.deep.equal
                 url: "http://127.0.0.1:8010/index.html"
                 path: "./index.html"
 
