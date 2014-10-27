@@ -455,31 +455,28 @@ describe 'Building mixed-formats modules', ->
 
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
 
-        expect(manifest)
-            .to.have.property('modules')
-
-            .to.be.an("Array").with.length(3)
-        
-        expect(manifest.modules[0]).to.have.properties
+        expect(manifest).to.have.properties
+            modules: -> @that.is.an("Array").with.length(3).and.properties
+                0: -> @that.have.properties
             id: -> @that.equals("a")
             deps: -> @that.deep.equals({})
             type: -> @that.equals("junk")
-
-        expect(manifest.modules[1]).to.have.properties
+                1: -> @that.have.properties
             id: -> @that.equals("b")
             deps: -> @that.deep.equals
                 "/a": "a"
             type: -> @that.equals("cjs")
-        
-        expect(manifest.modules[2]).to.have.properties
+                2: -> @that.have.properties
             id: -> @that.equals("c")
             deps: -> @that.deep.equals
                 "/b": "b"
             type: -> @that.equals("amd")
 
-        expect(manifest.modules[0]).not.to.have.property("url")
-        expect(manifest.modules[1]).not.to.have.property("url")
-        expect(manifest.modules[2]).not.to.have.property("url")
+        expect(manifest).to.have.properties
+            modules: -> @that.have.properties
+                0: -> @that.not.have.property("url")
+                1: -> @that.not.have.property("url")
+                2: -> @that.not.have.property("url")
 
 describe 'Building module with different hash function', ->
     hashes = 
