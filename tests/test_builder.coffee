@@ -467,6 +467,7 @@ describe 'Building mixed-formats modules', ->
 
         expect(manifest)
             .to.have.property('modules')
+
             .to.be.an("Array").with.length(3)
         
         expect(manifest.modules[0]).to.have.properties
@@ -559,7 +560,9 @@ describe 'Building with encoder', ->
                     root: "/testimonial/"
                     manifest: "manifest.json"
                     hosting:
+                        "./../build/bundle.js": "http://127.0.0.1:8010/bundle.js"
                         "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    bundle: "/build/bundle.js"
                     coding_func:
                         name: aes-gcm
                         password: babuka
@@ -595,10 +598,15 @@ describe 'Building with encoder', ->
             .to.have.property("decoder_func")
             .that.equals("aes-gcm")
 
+        expect(fs.existsSync("/build/bundle.js")).to.be.true
+
         expect(fs.existsSync("/build/a.js")).to.be.true
         expect(fs.existsSync("/build/b.js")).to.be.true
         expect(fs.existsSync("/build/c.js")).to.be.true
         expect(fs.existsSync("/build/d.js")).to.be.true
+
+        expect(manifest.bundle).to.have.properties
+            url: -> this.to.be.a("String").equals("http://127.0.0.1:8010/bundle.js")
 
         expect(manifest.modules[0].decoding).to.have.properties
             cipher: -> this.to.be.a("String").equals("aes")

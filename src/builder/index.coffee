@@ -479,6 +479,34 @@ class Builder
         map =
             version: packagejson.version
             files: files
+
+        if @bundle
+            filepath = path.resolve(@root, @bundle)
+            relative = @_relativate(filepath)
+            url = @_host_path(relative)
+            if url?
+                map.bundle =
+                    path: relative 
+                    url: url
+
+        if @manifest
+            filepath = path.resolve(@root, @manifest)
+            relative = @_relativate(filepath)
+            url = @_host_path(relative)
+            if url?
+                map.manifest =
+                    path: relative 
+                    url: url
+
+        if @index
+            filepath = path.resolve(@root, @index)
+            relative = @_relativate(filepath)
+            url = @_host_path(relative)
+            if url?
+                map.index =
+                    path: relative 
+                    url: url
+
         return map
 
     _create_index: ->
