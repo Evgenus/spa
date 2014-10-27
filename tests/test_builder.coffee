@@ -336,13 +336,9 @@ describe 'Building config with BOM', ->
 
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
 
-        expect(manifest)
-            .to.have.property('modules')
-            .to.be.an("Array").with.length(1)
-        
-        expect(manifest.modules[0]).to.have.properties
-            id: -> @that.equals("a")
-        expect(manifest.modules[0]).not.to.have.property("url")
+        expect(manifest).to.have.properties
+            modules: -> @that.is.an("Array").with.length(1).and.properties
+                0: -> @that.not.have.property("url")
 
 describe 'Building module with wierd name', ->
     beforeEach ->
