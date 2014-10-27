@@ -1192,6 +1192,39 @@ describe.only 'Hosting output with bundle', ->
         builder = spa.Builder.from_config("/testimonial/spa.yaml")
 
         builder.build()
+
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+        expect(manifest).to.have.properties
+            modules: -> @that.to.be.an("Array").with.length(4).and.properties
+                0: -> @that.to.have.properties
+                    id: -> @that.equals("d")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/d.js")
+                1: -> @that.to.have.properties
+                    id: -> @that.equals("c")
+                    deps: -> @that.deep.equals
+                        "./d.js": "d"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/c.js")
+                2: -> @that.to.have.properties
+                    id: -> @that.equals("b")
+                    deps: -> @that.deep.equals
+                        "./c.js": "c"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/b.js")
+                3: -> @that.to.have.properties
+                    id: -> @that.equals("a")
+                    deps: -> @that.deep.equals
+                        "./b.js": "b"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/a.js")
+            bundle: -> @that.to.have.properties
+                hash: -> @that.equals("e260fa41f30a6999b14fcd135cb93b0d")
+                url: -> @that.equals("http://127.0.0.1:8010/bundle.js")
+
         expect(fs.existsSync("/testimonial/hosting.json")).to.be.true
         hosting = JSON.parse(fs.readFileSync("/testimonial/hosting.json", encoding: "utf8"))
 
