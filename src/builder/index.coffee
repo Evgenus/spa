@@ -410,7 +410,7 @@ class Builder
         @_modules = (@_by_path[mpath] for mpath in order)
 
     _encode: ->
-        @_bundle_content = []
+        _contents = []
         if @coding_func?
             paths = {}
             for module in @_modules
@@ -427,7 +427,7 @@ class Builder
                 source = fs.readFileSync(module.path)
                 output = @encode(source, module)
                 if @bundle
-                    @_bundle_content.push(output)
+                    _contents.push(output)
                 @_write_file(destination, output)
                 module.hash = @calc_hash(output)
                 module.size = output.length
@@ -437,7 +437,8 @@ class Builder
                 module.size = module.source_length
                 if @bundle
                     source = fs.readFileSync(module.path)
-                    @_bundle_content.push(source)
+                    _contents.push(source)
+        @_bundle_content = _contents.join("")
         return 
 
     _create_manifest: ->
@@ -454,6 +455,17 @@ class Builder
             version: packagejson.version
             hash_func: @hash_func
             modules: modules
+
+        if @bundle
+            filepath = path.resolve(@root, @bundle)
+            relative = @_relativate(filepath)
+            url = @_host_path(relative)
+
+            bundle = 
+                hash: @calc_hash(@_bundle_content)
+                url: url
+
+            @_manifest_content.bundle = bundle
 
         if @coding_func?
             @_manifest_content.decoder_func = @coding_func.name
@@ -574,7 +586,7 @@ class Builder
         @_write_file(@hosting_map, @_stringify_json(@_create_hosting_map())) if @hosting_map?
         @_write_file(@index, @_create_index()) if @index?
         @_write_file(@appcache, @_create_appcache()) if @appcache?
-        @_write_file(@bundle, @_bundle_content.join("")) if @bundle?
+        @_write_file(@bundle, @_bundle_content) if @bundle?
 
         @_print_stats() if @print_stats
         @cache.flush()
