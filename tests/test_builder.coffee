@@ -214,31 +214,26 @@ describe 'Building module with paths rewired', ->
 
             manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
 
-            expect(manifest)
-                .to.have.property('modules')
-                .to.be.an("Array").with.length(4)
-            
-            expect(manifest.modules[0]).to.have.properties
+            expect(manifest).to.have.properties
+                modules: -> @that.is.an("Array").with.length(4).and.properties
+                    0: -> @that.have.properties
                 id: -> @that.equals("c")
                 deps: -> @that.deep.equals({})
                 type: -> @that.equals(type)
                 url: -> @that.equals("http://127.0.0.1:8010/module1/a/c.js")
-            
-            expect(manifest.modules[1]).to.have.properties
+                    1: -> @that.have.properties
                 id: -> @that.equals("b")
                 deps: -> @that.deep.equals
                     "./a/c": "c"
                 type: -> @that.equals(type)
                 url: -> @that.equals("http://127.0.0.1:8010/module1/b.js")
-            
-            expect(manifest.modules[2]).to.have.properties
+                    2: -> @that.have.properties
                 id: -> @that.equals("d")
                 deps: -> @that.deep.equals
                     "a1/c": "c"
                 type: -> @that.equals(type)
                 url: -> @that.equals("http://127.0.0.1:8010/module2/d.js")
-            
-            expect(manifest.modules[3]).to.have.properties
+                    3: -> @that.have.properties
                 id: -> @that.equals("e")
                 deps: -> @that.deep.equals
                     "a1/../b": "b"
