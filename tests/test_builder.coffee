@@ -419,9 +419,8 @@ describe 'Building renamed manifest', ->
 
         expect(manifest).to.have.properties
             version: -> @to.be.a("String")
-            modules: -> @to.be.an("Array").with.length(1)
-            
-        expect(manifest.modules[0]).to.have.properties
+            modules: -> @to.be.an("Array").with.length(1).and.properties
+                0: -> @that.have.properties
             id: -> @that.equals("a")
             deps: -> @that.deep.equals({})
             type: -> @that.equals("cjs")
