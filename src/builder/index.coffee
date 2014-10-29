@@ -525,6 +525,7 @@ class Builder
         namespace["hash_name"] = @hash_func
         namespace["decoder_name"] = if @coding_func? then @coding_func.name else "identity"
         namespace["passcode_required"] = @coding_func?
+
         if @manifest?
             filepath = path.resolve(@root, @manifest)
             relative = @_relativate(filepath)
@@ -532,7 +533,16 @@ class Builder
             if url?
                 namespace["manifest_location"] = url
             else
-                @logger.warn("Manifest file hosted as `manifest.json` and will be accesible relatively")
+                @logger.warn("Manifest file hosted as `#{relative}` and will be accesible relatively")
+
+        if @appcache?
+            filepath = path.resolve(@root, @appcache)
+            relative = @_relativate(filepath)
+            url = @_host_path(relative)
+            if url?
+                namespace["appcache_location"] = url
+            else
+                @logger.warn("AppCache manifest file location can't be automatically calculated for index.html")
             
         compiled = ejs.compile(assets["index_template"])
         @_index_content = compiled(namespace)
