@@ -76,6 +76,14 @@ Hosting map format:
     "version": 1,
     "files": {
         "relative/hosting/path1.js": "node_modules/source/path1.js",
+    },
+    "manifest": {
+        "url": "relative/hosting/manifest.json",
+        "path": "node_modules/source/path1.js"
+    },
+    "index": {
+        "url": "http://site.com/hosting/index.html",
+        "path": "build/index.html"
     }
 }
 ```
@@ -91,6 +99,8 @@ Keys - rules as in `excludes`, values - format types. Available formats:
 **default_loader**(optional) - loader for files not matched by loaders. Default value is `cjs`.
 
 **manifest**(optional) - relative path to loader manifest. Can be omitted.
+
+**bundle**(optional) - relative path where bundle will be stored. Bundle used at first run to speed up downloading. Can be omitted.
 
 **hash_func**(optional) - has function to be used in `manifest` and `appcache` generation process. Value may be `md5`, `ripemd160`, `sha1`, `sha224`, `sha256`, `sha3`, `sha384`, `sha512`. Default value is `md5`. New hash function could be easily added as assets to builder. Hack into `Cakefile` for mere information.
 
