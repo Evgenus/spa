@@ -239,7 +239,7 @@ class Builder
 
     _resolve: (module, dep) ->
         for alias, prefix of @paths
-            continue if not _.startsWith(dep, alias)
+            continue unless _.startsWith(dep, alias)
             if (dep[alias.length] || "/") is "/"
                 dep = dep.replace(alias, prefix)
                 break
