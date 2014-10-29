@@ -94,14 +94,17 @@ class BasicEvaluator
         @_check(result)
         return null if @errors.length > 0
         return @_make()
-    get_window: -> 
-        wrapper = {}
+    get_window: ->
+        WrapperType = -> return
+        WrapperType.prototype = window
+        wrapper = new WrapperType()
         @window_props = []
         for prop of window
             @window_props.push(prop)
             define_property = (prop) ->
                 if typeof window[prop] is 'function'
-                    wrapper[prop] = -> window[prop].apply(window, arguments)
+                    Object.defineProperty wrapper, prop,
+                        value: -> window[prop].apply(window, arguments)
                 else
                     Object.defineProperty wrapper, prop,
                         get: ->

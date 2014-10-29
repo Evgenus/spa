@@ -1457,7 +1457,7 @@ describe "WD.js", ->
             .safeExecute("localforage.clear()")
             .nodeify(done)
 
-    it 'fix for #64: test windows wrapper', (done) ->
+    it 'fix for #64, #69: test windows wrapper', (done) ->
         return @browser
             .then ->
                 system = yaml.safeLoad("""
@@ -1477,6 +1477,11 @@ describe "WD.js", ->
                                 var buff = new ArrayBuffer(5);
                                 var view = new Uint8Array(buff);
                                 window.crypto.getRandomValues(view);
+                                // #69
+                                var obj = new window.Object();
+                                window.onload = function() {
+                                    console.log(this);
+                                }
                                 window.addEventListener("click", function() {
                                     document.title = "fixed_64";
                                 });
