@@ -172,7 +172,7 @@ class Builder
         for own name, value of options.assets
             @assets[name] = value
         @appcache = options.appcache
-        @cached = options.cached
+        @cached = options.cached ? []
         @hash_func = options.hash_func ? "md5"
         @randomize_urls = options.randomize_urls ? true
         @coding_func = options.coding_func
