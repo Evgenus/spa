@@ -381,6 +381,7 @@ describe 'Building module with appcache and index', ->
         expect(fs.existsSync("/testimonial/index.html")).to.be.true
         expect(fs.readFileSync("/testimonial/index.html", "utf8"))
             .to.include.string('manifest.json')
+            .to.include.string('<html manifest')
 
         expect(fs.existsSync("/testimonial/main.appcache")).to.be.true
         expect(fs.readFileSync("/testimonial/main.appcache", "utf8"))
@@ -413,6 +414,9 @@ describe 'Building renamed manifest', ->
         builder.build()
 
         expect(fs.existsSync("/testimonial/index.html")).to.be.true
+        expect(fs.readFileSync("/testimonial/index.html", "utf8"))
+            .to.include.string('spa-loader.json')
+                    
         expect(fs.existsSync("/spa-loader.json")).to.be.true
 
         manifest = JSON.parse(fs.readFileSync("/spa-loader.json", encoding: "utf8"))
