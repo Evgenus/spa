@@ -53,6 +53,11 @@ class HashFuncMismatchedError extends Error
         @name = "HashFuncMismatchedError"
         @message = "Invalid manifest hash function. Got: #{@got}. Expected: #{@expected}"
 
+class HashMismatchedError extends Error
+    constructor: (@url, @got, @expected) ->
+        @name = "HashMismatchedError"
+        @message = "Downloaded from url `#{@url}` file has unexpected checksum hash. Got: #{@got}. Expected: #{@expected}"
+
 waitAll = (array, reduce, map) ->
     items = array.concat()
     results = []
@@ -314,6 +319,11 @@ class Loader
             hash_func: raw.hash_func
             hash: @hash_func(content)
 
+        if raw.bundle?
+            manifest.bundle = 
+                hash: raw.bundle.hash
+                url: raw.bundle.url
+
         return manifest
 
     get_manifest: ->
@@ -344,7 +354,7 @@ class Loader
                     cb(key)
                 return
             .catch (err) =>
-                return console.error(err)
+                return @logger.error(err)
         return
 
     del_content: (key, cb) ->
@@ -443,7 +453,7 @@ class Loader
                 return
 
     checkUpdate: () ->
-        return if @_update_started
+        return false if @_update_started
         @logger.info("Checking for update...")
         manifest_request = XHR()
         manifest_request.open("GET", @_prepare_url(@manifest_location), true)
@@ -472,28 +482,94 @@ class Loader
             @emit("UpdateFailed", event, null)
 
         manifest_request.send()
-        return
+        return true
 
     startUpdate: ->
+        return false if @_update_started
         @logger.info("Starting update...")
         @_update_started = true
         for module in @_new_manifest.modules
             module.loaded = 0
         @_modules_to_load = @_new_manifest.modules.concat()
-        for module in @_modules_to_load.splice(0, 4)
-            @_updateModule(module)
-        return
+        if not @_current_manifest? and @_new_manifest.bundle?
+            @_downloadBundle()
+        else
+            for module in @_modules_to_load.splice(0, 4)
+                @_updateModule(module)
+        return true
 
     dropData: ->
         @del_manifest()
 
+    _downloadBundle: ->
+        bundle = @_new_manifest.bundle
+        bundle_request = XHR()
+        bundle_request.open("GET", @_prepare_url(bundle.url), true)
+        bundle_request.responseType = "arraybuffer"
+        bundle_request.onload = (event) =>
+            bundle_source = event.target.response
+            hash = @hash_func(bundle_source)
+            if hash != bundle.hash
+                @emit("UpdateFailed", event, new HashMismatchedError(bundle.url, bundle.hash, hash))
+                return
+
+            @_disassembleBundle(bundle_source)
+
+        bundle_request.onprogress = (event) =>
+            total_size = 0
+            total_count = 0
+            for module in @_new_manifest.modules
+                total_size += module.size
+                total_count++
+            progress = 
+                loaded_count: 0
+                total_count: total_count
+                loaded_size: event.loaded
+                total_size: total_size
+            @emit("TotalDownloadProgress", progress)
+        bundle_request.onerror = (event) =>
+            @emit("UpdateFailed", event, null)
+        bundle_request.onabort = (event) =>
+            @emit("UpdateFailed", event, null)
+        bundle_request.send()
+        return
+
+    _disassembleBundle: (bundle) ->
+        @_modules_to_load
+        pointer = 0
+        for module in @_new_manifest.modules
+            module_source = bundle.slice(pointer, pointer + module.size)
+            hash = @hash_func(module_source)
+            if hash != module.hash
+                @emit("ModuleDownloadFailed", event, module, new HashMismatchedError(module.url, module.hash, hash))
+                return
+            module.source = module_source
+            module.loaded = module.size
+            pointer += module.size
+
+        @_storeModule(@_modules_to_load.shift())
+
+    _storeModule: (module) ->
+        onNextModule = (module) => @_storeModule(module)
+        @set_content(@make_key(module), module.source)
+            .then (content) =>
+                @emit("ModuleDownloaded", module)
+                @_reportTotalProgress()
+                @_checkAllUpdated(onNextModule)
+                return
+            .catch (err) =>
+                @emit("ModuleDownloadFailed", null, module, new DBError(module.url, err))
+                return
+
     _updateModule: (module) ->
         @_stats.update_module_start.push(new Date().getTime())
         key = @make_key(module)
+        onNextModule = (module) => @_updateModule(module)
+        onDownload = => @_checkAllUpdated(onNextModule)
         @get_content(key)
             .then (module_source) =>
                 @_stats.update_module_loaded_from_db.push(new Date().getTime())
-                return @_downloadModule(module) unless module_source?
+                return @_downloadModule(module, onDownload) unless module_source?
                
                 if @hash_func(module_source) != module.hash
                     @emit("ModuleDownloadFailed", null, module)
@@ -502,10 +578,10 @@ class Loader
                 module.loaded = module.size
                 @emit("ModuleDownloaded", module)
                 @_reportTotalProgress()
-                @_checkAllUpdated()
+                @_checkAllUpdated(onNextModule)
                 return
             .catch (err) =>
-                return @_downloadModule(module)
+                return @_downloadModule(module, onDownload)
         return
 
     _reportTotalProgress: ->
@@ -526,15 +602,17 @@ class Loader
             total_size: total_size
         @emit("TotalDownloadProgress", progress)
 
-    _downloadModule: (module) ->
+    _downloadModule: (module, cb) ->
         @emit("ModuleBeginDownload", module)
         module_request = XHR()
         module_request.open("GET", @_prepare_url(module.url), true)
         module_request.responseType = "arraybuffer"
         module_request.onload = (event) =>
             module_source = event.target.response
-            if @hash_func(module_source) != module.hash
-                @emit("ModuleDownloadFailed", event, module)
+
+            hash = @hash_func(module_source)
+            if hash != module.hash
+                @emit("ModuleDownloadFailed", event, module, new HashMismatchedError(module.url, module.hash, hash))
                 return
             @set_content(@make_key(module), module_source)
                 .then (content) =>
@@ -542,7 +620,7 @@ class Loader
                     module.loaded = module.size
                     @emit("ModuleDownloaded", module)
                     @_reportTotalProgress()
-                    @_checkAllUpdated()
+                    cb()
                     return
                 .catch (err) =>
                     @emit("ModuleDownloadFailed", null, module, new DBError(module.url, err))
@@ -559,10 +637,10 @@ class Loader
         module_request.send()
         return
 
-    _checkAllUpdated: ->
+    _checkAllUpdated: (cb) ->
         next = @_modules_to_load.shift()
         if next?
-            @_updateModule(next)
+            cb(next)
             return
 
         for module in @_new_manifest.modules
