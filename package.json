@@ -59,18 +59,18 @@
   "devDependencies": {
     "chai-as-promised": ">=4.x.x",
     "coffee-script": "^1.8.0",
-    "connect": "^3.3.0",
+    "connect": "^3.3.2",
     "connect-route": "^0.1.4",
     "mkdirp": "*",
-    "mocha": "^1.21.5",
-    "mock-fs": "^2.3.1",
-    "selenium-standalone": "^2.43.1-2.9.0-1",
-    "morgan": "^1.4.0",
-    "node-sass": "^1.0.1",
+    "mocha": "^2.0.1",
+    "mock-fs": "^2.3.2",
+    "morgan": "^1.4.1",
+    "node-sass": "^1.1.1",
+    "selenium-standalone": "^2.44.0",
     "serve-index": "^1.5.0",
     "serve-static": "^1.7.0",
     "uglify-js": "^2.4.15",
-    "wd": "^0.3.9"
+    "wd": "^0.3.10"
   },
   "license": "MIT"
 }
