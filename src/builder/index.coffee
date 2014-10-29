@@ -507,6 +507,15 @@ class Builder
                     path: relative 
                     url: url
 
+        if @appcache?
+            filepath = path.resolve(@root, @appcache)
+            relative = @_relativate(filepath)
+            url = @_host_path(relative)
+            if url?
+                map.appcache =
+                    path: relative 
+                    url: url
+
         return map
 
     _create_index: ->
