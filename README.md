@@ -152,6 +152,7 @@ cached:
 hosting:
     "./(**/*.*)": "http://127.0.0.1:8010/$1"
 hosting_map: hosting.json
+bundle: "./bundle.js"
 coding_func:
     name: aes-gcm
     password: babuka
@@ -237,25 +238,27 @@ loader.onEventName = function Handler(param1, param2) { /*....*/ }
 
 Possible generated events:
 
-* `NoManifest()` - this event fires when there is no current version of application. Either the application is being started for the first time or previous download was unsuccessful. Usually `checkUpdate` method should be called in the handler.
+* `NoManifest(error)` - this event fires when there is no current version of application. Either the application is being started for the first time or previous download was unsuccessful. Usually `checkUpdate` method should be called in the handler. 
 * `EvaluationStarted(manifest)` - event fires when current version was found and about to be loaded. If handler returns `false` then loaded will not perform any further actions and halts. Parameters: `manifest` - manifest of current version as an object.
 * `ModuleEvaluated(module)` - event fires for each successfully loaded module. Parameters: `module` - loaded module descriptor (as inside of manifest).
 * `EvaluationError(module, error)` - fires if there was an error during module loading. All further loading could not be performed and loader halts. Event `ApplicationReady` will not be fired. Parameters: `module` - problem module descriptor (some fields may be absent); `error` - occurred error(some frequent errors are strictly typed).
 * `ApplicationReady(manifest)` - event notifies host application about its successfully loading. Inside handler application could start working and intercept control. Parameters: `manifest` - current manifest.
 
-**checkUpdate()** - checks server for newer version of application
+**checkUpdate()** - checks server for newer version of application. 
+Returns `false` if process of checking or updating already has been started, otherwise `true`.
 
-* `UpToDate()` - event fires if latest version of application was already downloaded. Parameters: `manifest` - cuurent manifest.
+* `UpToDate(event, manifest)` - event fires if latest version of application was already downloaded. Parameters: `manifest` - cuurent manifest.
 * `UpdateFound(event, manifest)` - event occurs if a newer version of the application was found. Usually `startUpdate` should be called inside handler or user asked for confirmation before downloading new version files. Current version is assumed to be working at this time. Parameters: `event` - the event object passed by browser as a result of the request; `manifest` - the manifest of a new version.
-* `UpdateFailed(event, error)` - event occurs if for some of the reason a newer version could not be found or manifest of newer version is incorrect. It also occurs if current loader is outdated and not compatible with the new format of the manifest. Parameters: `event` - the event object passed by browser as a result of the query (you can obtain network errors from it); `error` - error arose during the analysis of the manifest of the newer version (may be `null`).
+* `UpdateFailed(event, error)` - event occurs if for some of the reason a newer version could not be found or manifest of newer version is incorrect. It also occurs if current loader is outdated and not compatible with the new format of the manifest. Parameters: `event` - the event object passed by browser as a result of the query (you can obtain network errors from it); `error` - error arose during the analysis of the manifest of the newer version or downloading bundle (may be `null`).
 
 
-**startUpdate()** - initialize downloading of the newer version of the application accordingly to previously downloaded manifest.
+**startUpdate()** - initialize downloading of the newer version of the application accordingly to previously downloaded manifest. 
+Returns `false` if process of updating already has been started, otherwise `true`.
 
 * `ModuleBeginDownload(module)` - event fires when each module is about to be downloaded. Parameters: `module` - module descriptor object from newer version manifest.
 * `ModuleDownloadProgress(event, module)` - fires when individual module download progress changed. Parameters: `event` - browser event (downloaded bytes, etc); `module` - descriptor of module being downloaded (contains total length).
 * `TotalDownloadProgress(progress)` - total download progress. `progress` is a hash with these fields: `loaded_count` - number of modules already downloaded, `total_count` - total number of modules, `loaded_size` - amount of bytes downloaded, `total_size` - total size of modules in bytes.
-* `ModuleDownloadFailed(event, module)` - event fires when module downloading was aborted, interrupted, or data checksum did not match. Parameters: `event` - browser event, `module` - module which failed to download.
+* `ModuleDownloadFailed(event, module, error)` - event fires when module downloading was aborted, interrupted, or data checksum did not match. Parameters: `event` - browser event, `module` - module which failed to download, `error` - contains error occured during module checking.
 * `ModuleDownloaded(module)` - occurs when module was successfully downloaded. Parameters: `event` - browser event, `module` - downloaded module.
 * `UpdateCompleted(manifest)` - occurs when all modules of the new version were successfully downloaded. The handler __must return__ `true`, if loader should accept new version, or `false` if update should be postponed. You can inform user about update and request application restart at this point. If update is accepted it will be loaded at next application run (next `load` call). Parameters: `manifest` - new version manifest.
 
