@@ -306,6 +306,125 @@ describe "WD.js", ->
             .safeExecute("localforage.clear()")
             .nodeify(done)
 
+    it.only 'multiple files loading and updating with bundle', (done) ->
+        return @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app:
+                        d.js: |
+                            module.exports = function() 
+                            {
+                                return "d";
+                            };
+                        c.js: |
+                            var d = require("./d.js");
+                            module.exports = function() 
+                            {
+                                return "c" + d();
+                            };
+                        b.js: |
+                            var c = require("./c.js");
+                            module.exports = function() 
+                            {
+                                return "b" + c();
+                            };
+                        a.js: |
+                            var loader = require("loader");
+                            var b = require("./b.js");
+                            loader.onApplicationReady = function() 
+                            {
+                                document.title = "a" + b();
+                                loader.checkUpdate();
+                            };
+                            loader.onUpdateCompleted = function(event) {
+                                setTimeout(location.reload.bind(location), 0)
+                                return true
+                            };
+                        spa.yaml: |
+                            root: "./"
+                            manifest: "./manifest.json"
+                            index: "./index.html"
+                            bundle: "./bundle.js"
+                            randomize_urls: false
+                            excludes: 
+                                - "./bundle.js"
+                            hosting:
+                                "./(*.js)": "/app/$1"
+                    """)
+                utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                utils.mount(system, path.resolve(__dirname, "../tests"))
+                mock(system)
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .clearLocalStorage()
+            .then => @urls_log.clear()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3 * DELAY)
+            .title().should.eventually.become("abcd")
+            .then =>
+                urls = @urls_log.get()
+                expect(urls).to.be.an("Array").with.length(5)
+                expect(urls[0]).to.equal("/app/")
+                expect(urls[1]).to.equal("/app/manifest.json")
+                expect(urls[2]).to.equal("/app/bundle.js")
+                expect(urls[3]).to.equal("/app/")
+                expect(urls[4]).to.equal("/app/manifest.json")
+            .safeExecute("localforage.keys( function(err, keys) { window.forage_keys = keys; } )")
+            .sleep(DELAY)
+            .safeEval("window.forage_keys")
+            .then (keys) =>
+                expect(keys.map((key) => key.split(":")[2])).to.consist([
+                    "/app/a.js",
+                    "/app/b.js",
+                    "/app/c.js",
+                    "/app/d.js",
+                    ])
+            .then ->
+                content = """
+                    var d = require("./d.js");
+                    module.exports = function() 
+                    {
+                        return "B" + d();
+                    };
+                    """
+                fs.writeFileSync("/app/b.js", content)
+                fs.unlinkSync("/app/c.js")
+                spa.Builder.from_config("/app/spa.yaml").build()
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .then => @urls_log.clear()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3 * DELAY)
+            .title().should.eventually.become("aBd")
+            .then =>
+                urls = @urls_log.get()
+                expect(urls[0]).to.equal("/app/")
+                expect(urls[1]).to.equal("/app/manifest.json")
+                expect(urls[2]).to.equal("/app/b.js")
+                expect(urls[3]).to.equal("/app/")
+                expect(urls[4]).to.equal("/app/manifest.json")
+            .safeExecute("localforage.keys( function(err, keys) { window.forage_keys = keys; } )")
+            .sleep(DELAY)
+            .safeEval("window.forage_keys")
+            .then (keys) =>
+                expect(keys.map((key) => key.split(":")[2])).to.consist([
+                    "/app/a.js",
+                    "/app/b.js",
+                    "/app/d.js",
+                    ])
+            .safeExecute("localforage.clear()")
+            .nodeify(done)
+
     it 'no manifest file', (done) ->
         return @browser
             .then ->
