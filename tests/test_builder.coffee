@@ -1163,6 +1163,7 @@ describe 'Hosting output with bundle', ->
                     hosting_map: "hosting.json"
                     manifest: "manifest.json"
                     index: "index.html"
+                    appcache: "main.appcache"
                     bundle: "bundle.js"
             """)
         utils.mount(system, path.resolve(__dirname, "../lib/assets"))
@@ -1224,6 +1225,9 @@ describe 'Hosting output with bundle', ->
             index: -> @that.deep.equals
                 url: "http://127.0.0.1:8010/index.html"
                 path: "./index.html"
+            appcache: -> @that.deep.equals
+                url: "http://127.0.0.1:8010/main.appcache"
+                path: "./main.appcache"
 
 describe 'Building updates with encoding and ambiguous copying', ->
     beforeEach ->
