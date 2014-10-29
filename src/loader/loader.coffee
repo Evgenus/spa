@@ -362,7 +362,7 @@ class Loader
         return localforage.removeItem(key, cb)
 
     onNoManifest: (error) ->
-    onUpToDate: (event) ->
+    onUpToDate: (event, manifest) ->
     onUpdateFound: (event, manifest) -> @startUpdate()
     onUpdateFailed: (event, error)-> 
     onUpdateCompleted: (manifest) -> return true
@@ -471,7 +471,7 @@ class Loader
             @logger.info("New manifest", @_new_manifest)
             if @_current_manifest?
                 if @_current_manifest.hash == @_new_manifest.hash
-                    @emit("UpToDate", @_current_manifest)
+                    @emit("UpToDate", event, @_current_manifest)
                     return
 
             @emit("UpdateFound", event, @_new_manifest)
@@ -572,7 +572,7 @@ class Loader
                 return @_downloadModule(module, onDownload) unless module_source?
                
                 if @hash_func(module_source) != module.hash
-                    @emit("ModuleDownloadFailed", null, module)
+                    @emit("ModuleDownloadFailed", null, module, new HashMismatchedError(module.url, module.hash, hash))
                     return
                 module.source = module_source
                 module.loaded = module.size
@@ -631,9 +631,9 @@ class Loader
             @emit("ModuleDownloadProgress", event, module)
             @_reportTotalProgress()
         module_request.onerror = (event) =>
-            @emit("ModuleDownloadFailed", event, module)
+            @emit("ModuleDownloadFailed", event, module, null)
         module_request.onabort = (event) =>
-            @emit("ModuleDownloadFailed", event, module)
+            @emit("ModuleDownloadFailed", event, module, null)
         module_request.send()
         return
 
