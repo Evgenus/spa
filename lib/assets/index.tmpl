@@ -1,5 +1,9 @@
 <!DOCTYPE html>
+<% if(!!locals.appcache_location) { %>
+<html manifest="<%- appcache_location %>">
+<% } else { %>
 <html>
+<% } %>
 <head>
 
 <style type="text/css"><%- inline("./bootstrap.css") %></style>
