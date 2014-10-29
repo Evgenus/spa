@@ -216,24 +216,24 @@ describe 'Building module with paths rewired', ->
 
             expect(manifest).to.have.properties
                 modules: -> @that.is.an("Array").with.length(4).and.properties
-                    0: -> @that.have.properties
+                    0: -> @that.has.properties
                         id: -> @that.equals("c")
                         deps: -> @that.deep.equals({})
                         type: -> @that.equals(type)
                         url: -> @that.equals("http://127.0.0.1:8010/module1/a/c.js")
-                    1: -> @that.have.properties
+                    1: -> @that.has.properties
                         id: -> @that.equals("b")
                         deps: -> @that.deep.equals
                             "./a/c": "c"
                         type: -> @that.equals(type)
                         url: -> @that.equals("http://127.0.0.1:8010/module1/b.js")
-                    2: -> @that.have.properties
+                    2: -> @that.has.properties
                         id: -> @that.equals("d")
                         deps: -> @that.deep.equals
                             "a1/c": "c"
                         type: -> @that.equals(type)
                         url: -> @that.equals("http://127.0.0.1:8010/module2/d.js")
-                    3: -> @that.have.properties
+                    3: -> @that.has.properties
                         id: -> @that.equals("e")
                         deps: -> @that.deep.equals
                             "a1/../b": "b"
@@ -338,7 +338,7 @@ describe 'Building config with BOM', ->
 
         expect(manifest).to.have.properties
             modules: -> @that.is.an("Array").with.length(1).and.properties
-                0: -> @that.not.have.property("url")
+                0: -> @that.has.not.property("url")
 
 describe 'Building module with wierd name', ->
     beforeEach ->
@@ -420,7 +420,7 @@ describe 'Building renamed manifest', ->
         expect(manifest).to.have.properties
             version: -> @to.be.a("String")
             modules: -> @to.be.an("Array").with.length(1).and.properties
-                0: -> @that.have.properties
+                0: -> @that.has.properties
                     id: -> @that.equals("a")
                     deps: -> @that.deep.equals({})
                     type: -> @that.equals("cjs")
@@ -457,26 +457,26 @@ describe 'Building mixed-formats modules', ->
 
         expect(manifest).to.have.properties
             modules: -> @that.is.an("Array").with.length(3).and.properties
-                0: -> @that.have.properties
+                0: -> @that.has.properties
                     id: -> @that.equals("a")
                     deps: -> @that.deep.equals({})
                     type: -> @that.equals("junk")
-                1: -> @that.have.properties
+                1: -> @that.has.properties
                     id: -> @that.equals("b")
                     deps: -> @that.deep.equals
                         "/a": "a"
                     type: -> @that.equals("cjs")
-                2: -> @that.have.properties
+                2: -> @that.has.properties
                     id: -> @that.equals("c")
                     deps: -> @that.deep.equals
                         "/b": "b"
                     type: -> @that.equals("amd")
 
         expect(manifest).to.have.properties
-            modules: -> @that.have.properties
-                0: -> @that.not.have.property("url")
-                1: -> @that.not.have.property("url")
-                2: -> @that.not.have.property("url")
+            modules: -> @that.has.properties
+                0: -> @that.has.not.property("url")
+                1: -> @that.has.not.property("url")
+                2: -> @that.has.not.property("url")
 
 describe 'Building module with different hash function', ->
     hashes = 
@@ -506,9 +506,11 @@ describe 'Building module with different hash function', ->
             expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
             manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
 
-            expect(manifest.modules[0]).to.have.properties
-                id: -> @that.equals("a")
-                hash: -> @that.equals(hash_value)
+            expect(manifest).to.have.properties
+                modules: -> @that.is.an("Array").with.length(1).and.has.properties
+                    0: -> @that.has.properties
+                        id: -> @that.equals("a")
+                        hash: -> @that.equals(hash_value)
 
     for hash_name, hash_value of hashes
         test(hash_name, hash_value)
@@ -592,18 +594,20 @@ describe 'Building with encoder', ->
         expect(fs.existsSync("/build/c.js")).to.be.true
         expect(fs.existsSync("/build/d.js")).to.be.true
 
-        expect(manifest.bundle).to.have.properties
-            url: -> @that.is.a("String").equals("http://127.0.0.1:8010/bundle.js")
-
-        expect(manifest.modules[0].decoding).to.have.properties
-            cipher: -> @that.is.a("String").equals("aes")
-            mode: -> @that.is.a("String").equals("gcm")
-            iter: -> @that.is.a("Number").that.equals(1000)
-            ks: -> @that.is.a("Number").that.equals(128)
-            ts: -> @that.is.a("Number").that.equals(128)
-            auth: -> @that.is.a("String")
-            salt: -> @that.is.a("String").with.length(16)
-            iv: -> @that.is.a("String").with.length(32)
+        expect(manifest).to.have.properties
+            bundle: -> @that.has.properties
+                url: -> @that.is.a("String").and.equals("http://127.0.0.1:8010/bundle.js")
+            modules: -> @that.is.an("Array").with.length(4).and.has.has.properties
+                0: -> @that.has.properties
+                    decoding: -> @that.has.properties
+                        cipher: -> @that.is.a("String").and.equals("aes")
+                        mode: -> @that.is.a("String").and.equals("gcm")
+                        iter: -> @that.is.a("Number").and.equals(1000)
+                        ks: -> @that.is.a("Number").and.equals(128)
+                        ts: -> @that.is.a("Number").and.equals(128)
+                        auth: -> @that.is.a("String")
+                        salt: -> @that.is.a("String").with.length(16)
+                        iv: -> @that.is.a("String").with.length(32)
 
         loader =
             options:
@@ -756,36 +760,31 @@ describe 'Building modules with dependency from node_modules', ->
         expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
 
-        expect(manifest)
-            .to.have.property('modules')
-            .to.be.an("Array").with.length(4)
-
-        expect(manifest.modules[0]).to.have.properties
-            id: -> @that.equals("lib_main")
-            deps: -> @that.deep.equals({})
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/m2/lib/main.js")
-
-        expect(manifest.modules[1]).to.have.properties
-            id: -> @that.equals("m11")
-            deps: -> @that.deep.equals({})
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/m1/node_modules/m11/index.js")
-        
-        expect(manifest.modules[2]).to.have.properties
-            id: -> @that.equals("main")
-            deps: -> @that.deep.equals
-                "m11": "m11"
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/m1/lib/main.js")
-        
-        expect(manifest.modules[3]).to.have.properties
-            id: -> @that.equals("a")
-            deps: -> @that.deep.equals
-                "m1": "main"
-                "m2": "lib_main"
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/a.js")
+        expect(manifest).to.have.properties
+            modules: -> @that.is.an("Array").with.length(4).and.has.properties
+                0: -> @that.has.properties
+                    id: -> @that.equals("lib_main")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/node_modules/m2/lib/main.js")
+                1: -> @that.has.properties
+                    id: -> @that.equals("m11")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/node_modules/m1/node_modules/m11/index.js")
+                2: -> @that.has.properties
+                    id: -> @that.equals("main")
+                    deps: -> @that.deep.equals
+                        "m11": "m11"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/node_modules/m1/lib/main.js")
+                3: -> @that.has.properties
+                    id: -> @that.equals("a")
+                    deps: -> @that.deep.equals
+                        "m1": "main"
+                        "m2": "lib_main"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/a.js")
 
 describe 'Building modules with inexistent dependency from node_modules', ->
     beforeEach ->
@@ -851,29 +850,25 @@ describe 'Building modules with dependency from node_modules (multifile module)'
         expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
         
-        expect(manifest)
-            .to.have.property('modules')
-            .to.be.an("Array").with.length(3)
-
-        expect(manifest.modules[0]).to.have.properties
-            id: -> @that.equals("c")
-            deps: -> @that.deep.equals({})
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/c.js")
-
-        expect(manifest.modules[1]).to.have.properties
-            id: -> @that.equals("b")
-            deps: -> @that.deep.equals
-                "./c": "c"
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/index.js")
-        
-        expect(manifest.modules[2]).to.have.properties
-            id: -> @that.equals("a")
-            deps: -> @that.deep.equals
-                "b": "b"
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/lib/a.js")
+        expect(manifest).to.have.properties
+            modules: -> @that.is.an("Array").with.length(3).and.has.properties
+                0: -> @that.has.properties
+                    id: -> @that.equals("c")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/c.js")
+                1: -> @that.has.properties
+                    id: -> @that.equals("b")
+                    deps: -> @that.deep.equals
+                        "./c": "c"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/index.js")
+                2: -> @that.has.properties
+                    id: -> @that.equals("a")
+                    deps: -> @that.deep.equals
+                        "b": "b"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/lib/a.js")
 
 
 describe 'Building modules with dependency from node_modules (import from the deep)', ->
@@ -919,43 +914,37 @@ describe 'Building modules with dependency from node_modules (import from the de
         expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
         
-        expect(manifest)
-            .to.have.property('modules')
-            .to.be.an("Array").with.length(5)
-
-        expect(manifest.modules[0]).to.have.properties
-            id: -> @that.equals("e")
-            deps: -> @that.deep.equals({})
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/e/index.js")
-
-        expect(manifest.modules[1]).to.have.properties
-            id: -> @that.equals("d")
-            deps: -> @that.deep.equals
-                "e": "e"
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/node_modules/c/node_modules/d/index.js")
-        
-        expect(manifest.modules[2]).to.have.properties
-            id: -> @that.equals("c")
-            deps: -> @that.deep.equals
-                "d": "d"
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/node_modules/c/index.js")
-        
-        expect(manifest.modules[3]).to.have.properties
-            id: -> @that.equals("b")
-            deps: -> @that.deep.equals
-                "c": "c"
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/index.js")
-        
-        expect(manifest.modules[4]).to.have.properties
-            id: -> @that.equals("a")
-            deps: -> @that.deep.equals
-                "b": "b"
-            type: -> @that.equals("cjs")
-            url: -> @that.equals("http://127.0.0.1:8010/lib/a.js")
+        expect(manifest).to.have.properties
+            modules: -> @that.is.an("Array").with.length(5).and.has.properties
+                0: -> @that.has.properties
+                    id: -> @that.equals("e")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/node_modules/e/index.js")
+                1: -> @that.has.properties
+                    id: -> @that.equals("d")
+                    deps: -> @that.deep.equals
+                        "e": "e"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/node_modules/c/node_modules/d/index.js")
+                2: -> @that.has.properties
+                    id: -> @that.equals("c")
+                    deps: -> @that.deep.equals
+                        "d": "d"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/node_modules/c/index.js")
+                3: -> @that.has.properties
+                    id: -> @that.equals("b")
+                    deps: -> @that.deep.equals
+                        "c": "c"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/node_modules/b/index.js")
+                4: -> @that.has.properties
+                    id: -> @that.equals("a")
+                    deps: -> @that.deep.equals
+                        "b": "b"
+                    type: -> @that.equals("cjs")
+                    url: -> @that.equals("http://127.0.0.1:8010/lib/a.js")
 
 describe 'Remaping standart-like modules inside dependencies from node_modules', ->
     beforeEach ->
@@ -1067,7 +1056,7 @@ describe 'Hosting output', ->
 
         expect(hosting).to.have.properties
             version: -> @that.is.a("String")
-            files: -> @that.to.deep.equal
+            files: -> @that.deep.equals
                 "node_modules/m2/lib/main.js": "./node_modules/m2/lib/main.js"
                 "node_modules/m1/node_modules/m11/index.js": "./node_modules/m1/node_modules/m11/index.js"
                 "node_modules/m1/lib/main.js": "./node_modules/m1/lib/main.js"
@@ -1129,7 +1118,7 @@ describe 'Hosting output with encoder', ->
 
         expect(hosting).to.have.properties
             version: -> @that.is.a("String")
-            files: -> @that.to.deep.equal
+            files: -> @that.deep.equals
                 "http://127.0.0.1:8010/a.js": "./a.js"
                 "http://127.0.0.1:8010/b.js": "./b.js"
                 "http://127.0.0.1:8010/c.js": "./c.js"
@@ -1185,30 +1174,30 @@ describe 'Hosting output with bundle', ->
 
         expect(manifest).to.have.properties
             modules: -> @that.is.an("Array").with.length(4).and.properties
-                0: -> @that.to.have.properties
+                0: -> @that.has.properties
                     id: -> @that.equals("d")
                     deps: -> @that.deep.equals({})
                     type: -> @that.equals("cjs")
                     url: -> @that.equals("http://127.0.0.1:8010/d.js")
-                1: -> @that.to.have.properties
+                1: -> @that.has.properties
                     id: -> @that.equals("c")
                     deps: -> @that.deep.equals
                         "./d.js": "d"
                     type: -> @that.equals("cjs")
                     url: -> @that.equals("http://127.0.0.1:8010/c.js")
-                2: -> @that.to.have.properties
+                2: -> @that.has.properties
                     id: -> @that.equals("b")
                     deps: -> @that.deep.equals
                         "./c.js": "c"
                     type: -> @that.equals("cjs")
                     url: -> @that.equals("http://127.0.0.1:8010/b.js")
-                3: -> @that.to.have.properties
+                3: -> @that.has.properties
                     id: -> @that.equals("a")
                     deps: -> @that.deep.equals
                         "./b.js": "b"
                     type: -> @that.equals("cjs")
                     url: -> @that.equals("http://127.0.0.1:8010/a.js")
-            bundle: -> @that.to.have.properties
+            bundle: -> @that.has.properties
                 hash: -> @that.equals("e260fa41f30a6999b14fcd135cb93b0d")
                 url: -> @that.equals("http://127.0.0.1:8010/bundle.js")
 
@@ -1217,18 +1206,18 @@ describe 'Hosting output with bundle', ->
 
         expect(hosting).to.have.properties
             version: -> @that.is.a("String")
-            files: -> @that.to.deep.equal
+            files: -> @that.deep.equals
                 "http://127.0.0.1:8010/a.js": "./a.js"
                 "http://127.0.0.1:8010/b.js": "./b.js"
                 "http://127.0.0.1:8010/c.js": "./c.js"
                 "http://127.0.0.1:8010/d.js": "./d.js"
-            bundle: -> @that.to.deep.equal
+            bundle: -> @that.deep.equals
                 url: "http://127.0.0.1:8010/bundle.js"
                 path: "./bundle.js"
-            manifest: -> @that.to.deep.equal
+            manifest: -> @that.deep.equals
                 url: "http://127.0.0.1:8010/manifest.json"
                 path: "./manifest.json"
-            index: -> @that.to.deep.equal
+            index: -> @that.deep.equals
                 url: "http://127.0.0.1:8010/index.html"
                 path: "./index.html"
 
@@ -1324,36 +1313,30 @@ describe 'fix for #65: remapping modules should not affect modules which are ext
         builder.build()
         expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
-        
-        expect(manifest)
-            .to.have.property('modules')
-            .to.be.an("Array").with.length(5)
 
-        expect(manifest.modules[0]).to.have.properties
-            id: -> @that.equals("ab")
-            deps: -> @that.deep.equals({})
-            type: -> @that.equals("cjs")
-
-        expect(manifest.modules[1]).to.have.properties
-            id: -> @that.equals("b")
-            deps: -> @that.deep.equals({})
-            type: -> @that.equals("cjs")
-
-        expect(manifest.modules[2]).to.have.properties
-            id: -> @that.equals("ac")
-            deps: -> @that.deep.equals({})
-            type: -> @that.equals("cjs")
-
-        expect(manifest.modules[3]).to.have.properties
-            id: -> @that.equals("ac_b")
-            deps: -> @that.deep.equals({})
-            type: -> @that.equals("cjs")
-
-        expect(manifest.modules[4]).to.have.properties
-            id: -> @that.equals("k")
-            deps: -> @that.deep.equals
-                "a": "ab"
-                "a/b": "b"
-                "ac": "ac"
-                "ac/b": "ac_b"            
-            type: -> @that.equals("cjs")
+        expect(manifest).to.have.properties
+            modules: -> @that.is.an("Array").with.length(5).and.properties
+                0: -> @that.has.properties
+                    id: -> @that.equals("ab")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("cjs")
+                1: -> @that.has.properties
+                    id: -> @that.equals("b")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("cjs")
+                2: -> @that.has.properties
+                    id: -> @that.equals("ac")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("cjs")
+                3: -> @that.has.properties
+                    id: -> @that.equals("ac_b")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("cjs")
+                4: -> @that.has.properties
+                    id: -> @that.equals("k")
+                    deps: -> @that.deep.equals
+                        "a": "ab"
+                        "a/b": "b"
+                        "ac": "ac"
+                        "ac/b": "ac_b"
+                    type: -> @that.equals("cjs")
