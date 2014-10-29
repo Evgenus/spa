@@ -306,7 +306,7 @@ describe "WD.js", ->
             .safeExecute("localforage.clear()")
             .nodeify(done)
 
-    it.only 'multiple files loading and updating with bundle', (done) ->
+    it 'multiple files loading and updating with bundle', (done) ->
         return @browser
             .then ->
                 system = yaml.safeLoad("""
