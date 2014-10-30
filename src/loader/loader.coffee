@@ -102,16 +102,24 @@ class BasicEvaluator
         for prop of window
             @window_props.push(prop)
             define_property = (prop) ->
+                cell = 
+                    value: window[prop]
                 if typeof window[prop] is 'function'
                     Object.defineProperty wrapper, prop,
-                        value: -> window[prop].apply(window, arguments)
+                        get: ->
+                            return -> cell.value.apply(window, arguments)
+                        set: (value) ->
+                            cell.value = value
                 else
                     Object.defineProperty wrapper, prop,
                         get: ->
                             return wrapper if window[prop] is window
-                            return window[prop]
+                            return cell.value
                         set: (value) ->
-                            wrapper[prop] = value
+                            if typeof value is 'function'
+                                cell.value = -> value.apply(wrapper, arguments)
+                            else
+                                cell.value = value
                 return
             define_property(prop)
         wrapper.addEventListener = (type, listener, useCapture) ->
