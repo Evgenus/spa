@@ -54,7 +54,6 @@
     "nomnom": "^1.8.0",
     "resolve": "^1.0.0",
     "underscore.string": "~2.3.3",
-    "wd": "^0.3.9"
   },
   "devDependencies": {
     "chai-as-promised": ">=4.x.x",
