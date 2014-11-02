@@ -53,6 +53,7 @@
     "lodash": "^2.4.1",
     "module-definition": "^1.2.4",
     "nomnom": "^1.8.0",
+    "mkdirp": "*",
     "resolve": "^1.0.0",
     "underscore.string": "~2.3.3"
   },
@@ -61,7 +62,6 @@
     "coffee-script": "^1.8.0",
     "connect": "^3.3.2",
     "connect-route": "^0.1.4",
-    "mkdirp": "*",
     "mocha": "^2.0.1",
     "mock-fs": "^2.3.2",
     "morgan": "^1.4.1",
