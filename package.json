@@ -47,7 +47,7 @@
     "detective-amd": "^2.2.0",
     "ejs": "^1.0.0",
     "fs-walk-glob-rules": "^0.1.0",
-    "get-amd-module-type": "^1.0.0",
+    "get-amd-module-type": "^2.0.0",
     "glob-rules": "^0.1.0",
     "js-yaml": "^3.2.2",
     "lodash": "^2.4.1",

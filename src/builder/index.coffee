@@ -6,7 +6,8 @@ path = require('path')
 clc = require('cli-color')
 detectiveCJS = require('detective')
 detectiveAMD = require('detective-amd')
-definition = require('module-definition').sync
+definition = require('module-definition').fromSource
+amdType = require('get-amd-module-type').fromSource
 yaml = require('js-yaml')
 ejs = require("ejs")
 _  = require('lodash')
@@ -225,14 +226,14 @@ class Builder
                 return @_resolve_to_file(path.join(dirpath, "index.js"))
         return
 
-    _get_type: (module) ->
+    _get_type: (module, source) ->
         for rule in @loaders
             continue unless rule.test(module.relative)
             return rule.type
         try
-            switch definition(module.path)
-                when "commonjs" then return "cjs"
-                when "amd" then return "amd"
+            return switch definition(module.source)
+                when "commonjs" then "cjs"
+                when "amd" then "amd"
         catch error
             throw new ModuleTypeError(module.path, error)
         return @default_loader
@@ -320,8 +321,12 @@ class Builder
         while modules.length > 0
             module = modules.shift()
             source = fs.readFileSync(module.path)
+            module.source = source
             module.deps_paths = {}
             module.type = @_get_type(module)
+            switch module.type
+                when "amd"
+                    module.amdtype = amdType(source)
             module.source_hash = @calc_hash(source)
             module.source_length = source.length
 
@@ -448,6 +453,7 @@ class Builder
             hash: module.hash
             size: module.size
             type: module.type
+            amdtype: module.amdtype
             deps: module.deps_ids
             decoding: module.decoding
 
