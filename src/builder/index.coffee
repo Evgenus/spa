@@ -4,6 +4,7 @@ walker = require('fs-walk-glob-rules')
 globrules = require('glob-rules')
 path = require('path')
 clc = require('cli-color')
+mkdirpSync = require('mkdirp').sync
 detectiveCJS = require('detective')
 detectiveAMD = require('detective-amd')
 definition = require('module-definition').fromSource
@@ -283,6 +284,7 @@ class Builder
     _write_file: (destination, content) ->
         filepath = path.resolve(@root, destination)
         @logger.info("Writing #{filepath}. #{content.length} bytes.")
+        mkdirpSync(path.dirname(filepath))
         fs.writeFileSync(filepath, content)
 
     _stringify_json: (data) ->
