@@ -718,6 +718,50 @@ describe 'fix for #72: copier cannot create dirs', ->
 
         expect(fs.existsSync("/build/encoded/a.js")).to.be.true
 
+describe 'fix for #71: copier path is not relative to build path', ->
+    beforeEach ->
+        system = yaml.safeLoad("""
+            testimonial: 
+                a.js: |
+                    var b = require("b");
+                    module.exports = function() { return "a" + b; };
+                node_modules:
+                    b:
+                        index.js: |
+                            module.exports = "b";
+                spa.yaml: |
+                    pretty: true
+                    root: "/testimonial/"
+                    manifest: "./build/manifest.json"
+                    hosting:
+                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                    coding_func:
+                        name: aes-gcm
+                        password: babuka
+                        iter: 1000
+                        ks: 128
+                        ts: 128
+                    copying:
+                        "./(**/*.*)": "./build/encoded/$1"
+            """)
+        utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+        mock(system)
+
+    it 'should manifest and encrypted files', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+
+        builder.build()
+        expect(fs.existsSync("/testimonial/build/manifest.json")).to.be.true
+        manifest = JSON.parse(fs.readFileSync("/testimonial/build/manifest.json", encoding: "utf8"))
+        hash1 = manifest.modules[0].hash
+
+        expect(manifest)
+            .to.have.property("decoder_func")
+            .that.equals("aes-gcm")
+
+        expect(fs.existsSync("/testimonial/build/encoded/a.js")).to.be.true
+        expect(fs.existsSync("/testimonial/build/encoded/node_modules/b/index.js")).to.be.true
+
 describe 'Building modules with syntax errors', ->
     beforeEach ->
         mock(yaml.safeLoad("""
