@@ -1386,7 +1386,7 @@ describe 'fix for #65: remapping modules should not affect modules which are ext
                         "ac/b": "ac_b"
                     type: -> @that.equals("cjs")
 
-describe.only 'Building various AMD formats', ->
+describe 'Building various AMD formats', ->
     beforeEach ->
         mock(yaml.safeLoad("""
             testimonial: 
