@@ -1348,3 +1348,83 @@ describe 'fix for #65: remapping modules should not affect modules which are ext
                         "ac": "ac"
                         "ac/b": "ac_b"
                     type: -> @that.equals("cjs")
+
+describe.only 'Building various AMD formats', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial: 
+                a.js: |
+                    define({
+                        a: 1
+                        });
+                b.js: |
+                    define(function(require) {
+                        return require("./a")
+                        });
+                c.js: |
+                    define(function(require, exports, module) {
+                        module.exports = require("./b");
+                    });
+                d.js: |
+                    define(["./c"], function(c) {
+                        return c;
+                        });
+                e.js: |
+                    define("e", ["./d"], function(d) {
+                        return d;
+                        });
+                spa.yaml: |
+                    root: "/testimonial/"
+                    extensions: 
+                        - .js
+                    manifest: "manifest.json"
+                    default_loader: junk
+            """))
+
+    it 'should successfully build', ->
+        builder = spa.Builder.from_config("/testimonial/spa.yaml")
+        builder.build()
+
+        expect(fs.existsSync("/testimonial/manifest.json")).to.be.true
+
+        manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
+
+        expect(manifest).to.have.properties
+            modules: -> @that.is.an("Array").with.length(5).and.properties
+                0: -> @that.has.properties
+                    id: -> @that.equals("a")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("amd")
+                    amdtype: -> @that.equals("nodeps")
+                1: -> @that.has.properties
+                    id: -> @that.equals("b")
+                    deps: -> @that.deep.equals
+                        "./a": "a"
+                    type: -> @that.equals("amd")
+                    amdtype: -> @that.equals("factory")
+                2: -> @that.has.properties
+                    id: -> @that.equals("c")
+                    deps: -> @that.deep.equals
+                        "./b": "b"
+                    type: -> @that.equals("amd")
+                    amdtype: -> @that.equals("rem")
+                3: -> @that.has.properties
+                    id: -> @that.equals("d")
+                    deps: -> @that.deep.equals
+                        "./c": "c"
+                    type: -> @that.equals("amd")
+                    amdtype: -> @that.equals("deps")
+                4: -> @that.has.properties
+                    id: -> @that.equals("e")
+                    deps: -> @that.deep.equals
+                        "./d": "d"
+                    type: -> @that.equals("amd")
+                    amdtype: -> @that.equals("named")
+
+        expect(manifest).to.have.properties
+            modules: -> @that.has.properties
+                0: -> @that.has.not.property("url")
+                1: -> @that.has.not.property("url")
+                2: -> @that.has.not.property("url")
+                3: -> @that.has.not.property("url")
+                4: -> @that.has.not.property("url")
