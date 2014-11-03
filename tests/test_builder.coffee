@@ -721,46 +721,82 @@ describe 'fix for #72: copier cannot create dirs', ->
 describe 'fix for #71: copier path is not relative to build path', ->
     beforeEach ->
         system = yaml.safeLoad("""
-            testimonial: 
-                a.js: |
-                    var b = require("b");
-                    module.exports = function() { return "a" + b; };
+            testimonial:
+                source:
+                    a.js: |
+                        var b = require("b");
+                        module.exports = function() { return "a" + b; };
+                    bad.yaml: |
+                        pretty: true
+                        grab: true
+                        root: "."
+                        manifest: "../build/manifest.json"
+                        hosting:
+                            "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                        coding_func:
+                            name: aes-gcm
+                            password: babuka
+                            iter: 1000
+                            ks: 128
+                            ts: 128
+                        copying:
+                            "./(**/*.*)": "../build/$1"
+                    good.yaml: |
+                        pretty: true
+                        grab: true
+                        root: "."
+                        manifest: "../build/manifest.json"
+                        hosting:
+                            "./(**/*.*)": "http://127.0.0.1:8010/$1"
+                        coding_func:
+                            name: aes-gcm
+                            password: babuka
+                            iter: 1000
+                            ks: 128
+                            ts: 128
+                        copying:
+                            "./../node_modules/(**/*.*)": "../build/node_modules/$1"
+                            "./(**/*.*)": "../build/source/$1"
                 node_modules:
                     b:
                         index.js: |
                             module.exports = "b";
-                spa.yaml: |
-                    pretty: true
-                    root: "/testimonial/"
-                    manifest: "./build/manifest.json"
-                    hosting:
-                        "./(**/*.*)": "http://127.0.0.1:8010/$1"
-                    coding_func:
-                        name: aes-gcm
-                        password: babuka
-                        iter: 1000
-                        ks: 128
-                        ts: 128
-                    copying:
-                        "./(**/*.*)": "./build/encoded/$1"
             """)
         utils.mount(system, path.resolve(__dirname, "../lib/assets"))
         mock(system)
 
-    it 'should manifest and encrypted files', ->
-        builder = spa.Builder.from_config("/testimonial/spa.yaml")
-
+    it 'should not damage source files and generate output', ->
+        hash_a_1 = crypto.createHash('md5').update(fs.readFileSync("/testimonial/source/a.js")).digest("hex")
+        hash_b_1 = crypto.createHash('md5').update(fs.readFileSync("/testimonial/node_modules/b/index.js")).digest("hex")
+        
+        builder = spa.Builder.from_config("/testimonial/source/good.yaml")
         builder.build()
         expect(fs.existsSync("/testimonial/build/manifest.json")).to.be.true
-        manifest = JSON.parse(fs.readFileSync("/testimonial/build/manifest.json", encoding: "utf8"))
-        hash1 = manifest.modules[0].hash
 
-        expect(manifest)
-            .to.have.property("decoder_func")
-            .that.equals("aes-gcm")
+        hash_a_2 = crypto.createHash('md5').update(fs.readFileSync("/testimonial/source/a.js")).digest("hex")
+        hash_b_2 = crypto.createHash('md5').update(fs.readFileSync("/testimonial/node_modules/b/index.js")).digest("hex")
 
-        expect(fs.existsSync("/testimonial/build/encoded/a.js")).to.be.true
-        expect(fs.existsSync("/testimonial/build/encoded/node_modules/b/index.js")).to.be.true
+        expect(hash_a_1).to.be.equal(hash_a_2, "Source file `a` was damaged!")
+        expect(hash_b_1).to.be.equal(hash_b_2, "Source file `b` was damaged!")
+
+        expect(fs.existsSync("/testimonial/build/source/a.js")).to.be.true
+        expect(fs.existsSync("/testimonial/build/node_modules/b/index.js")).to.be.true
+
+    it 'should overwrite source files', ->
+        hash_a_1 = crypto.createHash('md5').update(fs.readFileSync("/testimonial/source/a.js")).digest("hex")
+        hash_b_1 = crypto.createHash('md5').update(fs.readFileSync("/testimonial/node_modules/b/index.js")).digest("hex")
+        
+        builder = spa.Builder.from_config("/testimonial/source/bad.yaml")
+        builder.build()
+        expect(fs.existsSync("/testimonial/build/manifest.json")).to.be.true
+
+        hash_a_2 = crypto.createHash('md5').update(fs.readFileSync("/testimonial/source/a.js")).digest("hex")
+        hash_b_2 = crypto.createHash('md5').update(fs.readFileSync("/testimonial/node_modules/b/index.js")).digest("hex")
+
+        expect(hash_a_1).to.be.equal(hash_a_2, "Source file `a` was damaged!")
+        expect(hash_b_1).not.to.be.equal(hash_b_2, "Source file `b` was not damaged!")
+
+        expect(fs.existsSync("/testimonial/source/a.js")).to.be.true
 
 describe 'Building modules with syntax errors', ->
     beforeEach ->
