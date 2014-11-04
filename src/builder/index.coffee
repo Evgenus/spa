@@ -618,9 +618,10 @@ class Builder
         total = 0
         for num, module of @_modules
             total += module.size
-            message = _.sprintf "%(num)3s %(module.relative)-20s %(module.size)7s %(module.type)4s %(module.hash)s",
+            message = _.sprintf "%(num)3s %(module.relative)-40s %(module.size)7s %(type)-11s %(module.hash)s",
                 num: parseInt(num) + 1
                 module: module
+                type: if module.type == "amd" then module.type + "/" + module.amdtype else module.type
             @logger.info(message)
         @logger.info("Total #{total} bytes in #{@_modules.length} files")
 
