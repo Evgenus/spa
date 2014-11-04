@@ -136,7 +136,7 @@ coding_func:
 ```
 **copying**(required for `coding_func`) - same set of rules as in `hosting` but used together with `coding_func` to store encoded files.
 
-> Coding could possibly overwrite your source files if copying rules was not properly specified. 
+> Enabling encryption could possibly overwrite your source files if copying rules was not properly specified. 
 > Use this feature with caution. 
 > Ensure that you've commited changes into restorable repository before you build.
 
