@@ -152,6 +152,12 @@ class BasicEvaluator
             throw new ChangesInWindowError(@id, added_props)
         return
     _make: -> throw new AbstractMethodError("_make")
+    get_require: ->
+        require = (name) -> 
+            if name not of @deps
+                @_fail(new UndeclaredRequireError(@id, name)) 
+            return @deps[name]
+        return require.bind(this);
 
 class CJSEvaluator extends BasicEvaluator
     constructor: (options) ->
@@ -168,12 +174,6 @@ class CJSEvaluator extends BasicEvaluator
         }).call(this.this, this.module, this.exports, this.require, this.window, this.process);
         \n//# sourceURL=#{@url}\n
         """
-    get_require: ->
-        require = (name) -> 
-            if name not of @deps
-                @_fail(new UndeclaredRequireError(@id, name)) 
-            return @deps[name]
-        return require.bind(this);
     _check: (result) ->
         @_check_window(@window)
         unless @exports is @module.exports or Object.keys(@exports).length == 0
@@ -196,11 +196,6 @@ class AMDEvaluator extends BasicEvaluator
         }).call(this.this, this.define, this.window);
         \n//# sourceURL=#{@url}\n
         """
-    get_define: ->
-        define = (names, func) ->
-            deps = (@deps[name] for name in names)
-            @result = func.apply(this.this, deps)
-        return define.bind(this);
     _check: (result) ->
         @_check_window(@window)
         if result?
@@ -208,6 +203,71 @@ class AMDEvaluator extends BasicEvaluator
         this_keys = Object.keys(@this)
         unless this_keys.length == 0
             throw new ThisPollutionError(@id, this_keys)
+
+class NodepsAMDEvaluator extends AMDEvaluator
+    get_define: ->
+        define = (exports) ->
+            @result = exports
+        return define.bind(this);
+    _make: ->
+        return @result
+
+class FactoryAMDEvaluator extends AMDEvaluator
+    constructor: (options) ->
+        super(options)
+        @require = @get_require()
+    get_define: ->
+        define = (func) ->
+            @result = func.call(this.this, @require)
+        return define.bind(this)
+    _check: (result) ->
+        super(result)
+        unless @result?
+            throw new AMDReturnsNothingError(@id)
+    _make: ->
+        return @result
+
+class REMAMDEvaluator extends AMDEvaluator
+    constructor: (options) ->
+        super(options)
+        @module = {}
+        @exports = {}
+        @module.exports = @exports
+        @require = @get_require()
+    get_define: ->
+        define = (func) ->
+            @result = func.call(this.this, @require, @exports, @module)
+        return define.bind(this)
+    _check: (result) ->
+        super(result)
+        unless @exports is @module.exports or Object.keys(@exports).length == 0
+            throw new ExportsViolationError(@id) 
+        if @result?
+            throw new ReturnPollutionError(@id, Object.keys(@result)) 
+    _make: ->
+        return @module.exports
+
+class DepsAMDEvaluator extends AMDEvaluator
+    get_define: ->
+        define = (names, func) ->
+            deps = (@deps[name] for name in names)
+            @result = func.apply(this.this, deps)
+        return define.bind(this)
+    _check: (result) ->
+        super(result)
+        unless @result?
+            throw new AMDReturnsNothingError(@id)
+    _make: ->
+        return @result
+
+class NamedAMDEvaluator extends AMDEvaluator
+    get_define: ->
+        define = (own_name, names, func) ->
+            deps = (@deps[name] for name in names)
+            @result = func.apply(this.this, deps)
+        return define.bind(this)
+    _check: (result) ->
+        super(result)
         unless @result?
             throw new AMDReturnsNothingError(@id)
     _make: ->
@@ -305,7 +365,13 @@ class Loader
     _get_evaluator: (module) ->
         return switch module.type ? "cjs"
             when "cjs" then CJSEvaluator
-            when "amd" then AMDEvaluator
+            when "amd" then switch module.amdtype ? "deps"
+                when "nodeps" then NodepsAMDEvaluator
+                when "factory" then FactoryAMDEvaluator
+                when "rem" then REMAMDEvaluator
+                when "deps" then DepsAMDEvaluator
+                when "named" then NamedAMDEvaluator
+                else throw new TypeError("Invalid amd-type module `#{module.amdtype}`")
             when "junk" then PollutionEvaluator
             when "raw" then RawEvaluator
             else throw new TypeError("Invalid module type `#{module.type}`")
