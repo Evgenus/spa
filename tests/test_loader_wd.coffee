@@ -1507,3 +1507,72 @@ describe "WD.js", ->
             .title().should.eventually.become("fixed_64")
             .safeExecute("localforage.clear()")
             .nodeify(done)
+
+    it 'loads modules of various AMD types', (done) ->
+        return @browser
+            .then ->
+                system = yaml.safeLoad("""
+                    index.html: |
+                        <html>
+                            <head>
+                                <title></title>
+                            </head>
+                            <body>
+                                <h1>Testing</h1>
+                            </body>
+                        </html>
+                    app: 
+                        a.js: |
+                            // amd/nodeps
+                            define({ 
+                                a: "a"
+                                });
+                        b.js: |
+                            // amd/factory
+                            define(function(require) { 
+                                return "b" + require("./a").a
+                                });
+                        c.js: |
+                            // amd/rem
+                            define(function(require, exports, module) { 
+                                module.exports = "c" + require("./b");
+                            });
+                        d.js: |
+                            // amd/deps
+                            define(["./c"], function(c) { 
+                                return "d" + c;
+                                });
+                        e.js: |
+                            // amd/named
+                            define("e", ["./d"], function(d) { 
+                                return "e" + d;
+                                });
+                        start.js: |
+                            // commonjs
+                            var loader = require("loader"); 
+                            var e = require("./e");
+                            loader.onApplicationReady = function() {
+                                document.title = e;
+                                };
+                        spa.yaml: |
+                            root: "./"
+                            index: "./index.html"
+                            manifest: "./manifest.json"
+                            hosting:
+                                "./(*.js)": "/app/$1"
+                    """)
+                try
+                    utils.mount(system, path.resolve(__dirname, "../lib/assets"))
+                    mock(system)
+                    spa.Builder.from_config("/app/spa.yaml").build()        
+                catch e
+                    console.log e
+                
+            .get('http://127.0.0.1:3332/')
+            .sleep(DELAY)
+            .clearLocalStorage()
+            .get('http://127.0.0.1:3332/app/')
+            .sleep(3*DELAY)
+            .title().should.eventually.become("edcba")
+            .safeExecute("localforage.clear()")
+            .nodeify(done)
