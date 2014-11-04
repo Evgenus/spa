@@ -287,12 +287,6 @@ class Loader
             update_module_loaded_from_db: []
             evaluate_module_decoded: []
 
-        @_evaluators =
-            cjs: CJSEvaluator
-            amd: AMDEvaluator
-            junk: PollutionEvaluator
-            raw: RawEvaluator
-
         @version = options.version
         @prefix = options.prefix
         @hash_name = options.hash_name
@@ -307,6 +301,14 @@ class Loader
         @manifest_key = @prefix + "::manifest"
         localforage.config
             name: @prefix + "-db"
+
+    _get_evaluator: (module) ->
+        return switch module.type ? "cjs"
+            when "cjs" then CJSEvaluator
+            when "amd" then AMDEvaluator
+            when "junk" then PollutionEvaluator
+            when "raw" then RawEvaluator
+            else throw new TypeError("Invalid module type `#{module.type}`")
 
     _prepare_url: (url) ->
         return escape(url) unless @randomize_urls
@@ -441,7 +443,8 @@ class Loader
                     deps[alias] = @_all_modules[dep]
                 deps["loader"] = this
 
-                evaluator = new @_evaluators[module.type ? "cjs"]
+                evaluator_type = @_get_evaluator(module)
+                evaluator = new evaluator_type
                     id: module.id
                     source: module.source
                     dependencies: deps
