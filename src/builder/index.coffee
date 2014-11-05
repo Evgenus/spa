@@ -470,7 +470,7 @@ class Builder
             url = @_host_path(relative)
 
             bundle = 
-                hash: @calc_hash(@_bundle_content)
+                hash: @calc_hash(new Buffer(@_bundle_content, "utf8"))
                 url: url
 
             @_manifest_content.bundle = bundle
