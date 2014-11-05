@@ -590,10 +590,11 @@ class Loader
             bundle_source = event.target.response
             hash = @hash_func(bundle_source)
             if hash != bundle.hash
-                @emit("UpdateFailed", event, new HashMismatchedError(bundle.url, bundle.hash, hash))
+                @emit("UpdateFailed", event, new HashMismatchedError(bundle.url, hash, bundle.hash))
                 return
 
             @_disassembleBundle(bundle_source)
+            return 
 
         bundle_request.onprogress = (event) =>
             total_size = 0
@@ -621,7 +622,7 @@ class Loader
             module_source = bundle.slice(pointer, pointer + module.size)
             hash = @hash_func(module_source)
             if hash != module.hash
-                @emit("ModuleDownloadFailed", event, module, new HashMismatchedError(module.url, module.hash, hash))
+                @emit("ModuleDownloadFailed", event, module, new HashMismatchedError(module.url, hash, module.hash))
                 return
             module.source = module_source
             module.loaded = module.size
@@ -652,7 +653,7 @@ class Loader
                 return @_downloadModule(module, onDownload) unless module_source?
                
                 if @hash_func(module_source) != module.hash
-                    @emit("ModuleDownloadFailed", null, module, new HashMismatchedError(module.url, module.hash, hash))
+                    @emit("ModuleDownloadFailed", null, module, new HashMismatchedError(module.url, hash, module.hash))
                     return
                 module.source = module_source
                 module.loaded = module.size
@@ -692,7 +693,7 @@ class Loader
 
             hash = @hash_func(module_source)
             if hash != module.hash
-                @emit("ModuleDownloadFailed", event, module, new HashMismatchedError(module.url, module.hash, hash))
+                @emit("ModuleDownloadFailed", event, module, new HashMismatchedError(module.url, hash, module.hash))
                 return
             @set_content(@make_key(module), module_source)
                 .then (content) =>
