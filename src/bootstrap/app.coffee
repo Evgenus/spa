@@ -67,12 +67,14 @@ loader.onNoManifest = (error) ->
         el.find(".bytes-total").text(module.size)
 
     loader.onModuleDownloadFailed = (event, module, error) -> 
-        log("onModuleDownloadFailed", event, module)
+        log("onModuleDownloadFailed", event, module, error)
 
-        malfunction.report(("Error while downloading module `#{module.id}` from url `#{module.url}`: " + event?.target?.statusText ? error))
+        message = event?.target?.statusText ? error
+
+        malfunction.report(("Error while downloading module `#{module.id}` from url `#{module.url}`: " + message))
         el = $("#module-" + module.id)
         el.find(".state").addClass("hide")
-        el.find(".error").text(event.target.statusText).removeClass("hide")
+        el.find(".error").text(message).removeClass("hide")
 
     loader.onModuleDownloadProgress = (event, module) -> 
         log("onModuleDownloadProgress", event, module)
