@@ -168,6 +168,9 @@ class CJSEvaluator extends BasicEvaluator
         @require = @get_require()
         @process = 
             env: {}
+        @deps["exports"] = @exports
+        @deps["module"] = @module
+        @deps["require"] = @require
     render: -> return """
         return (function(module, exports, require, window, process) { 
             #{@source}; 
@@ -248,6 +251,15 @@ class REMAMDEvaluator extends AMDEvaluator
         return @module.exports
 
 class DepsAMDEvaluator extends AMDEvaluator
+    constructor: (options) ->
+        super(options)
+        @module = {}
+        @exports = {}
+        @module.exports = @exports
+        @require = @get_require()
+        @deps["exports"] = @exports
+        @deps["module"] = @module
+        @deps["require"] = @require
     get_define: ->
         define = (names, func) ->
             deps = (@deps[name] for name in names)
@@ -255,23 +267,26 @@ class DepsAMDEvaluator extends AMDEvaluator
         return define.bind(this)
     _check: (result) ->
         super(result)
-        unless @result?
-            throw new AMDReturnsNothingError(@id)
+        if @result?
+            unless Object.keys(@exports).length == 0
+                throw new ExportsViolationError(@id) 
+            unless @module.exports is null or Object.keys(@module.exports).length == 0
+                throw new ExportsViolationError(@id)
+        else
+            unless @exports is @module.exports or Object.keys(@exports).length == 0
+                throw new ExportsViolationError(@id)
+            if @exports is @module.exports and Object.keys(@exports).length == 0
+                throw new AMDReturnsNothingError(@id)
     _make: ->
-        return @result
+        return @result if @result?
+        return @module.exports        
 
-class NamedAMDEvaluator extends AMDEvaluator
+class NamedAMDEvaluator extends DepsAMDEvaluator
     get_define: ->
         define = (own_name, names, func) ->
             deps = (@deps[name] for name in names)
             @result = func.apply(this.this, deps)
         return define.bind(this)
-    _check: (result) ->
-        super(result)
-        unless @result?
-            throw new AMDReturnsNothingError(@id)
-    _make: ->
-        return @result
 
 class PollutionEvaluator extends BasicEvaluator
     render: ->

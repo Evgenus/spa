@@ -1547,12 +1547,24 @@ describe "WD.js", ->
                             define("e", ["./d"], function(d) { 
                                 return "e" + d;
                                 });
+                        f.js: |
+                            // amd/deps with require from dependencies
+                            define(["require"], function(require) {
+                                var e = require("./e");
+                                return "f" + e;
+                                });
+                        g.js: |
+                            // amd/named with require and module from dependencies
+                            define("g", ["require", "module"], function(require, module) {
+                                var f = require("./f");
+                                module.exports = "g" + f;
+                                });
                         start.js: |
                             // commonjs
                             var loader = require("loader"); 
-                            var e = require("./e");
+                            var g = require("./g");
                             loader.onApplicationReady = function() {
-                                document.title = e;
+                                document.title = g;
                                 };
                         spa.yaml: |
                             root: "./"
@@ -1573,6 +1585,6 @@ describe "WD.js", ->
             .clearLocalStorage()
             .get('http://127.0.0.1:3332/app/')
             .sleep(3*DELAY)
-            .title().should.eventually.become("edcba")
+            .title().should.eventually.become("gfedcba")
             .safeExecute("localforage.clear()")
             .nodeify(done)

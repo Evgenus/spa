@@ -138,7 +138,7 @@ encoders =
 
 class Builder
     constructor: (options) ->
-        @_built_ins = ["loader"]
+        @_built_ins = ["loader", "require", "module", "exports"]
 
         @options = options
         @options.logger ?= "SPA"
