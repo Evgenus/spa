@@ -1471,25 +1471,60 @@ describe 'Building various AMD formats', ->
         mock(yaml.safeLoad("""
             testimonial: 
                 a.js: |
-                    define({
-                        a: 1
+                    // amd/nodeps
+                    define({ 
+                        a: "a"
                         });
                 b.js: |
-                    define(function(require) {
-                        return require("./a")
+                    // amd/factory
+                    define(function(require) { 
+                        return "b" + require("./a").a
                         });
                 c.js: |
-                    define(function(require, exports, module) {
-                        module.exports = require("./b");
+                    // amd/rem
+                    define(function(require, exports, module) { 
+                        module.exports = "c" + require("./b");
                     });
                 d.js: |
-                    define(["./c"], function(c) {
-                        return c;
+                    // amd/deps
+                    define(["./c"], function(c) { 
+                        return "d" + c;
                         });
                 e.js: |
-                    define("e", ["./d"], function(d) {
-                        return d;
+                    // amd/named
+                    define("e", ["./d"], function(d) { 
+                        return "e" + d;
                         });
+                f.js: |
+                    // amd/deps with require from dependencies
+                    define(["require"], function(require) {
+                        var e = require("./e");
+                        return "f" + e;
+                        });
+                g.js: |
+                    // amd/named with require and module from dependencies
+                    define("g", ["require", "module"], function(require, module) {
+                        var f = require("./f");
+                        module.exports = "g" + f;
+                        });
+                h.js: |
+                    (function(factory) {
+                        if (typeof exports === 'object') {
+                            // CommonJS
+                            factory(require, exports, module);
+                        } else if (typeof define === 'function') {
+                            // AMD requirejs
+                            define(factory);
+                        } else {
+                            // Plain script tag
+                            var _module = {};
+                            _module.exports = {};
+                            var _require = function(name) { throw new Error("can't require"); }
+                            factory(_require, _module.exports, _module);
+                            window.BigInt = _module.exports;
+                        }
+                    })(function (require, exports, module) {
+                    });
                 spa.yaml: |
                     root: "/testimonial/"
                     extensions: 
@@ -1507,34 +1542,51 @@ describe 'Building various AMD formats', ->
         manifest = JSON.parse(fs.readFileSync("/testimonial/manifest.json", encoding: "utf8"))
 
         expect(manifest).to.have.properties
-            modules: -> @that.is.an("Array").with.length(5).and.properties
+            modules: -> @that.is.an("Array").with.length(8).and.properties
                 0: -> @that.has.properties
                     id: -> @that.equals("a")
                     deps: -> @that.deep.equals({})
                     type: -> @that.equals("amd")
                     amdtype: -> @that.equals("nodeps")
                 1: -> @that.has.properties
+                    id: -> @that.equals("h")
+                    deps: -> @that.deep.equals({})
+                    type: -> @that.equals("amd")
+                    amdtype: -> @that.equals("XXX")
+                2: -> @that.has.properties
                     id: -> @that.equals("b")
                     deps: -> @that.deep.equals
                         "./a": "a"
                     type: -> @that.equals("amd")
                     amdtype: -> @that.equals("factory")
-                2: -> @that.has.properties
+                3: -> @that.has.properties
                     id: -> @that.equals("c")
                     deps: -> @that.deep.equals
                         "./b": "b"
                     type: -> @that.equals("amd")
                     amdtype: -> @that.equals("rem")
-                3: -> @that.has.properties
+                4: -> @that.has.properties
                     id: -> @that.equals("d")
                     deps: -> @that.deep.equals
                         "./c": "c"
                     type: -> @that.equals("amd")
                     amdtype: -> @that.equals("deps")
-                4: -> @that.has.properties
+                5: -> @that.has.properties
                     id: -> @that.equals("e")
                     deps: -> @that.deep.equals
                         "./d": "d"
+                    type: -> @that.equals("amd")
+                    amdtype: -> @that.equals("named")
+                6: -> @that.has.properties
+                    id: -> @that.equals("f")
+                    deps: -> @that.deep.equals
+                        "./e": "e"
+                    type: -> @that.equals("amd")
+                    amdtype: -> @that.equals("deps")
+                7: -> @that.has.properties
+                    id: -> @that.equals("g")
+                    deps: -> @that.deep.equals
+                        "./f": "f"
                     type: -> @that.equals("amd")
                     amdtype: -> @that.equals("named")
 
@@ -1545,3 +1597,6 @@ describe 'Building various AMD formats', ->
                 2: -> @that.has.not.property("url")
                 3: -> @that.has.not.property("url")
                 4: -> @that.has.not.property("url")
+                5: -> @that.has.not.property("url")
+                6: -> @that.has.not.property("url")
+                7: -> @that.has.not.property("url")
