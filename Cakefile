@@ -256,7 +256,7 @@ task "populate-assets", "prepare assets to be used by builder", ->
 
     transform "./src/bootstrap/style.scss", "lib/assets/bootstrap.css", (input, output, data) ->
         console.log("Compiling %s --> %s", input, output)
-        sass.renderFile
+        sass.renderSync
             file: path.join('.', input)
             outputStyle: 'compressed'
             outFile: output
