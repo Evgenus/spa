@@ -323,18 +323,18 @@ class Builder
         while modules.length > 0
             module = modules.shift()
             source = fs.readFileSync(module.path)
-            module.source = source
+            module.source = source.toString('utf8')
             module.deps_paths = {}
             module.type = @_get_type(module)
             switch module.type
                 when "amd"
-                    module.amdtype = amdType(source)
+                    module.amdtype = amdType(module.source)
             module.source_hash = @calc_hash(source)
             module.source_length = source.length
 
             deps = switch module.type
-                when "cjs" then detectiveCJS(source)
-                when "amd" then detectiveAMD(source)
+                when "cjs" then detectiveCJS(module.source)
+                when "amd" then detectiveAMD(module.source)
                 else []
 
             #3 ISSUE. Add hardcoded dependencies from config here
