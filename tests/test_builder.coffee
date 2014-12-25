@@ -15,6 +15,42 @@ afterEach ->
     mock.restore()
     process.chdir(@old_cwd)
 
+describe 'Testing detectives', ->
+    beforeEach ->
+        mock(yaml.safeLoad("""
+            testimonial: 
+                a.js: |
+                    define({
+                        a: 1
+                        });
+                b.js: |
+                    define(function(require) {
+                        return require("./a")
+                        });
+                c.js: |
+                    define(function(require, exports, module) {
+                        module.exports = require("./b");
+                    });
+                d.js: |
+                    define(["./c"], function(c) {
+                        return c;
+                        });
+                e.js: |
+                    define("e", ["./d"], function(d) {
+                        return d;
+                        });
+            """))
+
+    detectiveCJS = require('detective')
+    detectiveAMD = require('detective-amd')
+
+    it 'should find dependency', ->
+        expect(detectiveAMD(fs.readFileSync("/testimonial/a.js", encoding: "utf8"))).to.deep.equal([])
+        expect(detectiveAMD(fs.readFileSync("/testimonial/b.js", encoding: "utf8"))).to.deep.equal(['./a'])
+        expect(detectiveAMD(fs.readFileSync("/testimonial/c.js", encoding: "utf8"))).to.deep.equal(['./b'])
+        expect(detectiveAMD(fs.readFileSync("/testimonial/d.js", encoding: "utf8"))).to.deep.equal(['./c'])
+        expect(detectiveAMD(fs.readFileSync("/testimonial/e.js", encoding: "utf8"))).to.deep.equal(['./d'])
+
 describe 'Building module with unknown dependency', ->
 
     base = ->
@@ -1552,7 +1588,7 @@ describe 'Building various AMD formats', ->
                     id: -> @that.equals("h")
                     deps: -> @that.deep.equals({})
                     type: -> @that.equals("amd")
-                    amdtype: -> @that.equals("XXX")
+                    amdtype: -> @that.equals(null)
                 2: -> @that.has.properties
                     id: -> @that.equals("b")
                     deps: -> @that.deep.equals
